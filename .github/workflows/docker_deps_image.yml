@@ -1,6 +1,10 @@
-name: Build and Push deps docker image to Docker Hub
+name: Build and push deps image
 on:
   push:
+    branches: [ main ]
+    paths:
+      - docker/**
+  pull_request:
     branches: [ main ]
     paths:
       - docker/**
@@ -8,7 +12,7 @@ on:
     
 jobs:
   build-and-push:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     strategy:
       matrix:
           architecture: [arm64]

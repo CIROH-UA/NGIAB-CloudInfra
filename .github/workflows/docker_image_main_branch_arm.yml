@@ -1,4 +1,4 @@
-name: Build and Push ARM Docker image to Docker Hub
+name: Build and push final ARM image
 on:
   push:
     branches: [ main ]

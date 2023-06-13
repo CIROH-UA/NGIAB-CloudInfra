@@ -1,17 +1,19 @@
-name: Build and Push t-route docker image to Docker Hub
+name: Build and push t-route image
 on:
   push:
     branches: [ main ]
     paths:
       - docker/**
+  workflow_run:
+    workflows: [Build and push deps image]
+    types:
+      - completed
   workflow_dispatch:
     
 jobs:
-  build-and-push:
-    runs-on: self-hosted
-    strategy:
-      matrix:
-          architecture: [arm64]
+  on-success:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: deploy
         uses: actions/checkout@v2
@@ -22,3 +24,8 @@ jobs:
           github-sha: ${{ github.sha }}
           image-name: "t-route"
           dockerfile-name: "Dockerfile.t-route"
+  on-failure:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    steps:
+      - run: echo 'The triggering workflow failed'
