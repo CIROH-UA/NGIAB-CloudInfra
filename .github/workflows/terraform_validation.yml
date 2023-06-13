@@ -1,3 +1,4 @@
+name: Validate TF script
 on:
   push:
     branches:
