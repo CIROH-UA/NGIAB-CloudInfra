@@ -128,16 +128,6 @@ Follow below steps to run `guide.sh` script
     $ ./guide.sh   
     
 ```
-#### Windows Steps:
-#### Note: It is recommended to use WSL and follow [instructions for WSL, Linux and Mac](#WSL,-Linux-and-Mac-Steps:-)
-```Windows  
-   # Note: Make sure you are in ~/NextGen/CloudInfra directory
-    $ .\guide.ps1
-   #Note: in case you get this error "\guide.ps1 cannot be loaded because running scripts is disabled on     this system." make sure the PowerShell is ran as adminstrator and run the following commands:
-    $ Get-ExecutionPolicy
-    $ Set-ExecutionPolicy RemoteSigned
-    $ .\guide.ps1
-```
 ### Output of the model guide script
 
 >*What you will see when you run above `guide.sh`?*
