@@ -1,5 +1,11 @@
 # Welcome to NextGen Framework National Water Model Community Repo. (NextGen In A Box).
 
+We are doing a case study : NWM run for Sipsey Fork,Black Warrior river
+- We don’t want to run all of CONUS
+- We want to run NextGen locally
+- We want to have control over inputs / config.
+- How can we do it? Answer: NextGen-In-A-Box
+
 This repository contains :
 - **Dockerfile** for running NextGen Framework (docker/Dockerfile)
 - **Terraform** configuration files for provisioning infrastructure in AWS (terraform/README.md)
@@ -7,8 +13,9 @@ This repository contains :
 
 ## Table of Contents
 * [Prerequisites:](#prerequisites-)
-    + [Install docker:](#install-docker-)
-    + [Download the input data in "ngen-data" folder from S3 bucket :](#download-the-input-data-in--ngen-data--folder-from-s3-bucket--)
+    + [Install docker](#install-docker-)
+    + [Install WSL on Windows](#Install-WSL-on-Windows-)
+    + [Download the input data in "ngen-data" folder from S3 bucket ](#download-the-input-data-in--ngen-data--folder-from-s3-bucket--)
       - [Linux & Mac](#linux---mac)
       - [Windows Steps:](#windows-steps-)
   * [Run NextGen-In-A-Box](#run-nextgen-in-a-box)
@@ -35,10 +42,43 @@ This repository contains :
     - On *Linux*:
         - [Install docker on Linux](https://docs.docker.com/desktop/install/linux-install/)
         - Follow similar steps as *Mac* for starting Docker and verifying the installation
+
+### Install WSL on Windows:
+
+1. Open **PowerShell** as an administrator.
+
+2. Run the following command to enable WSL feature:
+    ```
+    wsl --install
+    ```
+
+3. Wait for the installation to complete. It may take some time as it will download and install the necessary components.
+
+4. Once the installation is finished, you will be prompted to restart your computer. Type `Y` and press Enter to restart.
+
+5. After the computer restarts, open **Microsoft Store**.
+
+6. Search for "WSL" or "Windows Subsystem for Linux" in the search bar.
+
+7. Select the desired Linux distribution (e.g., Ubuntu, Debian, Fedora) from the search results.
+
+8. Click on the distribution and then click the **Install** button.
+
+9. Wait for the installation to complete. The installation process will download the Linux distribution package from the Microsoft Store.
+
+10. Once the installation is finished, you can launch the Linux distribution from the Start menu or by running its command (e.g., `ubuntu`).
+
+11. The first time you launch the Linux distribution, it will take some time to set up. Follow the on-screen instructions to create a username and password.
+
+12. After the setup is complete, you can use the Linux distribution through WSL on your Windows system.
+
+
+
+
     
 ### Download the input data in "ngen-data" folder from S3 bucket :
 
-#### Linux & Mac
+#### Linux & Mac & WSL
 
 ```Linux   
     $ mkdir NextGen
@@ -52,16 +92,15 @@ This repository contains :
 
 
 #### Windows Steps:
-```Windows
-    Use browser to download the data from https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-001/AWI_03W_113060_001.tar.gz
-   
+#### Note: It is recommended to use WSL and follow [instructions for Linux & Mac & WSL](#Linux-&-Mac-&-WSL-)
+
+```Windows  
     $ mkdir NextGen
     $ cd NextGen
     $ mkdir ngen-data
     $ cd ngen-data
-    $ Open browser and download data from here: https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-001/AWI_03W_113060_001.tar.gz
-    and copy the downloaded file to ngen-data folder.
-    Use WinRAR to extract the files from the tar bundle.
+    $ Invoke-WebRequest -Uri "https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-001/AWI_03W_113060_001.tar.gz"
+    $ tar -xzf "\AWI_03W_113060_001.tar.gz"
     $ cd AWI_03W_113060_001
 ```
 
@@ -69,10 +108,12 @@ This repository contains :
 
 ### Clone CloudInfra repo
 
-Clone the repo using below commands:
+1- Navigate to NextGen directory 
+
+2- Clone the repo using below commands:
+
 ```
-$ cd NextGen  
-$ git clone https://github.com/AlabamaWaterInstitute/CloudInfra.git
+$ git clone https://github.com/CIROH-UA/CloudInfra.git
 
 $ cd CloudInfra
 ```  
@@ -80,13 +121,23 @@ Once you are in *CloudInfra* directory, you should see `guide.sh` in it. Now, we
 
 ### How to run the model script?
 
+#### WSL, Linux and Mac Steps:
 Follow below steps to run `guide.sh` script 
 ```
     # Note: Make sure you are in ~/Documents/NextGen/CloudInfra directory
     $ ./guide.sh   
     
 ```
-
+#### Windows Steps:
+#### Note: It is recommended to use WSL and follow [instructions for WSL, Linux and Mac](#WSL,-Linux-and-Mac-Steps:-)
+```Windows  
+   # Note: Make sure you are in ~/NextGen/CloudInfra directory
+    $ .\guide.ps1
+   #Note: in case you get this error "\guide.ps1 cannot be loaded because running scripts is disabled on     this system." make sure the PowerShell is ran as adminstrator and run the following commands:
+    $ Get-ExecutionPolicy
+    $ Set-ExecutionPolicy RemoteSigned
+    $ .\guide.ps1
+```
 ### Output of the model guide script
 
 >*What you will see when you run above `guide.sh`?*
