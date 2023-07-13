@@ -132,9 +132,9 @@ echo -e "Pulled awiciroh/ciroh-ngen-image:latest-arm image"
 IMAGE_NAME=awiciroh/ciroh-ngen-image:latest-arm
 else
 
-docker pull awiciroh/ciroh-ngen-image:latest
-echo -e "Pulled awiciroh/ciroh-ngen-image:latest image"
-IMAGE_NAME=awiciroh/ciroh-ngen-image:latest
+docker pull awiciroh/ciroh-ngen-image:latest-x86
+echo -e "Pulled awiciroh/ciroh-ngen-image:latest-x86 image"
+IMAGE_NAME=awiciroh/ciroh-ngen-image:latest-x86
 fi
 
 echo -e "\n"

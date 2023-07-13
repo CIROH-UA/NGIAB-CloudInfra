@@ -4,10 +4,10 @@ We are doing a case study : NWM run for Sipsey Fork,Black Warrior river
 - We don’t want to run all of CONUS
 - We want to run NextGen locally
 - We want to have control over inputs / config.
-- How can we do it? Answer: NextGen-In-A-Box
+- How can we do it? Answer: NextGen In A Box
 
 This repository contains :
-- **Dockerfile** for running NextGen Framework (docker/Dockerfile)
+- **Dockerfile** for running NextGen Framework (docker/Dockerfile*)
 - **Terraform** configuration files for provisioning infrastructure in AWS (terraform/README.md)
 - Documentation of how to use the **infrastructure** and run the model. (README.md)
 
@@ -26,7 +26,7 @@ This repository contains :
 
 ## Prerequisites:
 
-### Install docker:
+### Install docker and validate docker is up:
     - On *Windows*:
         - [Install Docker Desktop on Windows](https://docs.docker.com/desktop/install/windows-install/#install-docker-desktop-on-windows)
         - Once docker is installed, start Docker Destop.
@@ -72,9 +72,6 @@ This repository contains :
 
 12. After the setup is complete, you can use the Linux distribution through WSL on your Windows system.
 
-
-
-
     
 ### Download the input data in "ngen-data" folder from S3 bucket :
 
@@ -104,13 +101,11 @@ This repository contains :
     $ cd AWI_03W_113060_001
 ```
 
-## Run NextGen-In-A-Box
+## Run NextGen In A Box
 
 ### Clone CloudInfra repo
 
-1- Navigate to NextGen directory 
-
-2- Clone the repo using below commands:
+Navigate to NextGen directory and clone the repo using below commands:
 
 ```
 $ git clone https://github.com/CIROH-UA/CloudInfra.git
@@ -127,16 +122,6 @@ Follow below steps to run `guide.sh` script
     # Note: Make sure you are in ~/Documents/NextGen/CloudInfra directory
     $ ./guide.sh   
     
-```
-#### Windows Steps:
-#### Note: It is recommended to use WSL and follow [instructions for WSL, Linux and Mac](#WSL,-Linux-and-Mac-Steps:-)
-```Windows  
-   # Note: Make sure you are in ~/NextGen/CloudInfra directory
-    $ .\guide.ps1
-   #Note: in case you get this error "\guide.ps1 cannot be loaded because running scripts is disabled on     this system." make sure the PowerShell is ran as adminstrator and run the following commands:
-    $ Get-ExecutionPolicy
-    $ Set-ExecutionPolicy RemoteSigned
-    $ .\guide.ps1
 ```
 ### Output of the model guide script
 
@@ -191,6 +176,7 @@ Example NGEN run command for serial mode:
 /ngen/ngen/data/config/awi_simplified_realization.json
 ```
 - After the model has finished running, the script prompts the user whether they want to continue.
-- If the user selects yes, the script opens an interactive shell. If the user selects no, the script exits.
+- If the user selects 1, the script opens an interactive shell. If the user selects 2, then the script copies the output data from container to local machine.
+- If the user selects 3, then the script exits.
 
-The output files are copied to the `outputs` folder in `HOST_DATA_PATH`.
+The output files are copied to the `outputs` folder in '/NextGen/ngen-data/AWI_03W_113060_001/' directory.
