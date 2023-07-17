@@ -1,0 +1,13 @@
+name: Send Slack Message
+on:
+  workflow_dispatch:
+    
+jobs:
+  send_slack:
+    runs-on: linux-latest
+    
+    steps:
+      - name: send slack message
+        uses: slackapi/slack-github-action@v1.24.0
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
