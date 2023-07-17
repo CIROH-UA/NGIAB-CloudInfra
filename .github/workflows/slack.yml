@@ -4,7 +4,7 @@ on:
     
 jobs:
   send_slack:
-    runs-on: linux-latest
+    runs-on: ubuntu-latest
     
     steps:
       - name: send slack message
