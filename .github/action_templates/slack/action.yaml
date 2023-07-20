@@ -11,5 +11,10 @@ runs:
   steps:
     - name: send slack message
       uses: slackapi/slack-github-action@v1.24.0
+      with:
+        payload: |
+          {
+            "text": "GitHub Action build result:"
+          }
       env:
         SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook-url}}
