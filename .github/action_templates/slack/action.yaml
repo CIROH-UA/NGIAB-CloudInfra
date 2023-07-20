@@ -5,6 +5,9 @@ inputs:
   slack-webhook-url:
     description: 'Slack webhook url'
     required: true
+  job-status:
+    description: 'Job status'
+    required: true
 
 runs:
   using: "composite"
@@ -14,7 +17,7 @@ runs:
       with:
         payload: |
           {
-            "text": "GitHub Action build result:"
+            "text": "GitHub Action build result: ${{ inputs.job-status }}"
           }
       env:
         SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook-url}}

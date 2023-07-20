@@ -13,3 +13,4 @@ jobs:
         uses: ./.github/action_templates/slack
         with:
           slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          job-status: ${{ job.status }}
