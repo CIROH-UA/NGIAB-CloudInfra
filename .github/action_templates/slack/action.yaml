@@ -1,0 +1,9 @@
+name: Send Slack Message
+description: "Send slack message to a channel"
+    
+runs:
+  steps:
+    - name: send slack message
+      uses: slackapi/slack-github-action@v1.24.0
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
