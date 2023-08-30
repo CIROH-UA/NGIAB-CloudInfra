@@ -1,0 +1,47 @@
+{
+	"RUN_CONFIG": {
+		"description": "Run Config for Hurricane Zach",
+		"Model": {
+			"realization": {
+				"Name": "CFE_SLOTH_realization",
+				"Type": "filesystem",
+				"Path": "/ngen/realization.json",
+				"Hash": "d2c6fbda93c134de495d69745fae11087784d2aa"
+			},
+			"configuration": {
+				"Name": "CFE_SLOTH_ini",
+				"Type": "filesystem",
+				"Path": "/ngen/cfe_sloth.ini",
+				"Hash": "ab0c3dff59c4b282b172b90128159fda3386d012"
+			}
+		},
+		"Forcings": {
+			"inputs": {
+				"Name": "Hurricane Zach",
+				"Type": "bucket",
+				"Path": "s3://awi-ciroh-ngen-data/AWI_001/forcings/",
+				"Hash": "220fff8bdd3b85f23d93e73b4bc7e3bc2c7c0f35"
+			},
+			"Hydrofabric": {
+				"catchment": {
+					"Name": "Catchment(s) File v1.0",
+					"Type": "bucket",
+					"Path": "s3://awi-ciroh-ngen-data/AWI_001/catchments.geojson",
+					"Hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+				},
+				"nexus": {
+					"Name": "Nexus File v1.0",
+					"Type": "bucket",
+					"Path": "s3://awi-ciroh-ngen-data/AWI_001/nexus.geojson",
+					"Hash": "cae054f62f697080d822fea9c7d9c268be8b7ac9"
+				},
+				"crosswalk": {
+					"Name": "Crosswalk File v1.0",
+					"Type": "bucket",
+					"Path": "s3://awi-ciroh-ngen-data/AWI_001/crosswalk.geojson",
+					"Hash": "4c39964d1e30779f9992d3c00e94a39952cb102a"
+				}
+			}
+		}
+	}
+}
