@@ -22,12 +22,7 @@ Provide a brief description of the project and its goals. This can help the infr
 Specify the compute, storage, and network resources needed for the project. Be as specific as possible about the number of resources required, and any specific configurations or capabilities needed. This information will help the infrastructure team determine the appropriate resources to allocate.
 
 **Options:**
-1. Cloud Provider: AWS/Azure/GCP
 
-2. Required Services in the Cloud:
-
-   Below is the examples of AWS, and this applies to other cloud 
-   provider as well.
 - EC2
 - S3 – public, private, requester pay, bucket name suggestion?
 - EBS (Amazon Elastic Block Store)
