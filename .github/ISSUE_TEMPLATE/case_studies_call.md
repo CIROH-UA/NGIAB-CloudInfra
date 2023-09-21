@@ -75,8 +75,12 @@ If there are any specific security or compliance requirements for the project, t
  
 
 
-**7.	Budget:** 
-Include any budget constraints or requirements for the project. This will help the infrastructure team select the most cost-effective solutions for the project.
+**7.	Estimation:** 
+Include any cost estimation or requirements for the project. This will help the infrastructure team select the most cost-effective solutions for the project.
+
+AWS Cost Calculator: https://calculator.aws/#/
+
+Google Cloud Pricing Calculator: https://cloud.google.com/products/calculator
  
 
  
