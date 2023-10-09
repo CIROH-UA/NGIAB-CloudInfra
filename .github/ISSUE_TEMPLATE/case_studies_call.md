@@ -29,6 +29,7 @@ Specify the compute, storage, and network resources needed for the project. Be a
 2. Required Services in the Cloud:
 
    List of AWS Services
+   ====================
 - EC2
 - S3 – public, private, requester pay, bucket name suggestion?
 - EBS (Amazon Elastic Block Store)
@@ -42,6 +43,7 @@ Specify the compute, storage, and network resources needed for the project. Be a
 - Others: please list
   
    List of Azure Services
+   ====================
 - Virtual Machines
 - Azure App Service
 - Azure Kubernetes Service (AKS)
@@ -54,6 +56,7 @@ Specify the compute, storage, and network resources needed for the project. Be a
 - Other: please list
 
    List of GCP Services
+  ====================
 - Google Compute Engine
 - Google Kubernetes Engine (GKE)
 - Google Cloud Storage
