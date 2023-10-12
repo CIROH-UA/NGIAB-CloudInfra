@@ -108,7 +108,7 @@ This repository contains :
 Navigate to NextGen directory and clone the repo using below commands:
 
 ```bash
-$ git clone https://github.com/CIROH-UA/NGIAB-CloudInfra.git
+$ git clone https://github.com/CIROH-UA/NGIAB-CloudInfra.git CloudInfra
 
 $ cd CloudInfra
 ```  
@@ -119,7 +119,7 @@ Once you are in *CloudInfra* directory, you should see `guide.sh` in it. Now, we
 #### WSL, Linux and Mac Steps:
 Follow below steps to run `guide.sh` script 
 ```bash
-    # Note: Make sure you are in ~/Documents/NextGen/CloudInfra directory
+    # Note: Make sure you are in ~/Documents/NextGen/<CloudInfra directory>
     $ ./guide.sh   
     
 ```
