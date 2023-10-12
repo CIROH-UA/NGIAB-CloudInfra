@@ -78,10 +78,8 @@ This repository contains :
 #### Linux & Mac & WSL
 
 ```bash   
-    $ mkdir NextGen
-    $ cd NextGen
-    $ mkdir ngen-data
-    $ cd ngen-data
+    $ mkdir -p NextGen/ngen-data
+    $ cd NextGen/ngen-data
     $ wget --no-parent https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-001/AWI_03W_113060_001.tar.gz
     $ tar -xf AWI_03W_113060_001.tar.gz 
     $ cd AWI_03W_113060_001
