@@ -94,87 +94,86 @@ USER ${USER}
 # of all the submdoules, and that might prove difficult to do in the near future, but if that does happen,
 # then this can be removed at that point.
 COPY fix_io_sub_7551590a415b89026559c1c570d4154e4746161b.patch ${WORKDIR}/ngen/fix_io_sub.patch
-# Apply the IO fix to submodules, once they all get patched/merged, this can be dropped...
-RUN cd ${WORKDIR}/ngen && git apply --reject --whitespace=fix \
-    #patch the submodules
-    fix_io_sub.patch
+# Set default working directory
+ENV WORKDIR_ROOT=${WORKDIR}
+WORKDIR ${WORKDIR}/ngen
 
-RUN cd ${WORKDIR}/ngen \
-    && if [ "${NGEN_ACTIVATE_PYTHON}" == "ON" ]; then \
+# Apply patches
+RUN git apply --reject --whitespace=fix fix_io_sub.patch
+
+# Install required Python packages
+RUN if [ "${NGEN_ACTIVATE_PYTHON}" == "ON" ]; then \
         pip3 install -r extern/test_bmi_py/requirements.txt; \
-        if [ "${NGEN_ROUTING_ACTIVE}" == "ON" ] ; then \
+        if [ "${NGEN_ROUTING_ACTIVE}" == "ON" ]; then \
             pip3 install /tmp/t-route-wheels/*.whl; \
             pip3 install -r /tmp/t-route-requirements.txt; \
-            pip3 install deprecated geopandas ; \
-            fi; \
+            pip3 install deprecated geopandas; \
         fi \
-    &&  if [ "${NGEN_ACTIVATE_FORTRAN}" == "ON" ]; then \
-                ./build_sub extern/iso_c_fortran_bmi; \
-                if [ "${BUILD_NOAH_OWP}" == "true" ] ; then ./build_sub extern/noah-owp-modular; fi; \
-        fi \
-    &&  if [ "${NGEN_ACTIVATE_C}" == "ON" ]; then \
-                if [ "${BUILD_CFE}" == "true" ] ; then ./build_sub extern/cfe; fi; \
-                if [ "${BUILD_PET}" == "true" ] ; then ./build_sub extern/evapotranspiration/evapotranspiration; fi; \
-                if [ "${BUILD_TOPMODEL}" == "true" ] ; then ./build_sub extern/topmodel; fi; \
-        fi \
-    && if [ "${BUILD_SLOTH}" == "true" ] ; then ./build_sub extern/sloth; fi \
-    && if [ "${BUILD_NGEN_SERIAL}" == "true" ]; then \
-        cmake -B cmake_build_serial -S . \
-        -DMPI_ACTIVE:BOOL=OFF \
-        -DNETCDF_ACTIVE:BOOL=${NGEN_NETCDF_ACTIVE} \
-        -DBMI_C_LIB_ACTIVE:BOOL=${NGEN_ACTIVATE_C} \
-        -DBMI_FORTRAN_ACTIVE:BOOL=${NGEN_ACTIVATE_FORTRAN} \
-        -DNGEN_ACTIVATE_PYTHON:BOOL=${NGEN_ACTIVATE_PYTHON} \
-        -DNGEN_ACTIVATE_ROUTING:BOOL=${NGEN_ROUTING_ACTIVE} \
-        -DUDUNITS_ACTIVE:BOOL=${NGEN_UDUNITS_ACTIVE} \
-        -DUDUNITS_QUIET:BOOL=${NGEN_UDUNITS_QUIET} \
-        -DCMAKE_INSTALL_PREFIX=${WORKDIR} \
-        -DNETCDF_INCLUDE_DIR=/usr/include \
-        -DNETCDF_LIBRARY=/usr/lib/libnetcdf.so \
-        -DNETCDF_CXX_INCLUDE_DIR=/usr/local/include \
-        -DNETCDF_CXX_LIBRARY=/usr/local/lib64/libnetcdf-cxx4.so ; \
-    fi \
-    && if [ "${BUILD_NGEN_PARALLEL}" == "true" ]; then \
-        cmake -B cmake_build_parallel -S . \
-        -DMPI_ACTIVE:BOOL=ON \
-        -DNETCDF_ACTIVE:BOOL=${NGEN_NETCDF_ACTIVE} \
-        -DBMI_C_LIB_ACTIVE:BOOL=${NGEN_ACTIVATE_C} \
-        -DBMI_FORTRAN_ACTIVE:BOOL=${NGEN_ACTIVATE_FORTRAN} \
-        -DNGEN_ACTIVATE_PYTHON:BOOL=${NGEN_ACTIVATE_PYTHON} \
-        -DNGEN_ACTIVATE_ROUTING:BOOL=${NGEN_ROUTING_ACTIVE} \
-        -DUDUNITS_ACTIVE:BOOL=${NGEN_UDUNITS_ACTIVE} \
-        -DUDUNITS_QUIET:BOOL=${NGEN_UDUNITS_QUIET} \
-        -DCMAKE_INSTALL_PREFIX=${WORKDIR} \
-        -DNETCDF_INCLUDE_DIR=/usr/include \
-        -DNETCDF_LIBRARY=/usr/lib/libnetcdf.so \
-        -DNETCDF_CXX_INCLUDE_DIR=/usr/local/include \
-        -DNETCDF_CXX_LIBRARY=/usr/local/lib64/libnetcdf-cxx4.so ; \
-    fi \
-    && ln -s $(if [ "${BUILD_NGEN_PARALLEL}" == "true" ]; then echo "cmake_build_parallel"; else echo "cmake_build_serial"; fi) cmake_build \
-    # Build the required submodules/external libs needed for running the tests later \
-    # C++ functionality isn't separate, so always build the test_bmi_cpp shared lib (also needed for test_bmi_multi) \
-    && ./build_sub extern/test_bmi_cpp \
-    # For the external language BMI integrations, conditionally build the test packages/libraries and run tests \
-    &&  if [ "${NGEN_ACTIVATE_C}" == "ON" ]; then \
-            ./build_sub extern/test_bmi_c; \
-        fi \
-    &&  if [ "${NGEN_ACTIVATE_FORTRAN}" == "ON" ]; then \
-            ./build_sub extern/test_bmi_fortran; \
-        fi \
-    &&  for BUILD_DIR in $(if [ "${BUILD_NGEN_PARALLEL}" == "true" ]; then echo "cmake_build_parallel"; fi) $(if [ "${BUILD_NGEN_SERIAL}" == "true" ]; then echo "cmake_build_serial"; fi) ; do \
-        cmake --build $BUILD_DIR --target all -j $(nproc); \
-    done \
-    # run the serial tests \
-    && cd ${WORKDIR}/ngen \
-    # && cmake --build cmake_build_serial --target test \ 
-    # have to remove the output from the previous tests runs for routing test to be run again... \
-    && rm -f ./test/data/routing/*.parquet \
-    # run the parallel tests \
-    # && cmake --build cmake_build_parallel --target test \
-    # clean these up again... \
-    && rm -f ./test/data/routing/*.parquet \
-    #Run the MPI tests manually, they don't play well with ctest and are skipped in the above tests \
-    && mpirun -n 2 cmake_build_parallel/test/test_remote_nexus \
-    && mpirun -n 3 cmake_build_parallel/test/test_remote_nexus \
-    && mpirun -n 4 cmake_build_parallel/test/test_remote_nexus \
-    && find cmake_build* -type f -name "*" ! \( -name "*.so" -o -name "ngen" -o -name "partitionGenerator" \) -exec rm {} + 
+    fi
+
+# Build submodules
+RUN if [ "${NGEN_ACTIVATE_FORTRAN}" == "ON" ]; then \
+        ./build_sub extern/iso_c_fortran_bmi; \
+        if [ "${BUILD_NOAH_OWP}" == "true" ]; then ./build_sub extern/noah-owp-modular; fi \
+    fi && \
+    if [ "${NGEN_ACTIVATE_C}" == "ON" ]; then \
+        if [ "${BUILD_CFE}" == "true" ]; then ./build_sub extern/cfe; fi; \
+        if [ "${BUILD_PET}" == "true" ]; then ./build_sub extern/evapotranspiration/evapotranspiration; fi; \
+        if [ "${BUILD_TOPMODEL}" == "true" ]; then ./build_sub extern/topmodel; fi \
+    fi && \
+    if [ "${BUILD_SLOTH}" == "true" ]; then ./build_sub extern/sloth; fi
+
+
+# Setup build directories
+RUN COMMON_ARGS="-DNETCDF_ACTIVE:BOOL=${NGEN_NETCDF_ACTIVE} \
+    -DBMI_C_LIB_ACTIVE:BOOL=${NGEN_ACTIVATE_C} \
+    -DBMI_FORTRAN_ACTIVE:BOOL=${NGEN_ACTIVATE_FORTRAN} \
+    -DNGEN_ACTIVATE_PYTHON:BOOL=${NGEN_ACTIVATE_PYTHON} \
+    -DNGEN_ACTIVATE_ROUTING:BOOL=${NGEN_ROUTING_ACTIVE} \
+    -DUDUNITS_ACTIVE:BOOL=${NGEN_UDUNITS_ACTIVE} \
+    -DUDUNITS_QUIET:BOOL=${NGEN_UDUNITS_QUIET} \
+    -DCMAKE_INSTALL_PREFIX=${WORKDIR_ROOT} \
+    -DNETCDF_INCLUDE_DIR=/usr/include \
+    -DNETCDF_LIBRARY=/usr/lib/libnetcdf.so \
+    -DNETCDF_CXX_INCLUDE_DIR=/usr/local/include \
+    -DNETCDF_CXX_LIBRARY=/usr/local/lib64/libnetcdf-cxx4.so" && \
+    if [ "${BUILD_NGEN_SERIAL}" == "true" ]; then \
+        cmake -B cmake_build_serial -S . -DMPI_ACTIVE:BOOL=OFF $COMMON_ARGS ; \
+    fi && \
+    if [ "${BUILD_NGEN_PARALLEL}" == "true" ]; then \
+        cmake -B cmake_build_parallel -S . -DMPI_ACTIVE:BOOL=ON $COMMON_ARGS ; \
+    fi && \
+    ln -s $(if [ "${BUILD_NGEN_PARALLEL}" == "true" ]; then echo "cmake_build_parallel"; else echo "cmake_build_serial"; fi) cmake_build
+
+# Build required submodules/external libs for tests
+RUN ./build_sub extern/test_bmi_cpp && \
+    if [ "${NGEN_ACTIVATE_C}" == "ON" ]; then ./build_sub extern/test_bmi_c; fi && \
+    if [ "${NGEN_ACTIVATE_FORTRAN}" == "ON" ]; then ./build_sub extern/test_bmi_fortran; fi
+
+RUN sed -i \
+-e 's|.PHONY : CMakeFiles|.PHONY : /ngen/ngen/extern/test_bmi_cpp/cmake_build/CMakeFiles|' \
+-e 's|include CMakeFiles|include /ngen/ngen/extern/test_bmi_cpp/cmake_build/CMakeFiles|' \
+/ngen/ngen/extern/test_bmi_cpp/cmake_build/CMakeFiles/testbmicppmodel.dir/build.make
+
+RUN tail /ngen/ngen/extern/test_bmi_cpp/cmake_build/CMakeFiles/testbmicppmodel.dir/build.make
+
+# Build in cmake_build_serial
+RUN if [ "${BUILD_NGEN_SERIAL}" == "true" ]; then \
+        cmake --build cmake_build_serial --target all -j $(nproc); \
+    fi
+
+# Build in cmake_build_parallel
+RUN if [ "${BUILD_NGEN_PARALLEL}" == "true" ]; then \
+        cmake --build cmake_build_parallel --target all -j $(nproc); \
+    fi
+
+# Cleanup
+RUN rm -f ./test/data/routing/*.parquet
+
+# Manual MPI tests
+RUN mpirun -n 2 cmake_build_parallel/test/test_remote_nexus && \
+    mpirun -n 3 cmake_build_parallel/test/test_remote_nexus && \
+    mpirun -n 4 cmake_build_parallel/test/test_remote_nexus
+
+# Clean up
+RUN find cmake_build* -type f -name "*" ! \( -name "*.so" -o -name "ngen" -o -name "partitionGenerator" \) -exec rm {} +
