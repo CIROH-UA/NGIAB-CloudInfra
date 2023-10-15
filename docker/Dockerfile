@@ -20,14 +20,14 @@ RUN rm -rf ${BOOST_ROOT} && echo "export PATH=${PATH}" >> /etc/profile \
 # chmod +x ${WORKDIR}/entrypoint.sh \
 RUN for d in ${DATASET_DIRECTORIES}; do mkdir -p /dmod/datasets/${d}; done \
     && for d in iso_c_fortran_bmi noah-owp-modular topmodel cfe sloth 'evapotranspiration/evapotranspiration'; do \
-        if [ -d ${WORKDIR}/ngen/extern/${d}/cmake_build ]; then \
-            cp -a ${WORKDIR}/ngen/extern/${d}/cmake_build/*.so* /dmod/shared_libs/.; \
-        fi; \
+    if [ -d /ngen/ngen/extern/${d}/cmake_build ]; then \
+    cp -a /ngen/ngen/extern/${d}/cmake_build/*.so* /dmod/shared_libs/.; \
+    fi; \
     done \
-    && find ${WORKDIR}/ngen/extern/noah-owp-modular -type f -iname "*.TBL" -exec cp '{}' /dmod/datasets/static  \; \
-    && ( cp -a ${WORKDIR}/ngen/cmake_build_parallel/ngen /dmod/bin/ngen-parallel || true ) \
-    && ( cp -a ${WORKDIR}/ngen/cmake_build_serial/ngen /dmod/bin/ngen-serial || true ) \
-    && ( cp -a ${WORKDIR}/ngen/cmake_build/partitionGenerator /dmod/bin/partitionGenerator || true ) \
+    && find /ngen/ngen/extern/noah-owp-modular -type f -iname "*.TBL" -exec cp '{}' /dmod/datasets/static  \; \
+    && ( cp -a /ngen/ngen_parallel/ngen /dmod/bin/ngen-parallel || true ) \
+    && ( cp -a /ngen/ngen_serial/ngen /dmod/bin/ngen-serial || true ) \
+    && ( cp -a /ngen/ngen/partitionGenerator /dmod/bin/partitionGenerator || true ) \
     && pushd /dmod/bin \
     && ( ( stat ngen-parallel && ln -s ngen-parallel ngen ) || ( stat ngen-serial && ln -s ngen-serial ngen ) ) \
     && popd 
