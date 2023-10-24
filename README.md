@@ -117,10 +117,9 @@ Once you are in *CloudInfra* directory, you should see `guide.sh` in it. Now, we
 
 #### WSL, Linux and Mac Steps:
 Follow below steps to run `guide.sh` script 
+
 ```bash
-    # Note: Make sure you are in ~/Documents/NextGen/NGIAB-CloudInfra
-    $ ./guide.sh   
-    
+    $ ./guide.sh    
 ```
 ### Output of the model guide script
 
