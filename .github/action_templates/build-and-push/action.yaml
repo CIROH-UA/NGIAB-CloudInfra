@@ -14,6 +14,9 @@ inputs:
   dockerfile-name:
     description: 'The name of dockerfile to use'
     required: true
+  commit-id:
+    description: 'Commit to be used in the target repo'
+    required: false
 
 runs:
   using: "composite"
@@ -38,6 +41,7 @@ runs:
         file: ./docker/${{ inputs.dockerfile-name}}
         push: true
         platforms: linux/arm64
+        build-args: commit=${{ inputs.commit-id}}
         tags: |
           awiciroh/${{ inputs.image-name}}:latest
         builder: mybuilder

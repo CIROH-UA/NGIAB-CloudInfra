@@ -24,6 +24,7 @@ jobs:
           github-sha: ${{ github.sha }}
           image-name: "ngen"
           dockerfile-name: "Dockerfile.ngen"
+          commit-id: "2a8fcf2"
   on-failure:
     runs-on: self-hosted
     if: ${{ github.event.workflow_run.conclusion == 'failure' }}

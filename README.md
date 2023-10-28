@@ -48,7 +48,7 @@ This repository contains :
 1. Open **PowerShell** as an administrator.
 
 2. Run the following command to enable WSL feature:
-    ```
+    ```powershell
     wsl --install
     ```
 
@@ -77,11 +77,9 @@ This repository contains :
 
 #### Linux & Mac & WSL
 
-```Linux   
-    $ mkdir NextGen
-    $ cd NextGen
-    $ mkdir ngen-data
-    $ cd ngen-data
+```bash   
+    $ mkdir -p NextGen/ngen-data
+    $ cd NextGen/ngen-data
     $ wget --no-parent https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-001/AWI_03W_113060_001.tar.gz
     $ tar -xf AWI_03W_113060_001.tar.gz 
     $ cd AWI_03W_113060_001
@@ -91,7 +89,7 @@ This repository contains :
 #### Windows Steps:
 #### Note: It is recommended to use WSL and follow [instructions for Linux & Mac & WSL](#Linux-&-Mac-&-WSL-)
 
-```Windows  
+```powershell  
     $ mkdir NextGen
     $ cd NextGen
     $ mkdir ngen-data
@@ -107,7 +105,8 @@ This repository contains :
 
 Navigate to NextGen directory and clone the repo using below commands:
 
-```
+```bash
+$ cd ../..
 $ git clone https://github.com/CIROH-UA/NGIAB-CloudInfra.git
 
 $ cd NGIAB-CloudInfra
@@ -118,10 +117,9 @@ Once you are in *CloudInfra* directory, you should see `guide.sh` in it. Now, we
 
 #### WSL, Linux and Mac Steps:
 Follow below steps to run `guide.sh` script 
-```
-    # Note: Make sure you are in ~/Documents/NextGen/NGIAB-CloudInfra directory
-    $ ./guide.sh   
-    
+
+```bash
+    $ ./guide.sh    
 ```
 ### Output of the model guide script
 
@@ -132,14 +130,14 @@ Follow below steps to run `guide.sh` script
 Run the following command based on your OS and copy the path value:
 
  **Windows:**
-```
+```powershell
 C:> cd ~\<path>\NextGen\ngen-data
 c:> pwd
 and copy the path
 ```
 
  **Linux/Mac:**
-```
+```bash
 $ cd ~/<path>/NextGen/ngen-data
 $ pwd
 and copy the path
@@ -159,7 +157,7 @@ For x86 machines, it pulls awiciroh/ciroh-ngen-image:latest-x86.
 - If the user selects the catchment, nexus, and realization files they want to use.
 
 Example NGEN run command for parallel mode: 
-```
+```bash
 mpirun -n 2 /dmod/bin/ngen-parallel 
 /ngen/ngen/data/config/catchments.geojson "" 
 /ngen/ngen/data/config/nexus.geojson "" 
@@ -169,7 +167,7 @@ mpirun -n 2 /dmod/bin/ngen-parallel
 - If the user selects serial mode, the script runs the model directly.
 
 Example NGEN run command for serial mode: 
-```
+```bash
 /dmod/bin/ngen-serial 
 /ngen/ngen/data/config/catchments.geojson "" 
 /ngen/ngen/data/config/nexus.geojson "" 
