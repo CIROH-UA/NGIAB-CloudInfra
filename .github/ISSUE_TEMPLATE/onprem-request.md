@@ -24,11 +24,13 @@ If your project involves developing software or scripts, briefly describe the so
 Specify the compute, storage, and network resources needed for the project. Be as specific as possible about the number of resources required, and any specific configurations or capabilities needed. This information will help the infrastructure team determine the appropriate resources to allocate.
 
 **Options:**
-1. vCPU
+1. HPC or VM
+  
+2. vCPU
 
-2. Memory
+3. Memory
 
-3. Disk Space
+4. Disk Space
 
 
 **5.	Timeline:** 
