@@ -38,7 +38,7 @@ ENV PATH=${WORKDIR}:$PATH
 
 ################################################################################################################
 ##### Final stage for image
-FROM rockylinux:9.1-minimal
+FROM rockylinux:9.2-minimal
 
 ########################################Copy over the NGEN artifacts############################################
 COPY --chown=root --from=rocky_build_staging /dmod/ /dmod/
