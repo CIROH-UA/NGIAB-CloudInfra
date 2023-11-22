@@ -162,7 +162,6 @@ RUN cd ${WORKDIR}/ngen \
     &&  if [ "${NGEN_ACTIVATE_FORTRAN}" == "ON" ]; then \
             ./build_sub extern/test_bmi_fortran; \
         fi \
-    done \
     # run the serial tests \
     && cd ${WORKDIR}/ngen \
     # && cmake --build cmake_build_serial --target test \ 
