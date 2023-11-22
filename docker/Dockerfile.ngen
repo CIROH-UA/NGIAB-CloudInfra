@@ -133,7 +133,7 @@ RUN cd ${WORKDIR}/ngen \
         -DNETCDF_LIBRARY=/usr/lib/libnetcdf.so \
         -DNETCDF_CXX_INCLUDE_DIR=/usr/local/include \
         -DNETCDF_CXX_LIBRARY=/usr/local/lib64/libnetcdf-cxx4.so ; \
-        cmake --build $cmake_build_serial --target all -j $(nproc); \
+        cmake --build cmake_build_serial --target all -j $(nproc); \
     fi \
     && if [ "${BUILD_NGEN_PARALLEL}" == "true" ]; then \
         cmake -B cmake_build_parallel -S . \
@@ -150,7 +150,7 @@ RUN cd ${WORKDIR}/ngen \
         -DNETCDF_LIBRARY=/usr/lib/libnetcdf.so \
         -DNETCDF_CXX_INCLUDE_DIR=/usr/local/include \
         -DNETCDF_CXX_LIBRARY=/usr/local/lib64/libnetcdf-cxx4.so ; \
-        cmake --build $cmake_build_parallel --target all -j $(nproc); \
+        cmake --build cmake_build_parallel --target all -j $(nproc); \
     fi \
     # Build the required submodules/external libs needed for running the tests later \
     # C++ functionality isn't separate, so always build the test_bmi_cpp shared lib (also needed for test_bmi_multi) \
