@@ -1,0 +1,87 @@
+{
+    "global": {
+        "formulations": [
+            {
+                "name": "bmi_multi",
+                "params": {
+                    "name": "bmi_multi",
+                    "model_type_name": "NoahOWP_CFE",
+                    "main_output_variable": "Q_OUT",
+                    "init_config": "",
+                    "allow_exceed_end_time": false,
+                    "fixed_time_step": false,
+                    "uses_forcing_file": false,
+                    "modules": [
+                        {
+                            "name": "bmi_c",
+                            "params": {
+                                "name": "bmi_c",
+                                "model_type_name": "CFE",
+                                "main_output_variable": "Q_OUT",
+                                "init_config": "/ngen/ngen/data/config/awi_config.ini",
+                                "allow_exceed_end_time": true,
+                                "fixed_time_step": false,
+                                "uses_forcing_file": false,
+                                "variables_names_map": {
+                                    "atmosphere_water__liquid_equivalent_precipitation_rate": "precip_rate",
+                                    "water_potential_evaporation_flux": "EVAPOTRANS",
+                                    "ice_fraction_schaake": "sloth_ice_fraction_schaake",
+                                    "ice_fraction_xinan": "sloth_ice_fraction_xinan",
+                                    "soil_moisture_profile": "sloth_smp"
+                                },
+                                "model_params": {
+                                    "b": 8.660529385231255,
+                                    "satdk": 0.00011760880965802808,
+                                    "maxsmc": 0.543673362985325,
+                                    "refkdt": 3.6613440504586134,
+                                    "slope": 0.8154788969461678,
+                                    "max_gw_storage": 0.04021994414923359,
+                                    "expon": 7.308820146231674,
+                                    "Cgw": 0.0004609207383395736,
+                                    "Klf": 0.1681695665829872,
+                                    "Kn": 0.4017865685354076
+                                },
+                                "library_file": "/dmod/shared_libs/libcfebmi.so.1.0.0",
+                                "registration_function": "register_bmi_cfe"
+                            }
+                        },
+                        {
+                            "name": "bmi_c++",
+                            "params": {
+                                "name": "bmi_c++",
+                                "model_type_name": "SLOTH",
+                                "main_output_variable": "z",
+                                "init_config": "/dev/null",
+                                "allow_exceed_end_time": true,
+                                "fixed_time_step": false,
+                                "uses_forcing_file": false,
+                                "model_params": {
+                                    "sloth_ice_fraction_schaake(1,double,m,node)": "0.0",
+                                    "sloth_ice_fraction_xinan(1,double,1,node)": "0.0",
+                                    "sloth_smp(1,double,1,node)": "0.0",
+                                    "EVAPOTRANS": "0.0"
+                                },
+                                "library_file": "/dmod/shared_libs/libslothmodel.so",
+                                "registration_function": "none"
+                            }
+                        }
+                    ]
+                }
+            }
+        ],
+        "forcing": {
+            "file_pattern": "cat03w_{{id}}*.csv",
+            "path": "/ngen/ngen/data/forcings/",
+            "provider": "CsvPerFeature"
+        }
+    },
+    "time": {
+        "start_time": "2022-08-24 13:00:00",
+        "end_time": "2022-09-03 12:00:00",
+        "output_interval": 3600
+    },
+    "routing": {
+        "t_route_config_file_with_path": "/ngen/ngen/data/config/ngen.yaml"
+    },
+    "catchments": {}
+}
