@@ -41,6 +41,7 @@ runs:
         tags: |
           awiciroh/${{ inputs.image-name}}:latest
         builder: mybuilder
+        no-cache: true
       env:
         DOCKER_BUILDKIT: 1
         DOCKER_CLI_EXPERIMENTAL: enabled

@@ -36,6 +36,8 @@ ARG REPO_URL \
 COPY --chown=root --from=rocky_init_troute_repo ${WORKDIR}/t-route ${WORKDIR}/t-route
 
 RUN cp -s /usr/bin/python3 /usr/bin/python \
+    # Install the build package to build package wheel for troute-config
+    && pip install build \
     #&& python(){ /usr/bin/python3 \$@; } && export -f python \
     && cd ${WORKDIR}/t-route \
     && mkdir wheels \
@@ -49,6 +51,10 @@ RUN cp -s /usr/bin/python3 /usr/bin/python \
     && cp dist/*.whl ${WORKDIR}/t-route/wheels/ \
     && cd ../troute-routing \
     && python3 setup.py --use-cython bdist_wheel \
+    && cp dist/*.whl ${WORKDIR}/t-route/wheels/ \
+    # troute-config doesn't use setup.py, use build to make the wheel
+    && cd ../troute-config \
+    && python3 -m build . \
     && cp dist/*.whl ${WORKDIR}/t-route/wheels/ \
     && cd ../troute-nwm \
     && python3 setup.py bdist_wheel \

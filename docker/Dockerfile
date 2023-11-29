@@ -27,7 +27,7 @@ RUN for d in ${DATASET_DIRECTORIES}; do mkdir -p /dmod/datasets/${d}; done \
     && find ${WORKDIR}/ngen/extern/noah-owp-modular -type f -iname "*.TBL" -exec cp '{}' /dmod/datasets/static  \; \
     && ( cp -a ${WORKDIR}/ngen/cmake_build_parallel/ngen /dmod/bin/ngen-parallel || true ) \
     && ( cp -a ${WORKDIR}/ngen/cmake_build_serial/ngen /dmod/bin/ngen-serial || true ) \
-    && ( cp -a ${WORKDIR}/ngen/cmake_build/partitionGenerator /dmod/bin/partitionGenerator || true ) \
+    && ( cp -a ${WORKDIR}/ngen/cmake_build_parallel/partitionGenerator /dmod/bin/partitionGenerator || true ) \
     && pushd /dmod/bin \
     && ( ( stat ngen-parallel && ln -s ngen-parallel ngen ) || ( stat ngen-serial && ln -s ngen-serial ngen ) ) \
     && popd 
