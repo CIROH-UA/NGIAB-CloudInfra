@@ -1,132 +1,133 @@
 #!/bin/bash
+# ANSI color codes
+RED='\e[31m'
+GREEN='\e[32m'
+YELLOW='\e[33m'
+BLUE='\e[34m'
+MAGENTA='\e[35m'
+CYAN='\e[36m'
+RESET='\e[0m'
+
 workdir="${1:-/ngen}"
-cd ${workdir}
+cd "${workdir}" || { echo -e "${RED}Failed to change directory to ${workdir}${RESET}"; exit 1; }
 set -e
-echo "Working directory is :" 
+echo -e "${CYAN}Working directory is:${RESET}"
 pwd
 echo -e "\n"
 
-HYDRO_FABRIC_CATCHMENTS=$(find ${workdir} -name "*catchment*.geojson")
-HYDRO_FABRIC_NEXUS=$(find ${workdir} -name "*nexus*.geojson")
-NGEN_REALIZATIONS=$(find ${workdir} -name "*realization*.json")
-#pwd
-echo -e "\e[4mFound these Catchment files in ${workdir}:\e[0m" && sleep 1 && echo "$HYDRO_FABRIC_CATCHMENTS"
-echo -e "\n"
-echo -e "\e[4mFound these Nexus files in ${workdir}:\e[0m" && sleep 1 && echo "$HYDRO_FABRIC_NEXUS"
-echo -e "\n"
-echo -e "\e[4mFound these Realization files in ${workdir}:\e[0m" && sleep 1 && echo "$NGEN_REALIZATIONS"
-echo -e "\n"
-generate_partition () {
-  # $1 catchment json file
-  # $2 nexus json file
-  # $3 number of partitions
-  /dmod/bin/partitionGenerator $1 $2 partitions_$3.json $3 '' ''
+
+
+# Function to automatically select file if only one is found
+auto_select_file() {
+  local files=($1)
+  if [ "${#files[@]}" -eq 1 ]; then
+    echo "${files[0]}"
+  else
+    echo ""
+  fi
 }
 
-PS3="Select an option (type a number): "
+# Finding files
+HYDRO_FABRIC_CATCHMENTS=$(find . -name "*catchment*.geojson")
+HYDRO_FABRIC_NEXUS=$(find . -name "*nexus*.geojson")
+NGEN_REALIZATIONS=$(find . -name "*realization*.json")
+
+# Auto-selecting files if only one is found
+selected_catchment=$(auto_select_file "$HYDRO_FABRIC_CATCHMENTS")
+selected_nexus=$(auto_select_file "$HYDRO_FABRIC_NEXUS")
+selected_realization=$(auto_select_file "$NGEN_REALIZATIONS")
+
+# Displaying found files
+echo -e "${BLUE}\e[4mFound these Catchment files:${RESET}" && echo "$HYDRO_FABRIC_CATCHMENTS" || echo -e "${RED}No Catchment files found.${RESET}"
+echo -e "\n"
+echo -e "${MAGENTA}\e[4mFound these Nexus files:${RESET}" && echo "$HYDRO_FABRIC_NEXUS" || echo -e "${RED}No Nexus files found.${RESET}"
+echo -e "\n"
+echo -e "${CYAN}\e[4mFound these Realization files:${RESET}" && echo "$NGEN_REALIZATIONS" || echo -e "${RED}No Realization files found.${RESET}"
+echo -e "\n"
+
+generate_partition() {
+  /dmod/bin/partitionGenerator "$1" "$2" "partitions_$3.json" "$3" '' ''
+}
+
+echo -e "${YELLOW}Select an option (type a number): ${RESET}"
 options=("Run NextGen model framework in serial mode" "Run NextGen model framework in parallel mode" "Run Bash shell" "Exit")
 select option in "${options[@]}"; do
   case $option in
-    "Run NextGen model framework in serial mode")
+    "Run NextGen model framework in serial mode"|"Run NextGen model framework in parallel mode")
       echo -e "\n"
-      read -p "Enter the hydrofabric catchment file path from above: " n1
-      echo "$n1 selected"
-      read -p "Enter the hydrofabric nexus file path from above: " n2
-      echo "$n2 selected"
-      read -p "Enter the Realization file path from above: " n3
-      echo "$n3 selected"
-      echo ""
-      echo ""
-      echo "Your NGEN run command is /dmod/bin/ngen-serial $n1 \"\" $n2 \"\" $n3"
-      break
-      ;;
-    "Run NextGen model framework in parallel mode")
-      echo -e "\n"
-      read -p "Enter the hydrofabric catchment file path: " n1
-      echo "$n1 selected"
-      read -p "Enter the hydrofabric nexus file path: " n2
-      echo "$n2 selected"
-      read -p "Enter the Realization file path: " n3
-      echo "$n3 selected"
-      procs=$(nproc)
-      procs=2 #for now, just make this 2...
-      generate_partition $n1 $n2 $procs
-      echo ""
-      echo ""
-      echo "Your NGEN run command is mpirun -n $procs /dmod/bin/ngen-parallel $n1 \"\" $n2 \"\" $n3 $(pwd)/partitions_$procs.json"
+      n1=${selected_catchment:-$(read -p "Enter the hydrofabric catchment file path: " n1; echo "$n1")}
+      n2=${selected_nexus:-$(read -p "Enter the hydrofabric nexus file path: " n2; echo "$n2")}
+      n3=${selected_realization:-$(read -p "Enter the Realization file path: " n3; echo "$n3")}
+      
+      echo -e "${GREEN}Selected files:\nCatchment: $n1\nNexus: $n2\nRealization: $n3${RESET}\n"
+
+      if [ "$option" == "Run NextGen model framework in parallel mode" ]; then
+        procs=$(nproc)
+        procs=2 # Temporary fixed value
+        generate_partition "$n1" "$n2" "$procs"
+        run_command="mpirun -n $procs /dmod/bin/ngen-parallel $n1 all $n2 all $n3 $(pwd)/partitions_$procs.json"
+      else
+        run_command="/dmod/bin/ngen-serial $n1 all $n2 all $n3"
+      fi
+
+      echo -e "${YELLOW}Your NGEN run command is $run_command${RESET}"
+      sleep 3
       break
       ;;
     "Run Bash shell")
-      echo "Starting a shell, simply exit to stop the process."
-      cd ${workdir}
+      echo -e "${CYAN}Starting a shell, simply exit to stop the process.${RESET}"
       /bin/bash
       ;;
     "Exit")
       exit 0
       ;;
     *) 
-      echo "Invalid option $REPLY"
+      echo -e "${RED}Invalid option $REPLY${RESET}"
       ;;
   esac
 done
-echo "If your model didn't run, or encountered an error, try checking the Forcings paths in the Realizations file you selected."
-echo "Your model run is beginning!"
-echo ""
 
-case $option in 
-  "Run NextGen model framework in serial mode")
-    /dmod/bin/ngen-serial $n1 all $n2 all $n3 
-  ;;
-  "Run NextGen model framework in parallel mode")
-    mpirun -n $procs /dmod/bin/ngen-parallel $n1 all $n2 all $n3 $(pwd)/partitions_$procs.json
-  ;;
-esac
+echo -e "${GREEN}If your model didn't run, or encountered an error, try checking the Forcings paths in the Realizations file you selected.${RESET}"
+# Ask user if they want to redirect output to /dev/null
+echo -e "${YELLOW}Do you want to redirect command output to /dev/null? (y/N, default: n):${RESET}"
+read -r redirect_choice
 
-echo "Would you like to continue?"
-PS3="Select an option (type a number): "
-options=("Interactive-Shell" "Copy output data from container to local machine" "Exit")
+# Execute the command
+if [[ "$redirect_choice" == [Yy]* ]]; then
+    echo -e "${GREEN}Redirecting output to /dev/null.${RESET}"
+    time $run_command > /dev/null 2>&1
+else
+    time $run_command
+fi
+command_status=$?
+
+# Set message color based on command status
+if [ $command_status -eq 0 ]; then
+    color=$GREEN
+    message="Finished executing command successfully."
+else
+    color=$RED
+    message="Command execution failed with exit code $command_status."
+fi
+
+echo -e "${color}${message}${RESET}"
+
+echo -e "${YELLOW}Would you like to continue?${RESET}"
+echo -e "${YELLOW}Select an option (type a number): ${RESET}"
+options=("Interactive-Shell" "Exit")
 select option in "${options[@]}"; do
   case $option in
     "Interactive-Shell")
-      echo "Starting a shell, simply exit to stop the process."
-      cd ${workdir}
+      echo -e "${CYAN}Starting a shell, simply exit to stop the process.${RESET}"
       /bin/bash
       break
       ;;
-    "Copy output data from container to local machine")
-      [ -d /ngen/ngen/data/outputs ] || mkdir /ngen/ngen/data/outputs
-      # Loop through all of the .csv files in the /ngen/ngen/data directory
-      for i in /ngen/ngen/data/*.csv; do
-        # Check if the file exists
-        if [[ -f $i ]]; then
-          # Move the file to the /ngen/ngen/data/outputs directory
-          mv "$i" /ngen/ngen/data/outputs
-        fi
-      done
-      # Loop through all of the .parquet files in the /ngen/ngen/data directory
-      for i in /ngen/ngen/data/*.parquet; do
-        # Check if the file exists
-        if [[ -f $i ]]; then
-          # Move the file to the /ngen/ngen/data/outputs directory
-          mv "$i" /ngen/ngen/data/outputs
-        fi
-      done
-      # Loop through all of the .json files in the /ngen/ngen/data directory
-      for i in /ngen/ngen/data/*.json; do
-        # Check if the file exists
-        if [[ -f $i ]]; then
-          # Move the file to the /ngen/ngen/data/outputs directory
-          mv "$i" /ngen/ngen/data/outputs
-        fi
-      done
-      break
-      ;;
     "Exit")
-      echo "Have a nice day."
+      echo -e "${GREEN}Have a nice day.${RESET}"
       break
       ;;
     *) 
-      echo "Invalid option $REPLY"
+      echo -e "${RED}Invalid option $REPLY${RESET}"
       ;;
   esac
 done
