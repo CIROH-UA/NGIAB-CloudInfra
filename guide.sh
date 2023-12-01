@@ -152,15 +152,9 @@ else
 fi 
 
 if uname -a | grep arm64 || uname -a | grep aarch64 ; then
-
-docker pull awiciroh/ciroh-ngen-image:latest
-echo -e "Pulled awiciroh/ciroh-ngen-image:latest image"
-IMAGE_NAME=awiciroh/ciroh-ngen-image:latest
+    IMAGE_NAME=awiciroh/ciroh-ngen-image:latest
 else
-
-docker pull awiciroh/ciroh-ngen-image:latest-x86
-echo -e "Pulled awiciroh/ciroh-ngen-image:latest-x86 image"
-IMAGE_NAME=awiciroh/ciroh-ngen-image:latest-x86
+    IMAGE_NAME=awiciroh/ciroh-ngen-image:latest-x86
 fi
 
 
