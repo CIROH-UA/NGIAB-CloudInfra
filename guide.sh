@@ -1,129 +1,155 @@
 #!/bin/bash
 
-# Bold
-BBlack='\033[1;30m'       # Black
-BRed='\033[1;31m'         # Red
-BGreen='\033[1;32m'       # Green
-BYellow='\033[1;33m'      # Yellow
-BBlue='\033[1;34m'        # Blue
-BPurple='\033[1;35m'      # Purple
-BCyan='\033[1;36m'        # Cyan
-BWhite='\033[1;37m'       # White
-
-# Underline
-UBlack='\033[4;30m'       # Black
-URed='\033[4;31m'         # Red
-UGreen='\033[4;32m'       # Green
-UYellow='\033[4;33m'      # Yellow
-UBlue='\033[4;34m'        # Blue
-UPurple='\033[4;35m'      # Purple
-UCyan='\033[4;36m'        # Cyan
-UWhite='\033[4;37m'       # White
-
-# Reset
-Color_Off='\033[0m'       # Text Reset
-
+# Color definitions
+BBlack='\033[1;30m'
+BRed='\033[1;31m'
+BGreen='\033[1;32m'
+BYellow='\033[1;33m'
+BBlue='\033[1;34m'
+BPurple='\033[1;35m'
+BCyan='\033[1;36m'
+BWhite='\033[1;37m'
+UBlack='\033[4;30m'
+URed='\033[4;31m'
+UGreen='\033[4;32m'
+UYellow='\033[4;33m'
+UBlue='\033[4;34m'
+UPurple='\033[4;35m'
+UCyan='\033[4;36m'
+UWhite='\033[4;37m'
+Color_Off='\033[0m'
 
 set -e
 
-echo -e "\n"
-echo "========================================================="
-echo -e "${UWhite} Welcome to CIROH-UA:NextGen National Water Model App! ${Color_Off}"
-echo "========================================================="
-echo -e "\n"
-echo -e "Looking for input data (a directory containing the following directories: forcings, config and outputs): \n"
+CONFIG_FILE="$HOME/.host_data_path.conf"
 
+echo -e "\n========================================================="
+echo -e "${UWhite} Welcome to CIROH-UA:NextGen National Water Model App! ${Color_Off}"
+echo -e "=========================================================\n"
+echo -e "Looking for input data (a directory containing the following directories: forcings, config and outputs):\n"
 echo -e "${BBlue}forcings${Color_Off} is the hydrofabric input data for your model(s)."
 echo -e "${BGreen}config${Color_Off} folder has all the configuration related files for the model."
 echo -e "${BPurple}outputs${Color_Off} is where the output files are copied to when the model finish the run"
 
 echo -e "\n"
-read -rp "Enter your input data directory path (use absolute path): " HOST_DATA_PATH
 
-echo -e "The Directory you've given is:" && echo "$HOST_DATA_PATH"
+# Check if the config file exists and read from it
+if [ -f "$CONFIG_FILE" ]; then
+    LAST_PATH=$(cat "$CONFIG_FILE")
+    echo -e "Last used data directory path: ${BBlue}$LAST_PATH${Color_Off}"
+    read -erp "Do you want to use the same path? (Y/n): " use_last_path
+    if [[ "$use_last_path" != [Nn]* ]]; then
+        HOST_DATA_PATH=$LAST_PATH
+    else
+        read -erp "Enter your input data directory path (use absolute path): " HOST_DATA_PATH
+    fi
+else
+    read -erp "Enter your input data directory path (use absolute path): " HOST_DATA_PATH
+fi
 
-Outputs_Count=$(ls $HOST_DATA_PATH/outputs | wc -l)
-Forcings_Count=$(ls $HOST_DATA_PATH/forcings | wc -l)
-Config_Count=$(ls $HOST_DATA_PATH/config | wc -l)
+# Save the new path to the config file
+echo "$HOST_DATA_PATH" > "$CONFIG_FILE"
+echo -e "The Directory you've given is:\n$HOST_DATA_PATH\n"
+# Function to validate directories
+validate_directory() {
+    local dir=$1
+    local name=$2
+    local color=$3
 
-#Validate paths exist:
-[ -d "$HOST_DATA_PATH/forcings" ] && echo -e "${BBlue}forcings${Color_Off} exists. $Forcings_Count forcings found." || echo -e "Error: Directory $HOST_DATA_PATH/${BBlue}forcings${Color_Off} does not exist."
-[ -d "$HOST_DATA_PATH/outputs" ] && echo -e "${BPurple}outputs${Color_Off} exists. $Outputs_Count outputs found." || echo -e "Error: Directory $HOST_DATA_PATH/${BPurple}outputs${Color_Off} does not exist, but will be created if you choose to copy the outputs after the run." 
-[ -d "$HOST_DATA_PATH/config" ] && echo -e "${BGreen}config${Color_Off} exists. $Config_Count configs found." || echo -e "Error: Directory $HOST_DATA_PATH/${BGreen}config${Color_Off} does not exist."
+    if [ -d "$dir" ]; then
+        local count=$(ls "$dir" | wc -l)
+        echo -e "${color}${name}${Color_Off} exists. $count ${name} found."
+    else
+        echo -e "Error: Directory $dir does not exist."
+    fi
+}
 
-echo -e "\n"
+validate_directory "$HOST_DATA_PATH/forcings" "forcings" "$BBlue"
+validate_directory "$HOST_DATA_PATH/config" "config" "$BGreen"
+validate_directory "$HOST_DATA_PATH/outputs" "outputs" "$BPurple"
 
-if [ $Outputs_Count -gt 0 ]; then
-    echo -e "${UYellow}Cleanup Process: This step will delete all files in the outputs folder: $HOST_DATA_PATH/outputs! Be Careful.${Color_Off}"
-    PS3="Select an option (type a number): "
-    options=("Delete output files and run fresh" "Continue without cleaning" "Exit")
+# Function to perform cleanup
+cleanup_folder() {
+    local folder_path="$1"
+    local file_types="$2"
+    local folder_name="$3"
+
+    # Construct the find command
+    local find_cmd="find \"$folder_path\" -maxdepth 1 -type f \( $file_types \)"
+
+    # Execute the find command and count the results
+    local file_count=$(eval "$find_cmd" 2> /dev/null | wc -l)
+
+    echo "Files found: $file_count"
+
+    if [ "$file_count" -gt 0 ]; then
+        echo -e "${UYellow}Cleanup Process: matching files ($file_types) in $folder_name: $folder_path${Color_Off}"
+        echo -e "Select an option (type a number): "
+        choose_option
+    else
+        echo "$folder_name is ready for run. No matching files found."
+    fi
+}
+
+choose_option() {
+    options=("Delete files and run fresh" "Continue without cleaning" "Exit")
     select option in "${options[@]}"; do
         case $option in
-            "Delete output files and run fresh")
-                echo "Cleaning Outputs folder for fresh run"
-                echo "Starting Cleanup of Files:"
-		echo "Cleaning Up $Outputs_Count Files"
-                rm -f "$HOST_DATA_PATH/outputs"/*
+            "Delete files and run fresh")
+                echo "Cleaning folder for fresh run"
+
+                # Construct the find delete command
+                local find_delete_cmd="find \"$folder_path\" -maxdepth 1 -type f \( $file_types \) -delete"
+
+                # Execute the find delete command
+                eval "$find_delete_cmd"
                 break
                 ;;
             "Continue without cleaning")
-                echo "Happy Hydro Modeling."
+                echo "Continuing with existing files."
                 break
                 ;;
             "Exit")
-                echo "Have a nice day!"
-		exit 0
+                echo "Exiting script. Have a nice day!"
+                exit 0
                 ;;
-            *)
-                echo "Invalid option $REPLY. Please select again."
+            *) echo "Invalid option $REPLY. Please select again."
                 ;;
         esac
     done
-else
-    echo -e "Outputs directory is empty and model is ready for run."
-fi
+}
 
 
-echo -e "\n"
-echo "Looking in the provided directory gives us:" 
+# Cleanup Process for Outputs Folder
+cleanup_folder "$HOST_DATA_PATH/outputs/" "-name '*' " "Outputs"
 
-HYDRO_FABRIC_CATCHMENTS=$(find $HOST_DATA_PATH -iname "*catchment*.geojson")
-HYDRO_FABRIC_NEXUS=$(find $HOST_DATA_PATH -iname "*nexus*.geojson")
-NGEN_REALIZATIONS=$(find $HOST_DATA_PATH -iname "*realization*.json")
-#pwd
-echo -e "${UGreen}Found these Catchment files:${Color_Off}" && sleep 1 && echo "$HYDRO_FABRIC_CATCHMENTS"
-echo -e "${UGreen}Found these Nexus files:${Color_Off}" && sleep 1 && echo "$HYDRO_FABRIC_NEXUS"
-echo -e "${UGreen}Found these Realization files:${Color_Off}" && sleep 1 && echo "$NGEN_REALIZATIONS"
+# Cleanup Process for ngen/data Folder
+cleanup_folder "$HOST_DATA_PATH/" "-name '*.parquet' -o -name '*.csv' -o -name '*.cn'" "ngen/data"
 
-#Detect Arch
-AARCH=$(uname -a)
-echo -e "\n"
-echo -e "Detected ISA = $AARCH" 
+
+# File discovery
+echo -e "\nLooking in the provided directory gives us:"
+find_files() {
+    local path=$1
+    local name=$2
+    local color=$3
+
+    local files=$(find "$path" -iname "*$name*.*")
+    echo -e "${color}Found these $name files:${Color_Off}"
+    echo "$files" || echo "No $name files found."
+}
+
+find_files "$HOST_DATA_PATH" "catchment" "$UGreen"
+find_files "$HOST_DATA_PATH" "nexus" "$UGreen"
+find_files "$HOST_DATA_PATH" "realization" "$UGreen"
+
+# Detect Arch and Docker
+echo -e "\nDetected ISA = $(uname -a)"
 if docker --version ; then
-	echo "Docker found"
+    echo "Docker found"
 else 
-	echo "Docker not found"
+    echo "Docker not found"
 fi 
-echo -e "\n"
-
-PS3="Select an option (type a number): "
-options=("Run NextGen Model using docker" "Exit")
-select option in "${options[@]}"; do
-  case $option in
-   "Run NextGen Model using docker")
-      echo "Pulling NextGen docker image and running the model"
-      break
-      ;;
-    Exit)
-      echo "Have a nice day!"
-      exit 0
-      ;;
-    *) 
-      echo "Invalid option $REPLY, 1 to continue and 2 to exit"
-      ;;
-  esac
-done
-echo -e "\n"
 
 if uname -a | grep arm64 || uname -a | grep aarch64 ; then
 
@@ -137,13 +163,37 @@ echo -e "Pulled awiciroh/ciroh-ngen-image:latest-x86 image"
 IMAGE_NAME=awiciroh/ciroh-ngen-image:latest-x86
 fi
 
-echo -e "\n"
-echo -e "Running NextGen docker container..."
+
+# Model run options
+echo -e "${UYellow}Select an option (type a number): ${Color_Off}"
+options=("Run NextGen Model using local docker image" "Run Nextgen using remote docker image" "Exit")
+select option in "${options[@]}"; do
+    case $option in
+        "Run NextGen Model using local docker image")
+            echo "running the model"
+            break
+            ;;
+        "Run Nextgen using remote docker image")
+            echo "pulling container and running the model"
+            docker pull $IMAGE_NAME
+            break
+            ;;
+        Exit)
+            echo "Have a nice day!"
+            exit 0
+            ;;
+        *) echo "Invalid option $REPLY, 1 to continue and 2 to exit"
+            ;;
+    esac
+done
+
+
+echo -e "\nRunning NextGen docker container..."
 echo -e "Mounting local host directory $HOST_DATA_PATH to /ngen/ngen/data within the container."
-docker run --rm -it -v $HOST_DATA_PATH:/ngen/ngen/data $IMAGE_NAME /ngen/ngen/data/
+docker run --rm -it -v "$HOST_DATA_PATH:/ngen/ngen/data" "$IMAGE_NAME" /ngen/ngen/data/
 
-Final_Outputs_Count=$(ls $HOST_DATA_PATH/outputs | wc -l)
-
+# Final output count
+Final_Outputs_Count=$(ls "$HOST_DATA_PATH/outputs" | wc -l)
 echo -e "$Final_Outputs_Count new outputs created."
 echo -e "Any copied files can be found here: $HOST_DATA_PATH/outputs"
 echo -e "Thank you for running NextGen In A Box: National Water Model! Have a nice day!"
