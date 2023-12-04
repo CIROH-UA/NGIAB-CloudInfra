@@ -59,6 +59,9 @@ This repository contains :
     # to rename your folder
     mv AWI_03W_113060_002 my_data
 ```
+### Case Study Map for the Sipsey Fork, Black Warrior River, AL 
+
+![AGU_113060_03W_002](https://github.com/shahab122/NGIAB-CloudInfra/assets/28275758/cc7978da-081c-44ba-8877-0e235b5cca43)
 
 ## Run NextGen In A Box
 
@@ -129,5 +132,10 @@ Example NGEN run command for serial mode:
 
 ### Output of the model guide script
 
-The output files are copied to the `outputs` folder in the 'NextGen/ngen-data/AWI_03W_113060_002/' directory you created in the first step
+The output files are copied to the `outputs` folder in the '/NextGen/ngen-data/AWI_03W_113060_002/' directory you created in the first step
+
+Using the *flowveldepth.csv files from the 'outputs' folder, the streamflow at the Clear Creek gauge (USGS site ID 02450825) is displayed here. Below is the 'Modelled' vs 'Observed' plot generated in MS Excel after *flowveldepth.csv files are post-processed using Python.
+
+![image](https://github.com/shahab122/NGIAB-CloudInfra/assets/28275758/58aaf351-8bb5-4b61-9f84-d9dd520053e5)
+
 
