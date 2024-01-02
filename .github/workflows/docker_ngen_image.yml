@@ -4,16 +4,16 @@ on:
     branches: [ main ]
     paths:
       - docker/**
-  workflow_run:
-    workflows: [Build and push t-route image]
-    types:
-      - completed
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      tag_name:
+        required: true
+        type: string
     
 jobs:
-  on-success:
+  build-and-push:
     runs-on: self-hosted
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: deploy
         uses: actions/checkout@v2
@@ -24,8 +24,4 @@ jobs:
           github-sha: ${{ github.sha }}
           image-name: "ngen"
           dockerfile-name: "Dockerfile.ngen"
-  on-failure:
-    runs-on: self-hosted
-    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
-    steps:
-      - run: echo 'The triggering workflow failed'
+          tag-name: ${{inputs.tag_name}}

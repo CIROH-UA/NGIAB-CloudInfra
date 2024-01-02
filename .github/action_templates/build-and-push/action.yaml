@@ -14,6 +14,9 @@ inputs:
   dockerfile-name:
     description: 'The name of dockerfile to use'
     required: true
+  tag-name:
+    description: 'The name of tag to use'
+    required: true
 
 runs:
   using: "composite"
@@ -39,7 +42,7 @@ runs:
         push: true
         platforms: linux/arm64
         tags: |
-          awiciroh/${{ inputs.image-name}}:latest
+          awiciroh/${{ inputs.image-name}}:${{ inputs.tag-name}}
         builder: mybuilder
         no-cache: true
       env:

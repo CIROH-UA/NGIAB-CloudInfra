@@ -4,16 +4,39 @@ on:
     branches: [ main ]
     paths:
       - docker/**
-  workflow_run:
-    workflows: [Build and push ngen image]
-    types:
-      - completed
+  pull_request:
+    branches: [ main ]
+    inputs:
+      tag_name:
+        description: 'Tag Name'
+        required: false
+        default: 'latest'
+        type: string
   workflow_dispatch:
-    
+    inputs:
+      tag_name:
+        description: 'Tag Name'
+        required: false
+        default: 'latest'
+        type: string
+
 jobs:
-  on-success:
+  deps:
+    uses: ./.github/workflows/docker_deps_image.yml
+    with:
+      tag_name: ${{inputs.tag_name}}
+  troute:
+    needs: deps
+    uses: ./.github/workflows/docker_troute_image.yml
+    with:
+      tag_name: ${{inputs.tag_name}}
+  ngen:
+    needs: troute
+    uses: ./.github/workflows/docker_ngen_image.yml
+    with:
+      tag_name: ${{inputs.tag_name}}
+  final:
     runs-on: self-hosted
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: deploy
         uses: actions/checkout@v2
@@ -24,24 +47,39 @@ jobs:
           github-sha: ${{ github.sha }}
           image-name: "ciroh-ngen-image"
           dockerfile-name: "Dockerfile"
-      - name: Publish slack message
-        if: always()
-        uses: ./.github/action_templates/slack
-        with:
-          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
-          job-status: ${{ job.status }}
-          pull_request_url: ${{ github.event.pull_request.html_url }}
-          head_commit_url: ${{ github.event.head_commit.url }}
-  on-failure:
+  check_result:
+    needs: ngen
     runs-on: self-hosted
-    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    outputs:
+      output1: ${{ steps.step1.outputs.result }}
     steps:
-      - run: echo 'The triggering workflow failed'
+      - id: step1
+        run: echo "result=success" >> "$GITHUB_OUTPUT"
+
+  slack:
+    runs-on: self-hosted
+    if: ${{ always() }}
+    needs: [deps, troute, ngen, final, check_result]
+    env:
+      OUTPUT: ${{needs.check_result.outputs.output1}}
+    steps:
+      - name: Set env JOBSTATUS
+        run: |
+          echo "$OUTPUT"
+          if [[ "success" = "$OUTPUT" ]]
+          then
+              echo "JOBSTATUS=success" >> "$GITHUB_ENV"
+          else
+              echo "JOBSTATUS=failure" >> "$GITHUB_ENV"
+          fi
+      - run: echo "$JOBSTATUS"
+      - name: deploy
+        uses: actions/checkout@v2
       - name: Publish slack message
         if: always()
         uses: ./.github/action_templates/slack
         with:
           slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
-          job-status: ${{ job.status }}
+          job-status: ${{ env.JOBSTATUS }}
           pull_request_url: ${{ github.event.pull_request.html_url }}
           head_commit_url: ${{ github.event.head_commit.url }}

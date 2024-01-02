@@ -4,11 +4,12 @@ on:
     branches: [ main ]
     paths:
       - docker/**
-  pull_request:
-    branches: [ main ]
-    paths:
-      - docker/**
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      tag_name:
+        required: true
+        type: string
     
 jobs:
   build-and-push:
@@ -26,3 +27,4 @@ jobs:
           github-sha: ${{ github.sha }}
           image-name: "ngen-deps"
           dockerfile-name: "Dockerfile.ngen-deps"
+          tag-name: ${{inputs.tag_name}}
