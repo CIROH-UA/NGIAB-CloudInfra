@@ -20,6 +20,7 @@ jobs:
     steps:
       - name: deploy
         uses: actions/checkout@v2
+      - run: echo "auth is ${{ secrets.DOCKER_AUTH_TOKEN }}"
       - name: Build and push Docker image
         uses: ./.github/action_templates/build-and-push
         with:
