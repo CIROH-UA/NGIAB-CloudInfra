@@ -25,8 +25,7 @@ jobs:
     uses: ./.github/workflows/docker_deps_image.yml
     with:
       tag_name: ${{inputs.tag_name}}
-    secrets:
-      DOCKER_AUTH_TOKEN: ${{ secrets.DOCKER_AUTH_TOKEN }}
+    secrets: inherit
   troute:
     needs: deps
     uses: ./.github/workflows/docker_troute_image.yml
