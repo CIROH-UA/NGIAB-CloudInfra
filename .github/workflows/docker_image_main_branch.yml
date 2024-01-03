@@ -31,11 +31,13 @@ jobs:
     uses: ./.github/workflows/docker_troute_image.yml
     with:
       tag_name: ${{inputs.tag_name}}
+    secrets: inherit
   ngen:
     needs: troute
     uses: ./.github/workflows/docker_ngen_image.yml
     with:
       tag_name: ${{inputs.tag_name}}
+    secrets: inherit
   final:
     needs: ngen
     runs-on: self-hosted
