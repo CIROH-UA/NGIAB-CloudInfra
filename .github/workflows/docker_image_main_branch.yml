@@ -25,9 +25,8 @@ jobs:
     uses: ./.github/workflows/docker_deps_image.yml
     with:
       tag_name: ${{inputs.tag_name}}
-      docker-auth-token: ${{ env.docker-auth-token }}
-    env:
-      docker-auth-token: ${{ secrets.DOCKER_AUTH_TOKEN }}
+    secrets:
+      DOCKER_AUTH_TOKEN: ${{ secrets.DOCKER_AUTH_TOKEN }}
   troute:
     needs: deps
     uses: ./.github/workflows/docker_troute_image.yml
