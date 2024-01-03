@@ -41,6 +41,8 @@ jobs:
   final:
     needs: ngen
     runs-on: self-hosted
+    env:
+      tag_name: ${{inputs.tag_name}}
     steps:
       - name: deploy
         uses: actions/checkout@v2
@@ -51,7 +53,7 @@ jobs:
           github-sha: ${{ github.sha }}
           image-name: "ciroh-ngen-image"
           dockerfile-name: "Dockerfile"
-          tag_name: ${{inputs.tag_name}}
+          tag_name: ${{env.tag_name}}
   check_result:
     needs: final
     runs-on: self-hosted
