@@ -9,6 +9,7 @@ on:
     inputs:
       tag_name:
         required: true
+        default: 'latest'
         type: string
 jobs:
   build-and-push:

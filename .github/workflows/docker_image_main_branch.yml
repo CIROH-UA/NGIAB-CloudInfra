@@ -6,12 +6,6 @@ on:
       - docker/**
   pull_request:
     branches: [ main ]
-    inputs:
-      tag_name:
-        description: 'Tag Name'
-        required: true
-        default: 'latest'
-        type: string
   workflow_dispatch:
     inputs:
       tag_name:
