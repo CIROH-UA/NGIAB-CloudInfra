@@ -19,10 +19,10 @@ on:
         required: false
         default: 'latest'
         type: string
+env:
+    docker-auth-token: ${{ secrets.DOCKER_AUTH_TOKEN }}
 
 jobs:
-  env:
-    docker-auth-token: ${{ secrets.DOCKER_AUTH_TOKEN }}
   deps:
     uses: ./.github/workflows/docker_deps_image.yml
     with:
