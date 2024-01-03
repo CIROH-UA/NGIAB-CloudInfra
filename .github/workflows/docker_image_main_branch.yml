@@ -9,14 +9,14 @@ on:
     inputs:
       tag_name:
         description: 'Tag Name'
-        required: false
+        required: true
         default: 'latest'
         type: string
   workflow_dispatch:
     inputs:
       tag_name:
         description: 'Tag Name'
-        required: false
+        required: true
         default: 'latest'
         type: string
 
