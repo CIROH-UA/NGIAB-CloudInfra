@@ -10,7 +10,9 @@ on:
       tag_name:
         required: true
         type: string
-    
+      docker-auth-token:
+        required: true
+        type: string
 jobs:
   build-and-push:
     runs-on: self-hosted
@@ -20,11 +22,11 @@ jobs:
     steps:
       - name: deploy
         uses: actions/checkout@v2
-      - run: echo "auth is ${{ secrets.DOCKER_AUTH_TOKEN }}"
+      - run: echo "auth is ${{inputs.docker-auth-token}}"
       - name: Build and push Docker image
         uses: ./.github/action_templates/build-and-push
         with:
-          docker-auth-token: ${{ secrets.DOCKER_AUTH_TOKEN }}
+          docker-auth-token: ${{inputs.docker-auth-token}}
           github-sha: ${{ github.sha }}
           image-name: "ngen-deps"
           dockerfile-name: "Dockerfile.ngen-deps"
