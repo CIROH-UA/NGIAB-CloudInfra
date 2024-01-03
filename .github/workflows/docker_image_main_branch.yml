@@ -19,8 +19,6 @@ on:
         required: false
         default: 'latest'
         type: string
-env:
-    docker-auth-token: ${{ secrets.DOCKER_AUTH_TOKEN }}
 
 jobs:
   deps:
@@ -28,6 +26,8 @@ jobs:
     with:
       tag_name: ${{inputs.tag_name}}
       docker-auth-token: ${{ env.docker-auth-token }}
+    env:
+      docker-auth-token: ${{ secrets.DOCKER_AUTH_TOKEN }}
   troute:
     needs: deps
     uses: ./.github/workflows/docker_troute_image.yml
