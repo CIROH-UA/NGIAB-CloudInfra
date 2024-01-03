@@ -53,7 +53,7 @@ jobs:
           github-sha: ${{ github.sha }}
           image-name: "ciroh-ngen-image"
           dockerfile-name: "Dockerfile"
-          tag_name: ${{env.tag_name}}
+          tag-name: ${{env.tag_name}}
   check_result:
     needs: final
     runs-on: self-hosted
