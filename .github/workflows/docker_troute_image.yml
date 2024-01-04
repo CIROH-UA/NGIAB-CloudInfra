@@ -6,11 +6,6 @@ on:
       - docker/**
   workflow_dispatch:
   workflow_call:
-    inputs:
-      tag_name:
-        required: true
-        default: 'latest'
-        type: string
     
 jobs:
   build-and-push:
@@ -25,4 +20,4 @@ jobs:
           github-sha: ${{ github.sha }}
           image-name: "t-route"
           dockerfile-name: "Dockerfile.t-route"
-          tag-name: ${{inputs.tag_name}}
+          tag-name: ${{vars.TAG_NAME}

@@ -7,36 +7,22 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
-    inputs:
-      tag_name:
-        description: 'Tag Name'
-        required: true
-        default: 'latest'
-        type: string
 
 jobs:
   deps:
     uses: ./.github/workflows/docker_deps_image.yml
-    with:
-      tag_name: ${{inputs.tag_name}}
     secrets: inherit
   troute:
     needs: deps
     uses: ./.github/workflows/docker_troute_image.yml
-    with:
-      tag_name: ${{inputs.tag_name}}
     secrets: inherit
   ngen:
     needs: troute
     uses: ./.github/workflows/docker_ngen_image.yml
-    with:
-      tag_name: ${{inputs.tag_name}}
     secrets: inherit
   final:
     needs: ngen
     runs-on: self-hosted
-    env:
-      tag_name: ${{inputs.tag_name}}
     steps:
       - name: deploy
         uses: actions/checkout@v2
@@ -47,7 +33,7 @@ jobs:
           github-sha: ${{ github.sha }}
           image-name: "ciroh-ngen-image"
           dockerfile-name: "Dockerfile"
-          tag-name: ${{env.tag_name}}
+          tag-name: ${{vars.TAG_NAME}
   check_result:
     needs: final
     runs-on: self-hosted
