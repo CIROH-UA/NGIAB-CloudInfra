@@ -15,7 +15,6 @@ jobs:
     steps:
       - name: deploy
         uses: actions/checkout@v2
-      - run: echo "auth is ${{inputs.docker-auth-token}}"
       - name: Build and push Docker image
         uses: ./.github/action_templates/build-and-push
         with:
