@@ -23,4 +23,4 @@ jobs:
           github-sha: ${{ github.sha }}
           image-name: "ngen-deps"
           dockerfile-name: "Dockerfile.ngen-deps"
-          tag-name: ${{vars.TAG_NAME}
+          tag-name: ${{vars.TAG_NAME}}

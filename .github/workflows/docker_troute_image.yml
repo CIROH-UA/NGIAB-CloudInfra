@@ -20,4 +20,4 @@ jobs:
           github-sha: ${{ github.sha }}
           image-name: "t-route"
           dockerfile-name: "Dockerfile.t-route"
-          tag-name: ${{vars.TAG_NAME}
+          tag-name: ${{vars.TAG_NAME}}
