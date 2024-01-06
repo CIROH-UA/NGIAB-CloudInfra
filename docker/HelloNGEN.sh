@@ -49,6 +49,21 @@ generate_partition() {
   /dmod/bin/partitionGenerator "$1" "$2" "partitions_$3.json" "$3" '' ''
 }
 
+if [ "$2" == "auto" ]
+  then
+    echo "AUTO MODE ENGAGED"
+    echo "Running NextGen model framework in parallel mode"
+    procs=$(nproc)
+    procs=2 # Temporary fixed value, remove for full utilization
+    generate_partition "$selected_catchment" "$selected_nexus" "$procs"
+    mpirun -n $procs /dmod/bin/ngen-parallel $selected_catchment all $selected_nexus all $selected_realization $(pwd)/partitions_$procs.json
+    echo "Run completed successfully, exiting, have a nice day!"
+    exit 0
+  else
+    echo "Entering Interactive Mode"
+    continue
+fi
+
 echo -e "${YELLOW}Select an option (type a number): ${RESET}"
 options=("Run NextGen model framework in serial mode" "Run NextGen model framework in parallel mode" "Run Bash shell" "Exit")
 select option in "${options[@]}"; do
