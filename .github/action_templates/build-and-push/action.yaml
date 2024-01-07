@@ -14,15 +14,23 @@ inputs:
   dockerfile-name:
     description: 'The name of dockerfile to use'
     required: true
-  tag-name:
-    description: 'The name of tag to use'
-    required: true
 
 runs:
   using: "composite"
   steps:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v1
+
+    - name: Set env vars for main branch
+      shell: bash
+      run: |
+        echo "TAG_NAME=latest" >> "$GITHUB_ENV"
+      if: startsWith(github.ref, 'refs/heads/main')
+    - name: Set env vars for other branch
+      shell: bash
+      run: |
+        echo "TAG_NAME=${GITHUB_REF##*/}" >> "$GITHUB_ENV"
+      if: ${{ !startsWith(github.ref, 'refs/heads/main') }}
     
     - name: Login to Docker Hub
       shell: bash
@@ -42,7 +50,7 @@ runs:
         push: true
         platforms: linux/arm64
         tags: |
-          awiciroh/${{ inputs.image-name}}:${{ inputs.tag-name}}
+          awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}}
         builder: mybuilder
         no-cache: true
       env:
