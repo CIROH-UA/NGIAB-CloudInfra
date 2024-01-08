@@ -19,7 +19,5 @@ jobs:
         uses: ./.github/action_templates/build-and-push
         with:
           docker-auth-token: ${{ secrets.DOCKER_AUTH_TOKEN }}
-          github-sha: ${{ github.sha }}
           image-name: "ngen-deps"
           dockerfile-name: "Dockerfile.ngen-deps"
-          tag-name: ${{vars.TAG_NAME}}
