@@ -4,12 +4,14 @@
 ARG TROUTE_REPO_URL=https://github.com/NOAA-OWP/t-route.git \
     TROUTE_BRANCH=master \
     TROUTE_COMMIT \
-    WORKDIR=/ngen
+    WORKDIR=/ngen \
+    TAG_NAME
 
 ################################################################################################################
 ################################################################################################################
 ##### Create intermediate Docker build stage for building t-route in Rocky Linux environment
-FROM awiciroh/ngen-deps:latest as rocky_init_troute_repo
+ARG TAG_NAME
+FROM awiciroh/ngen-deps:${TAG_NAME} as rocky_init_troute_repo
 ARG TROUTE_REPO_URL \
     TROUTE_BRANCH \
     TROUTE_COMMIT \
@@ -27,7 +29,8 @@ RUN cd ${WORKDIR} \
 ################################################################################################################
 ################################################################################################################
 ##### Create intermediate Docker build stage for building t-route in Rocky Linux environment
-FROM awiciroh/ngen-deps:latest as rocky_build_troute
+ARG TAG_NAME
+FROM awiciroh/ngen-deps:${TAG_NAME} as rocky_build_troute
 
 ARG REPO_URL \
     BRANCH \

@@ -1,7 +1,8 @@
 ################################################################################################################
 ################################################################################################################
 ##### Penultimate stage for image
-FROM awiciroh/ngen as rocky_build_staging
+ARG TAG_NAME
+FROM awiciroh/ngen:${TAG_NAME} as rocky_build_staging
 
 ARG DATASET_DIRECTORIES
 

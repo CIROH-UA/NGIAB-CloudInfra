@@ -44,6 +44,8 @@ runs:
       with:
         context: ./docker
         file: ./docker/${{ inputs.dockerfile-name}}
+        build-args: |
+          TAG_NAME=${{ inputs.tag-name}}
         push: true
         platforms: linux/arm64
         tags: |
