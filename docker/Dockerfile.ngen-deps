@@ -22,7 +22,7 @@ ARG REPO_URL=https://github.com/NOAA-OWP/ngen.git \
 #    netcdf-cxx4-devel netcdf-cxx4-mpich-devel netcdf-fortran-devel netcdf-fortran-mpich-devel \
 #    hdf5 hdf5-devel hdf5-mpich hdf5-mpich-devel \
 #    bzip2 expat expat-devel flex bison udunits2 udunits2-devel"
-    ROCKY_NGEN_DEPS_REQUIRED="sudo gcc gcc-c++ make cmake tar git gcc-gfortran libgfortran \
+    ROCKY_NGEN_DEPS_REQUIRED="sudo gcc gcc-c++ make cmake tar git gcc-gfortran libgfortran sqlite sqlite-devel \
     python3 python3-devel python3-pip gdal gdal-devel\
     bzip2 expat expat-devel flex bison udunits2 udunits2-devel zlib-devel" \
 # TODO: removed texinfo from list because it couldn't be found; make sure this doesn't lead to issues
