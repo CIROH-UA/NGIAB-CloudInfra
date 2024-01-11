@@ -45,7 +45,7 @@ runs:
         context: ./docker
         file: ./docker/${{ inputs.dockerfile-name}}
         build-args: |
-          TAG_NAME=${{ inputs.tag-name}}
+          TAG_NAME=${{ env.TAG_NAME}}
         push: true
         platforms: linux/arm64
         tags: |
