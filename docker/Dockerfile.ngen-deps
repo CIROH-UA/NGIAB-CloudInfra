@@ -26,7 +26,7 @@ ARG REPO_URL=https://github.com/NOAA-OWP/ngen.git \
     python3 python3-devel python3-pip gdal gdal-devel\
     bzip2 expat expat-devel flex bison udunits2 udunits2-devel zlib-devel" \
 # TODO: removed texinfo from list because it couldn't be found; make sure this doesn't lead to issues
-    BOOST_VERSION=1.72.0 \
+    BOOST_VERSION=1.79.0 \
 #TODO Try mpich 4.x for native arm build support (https://raw.githubusercontent.com/pmodels/mpich/v4.1.1/CHANGES)
 #mpich 3.2 doesn't work well gfortran 11 it seems, an alignment error crops up, but 3.3.2 seems to work...
     MPICH_VERSION="3.3.2" \
