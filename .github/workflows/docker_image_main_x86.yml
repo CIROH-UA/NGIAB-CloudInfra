@@ -1,5 +1,7 @@
 name: X86 Build and push final image
 on:
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
