@@ -10,5 +10,5 @@ jobs:
       - name: print ref
         run: |
           echo "git ref: ${{github.ref}}"
-          echo "github.head_ref: ${{github.head_ref}}"
+          echo "github source repo: ${{github.event.pull_request.head.repo.full_name}}"
           echo "github.base_ref: ${{github.base_ref}}"
