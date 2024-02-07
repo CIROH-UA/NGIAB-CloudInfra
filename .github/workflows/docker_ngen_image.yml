@@ -20,8 +20,8 @@ jobs:
           dockerfile-name: "Dockerfile.ngen"
           platform: ${{inputs.runner_label}}
         if: ${{ !startsWith(github.ref, 'refs/heads/main') }}
-      - name: Build and push Docker image
-        uses: ./.github/action_templates/build-and-push
+      - name: Build and test Docker image
+        uses: ./.github/action_templates/build-and-test
         with:
           docker-auth-token: ${{ secrets.DOCKER_AUTH_TOKEN }}
           image-name: "ngen"
