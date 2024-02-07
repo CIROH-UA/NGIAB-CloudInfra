@@ -9,6 +9,7 @@ on:
 jobs:
   start-runner:
    runs-on: ubuntu-latest
+   if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA')
    steps:
      - name: start runner
        uses: gagoar/invoke-aws-lambda@master
@@ -72,7 +73,7 @@ jobs:
 
   slack:
     runs-on: ARM64
-    if: ${{ always() }}
+    if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA')
     needs: [deps, troute, ngen, final, check_result]
     env:
       OUTPUT: ${{needs.check_result.outputs.output1}}
@@ -100,6 +101,7 @@ jobs:
   stop-runner:
    needs: slack
    runs-on: ubuntu-latest
+   if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA')
    steps:
      - name: stop runner
        uses: gagoar/invoke-aws-lambda@master
