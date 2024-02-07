@@ -1,5 +1,5 @@
-name: build and push template
-description: "A template to build and push docker image based on provided inputs"
+name: build and test template
+description: "A template to build and test docker image based on provided inputs"
 
 inputs:
   docker-auth-token:
@@ -31,35 +31,36 @@ runs:
       run: |
         echo "TAG_NAME=${GITHUB_REF##*/}" >> "$GITHUB_ENV"
       if: ${{ !startsWith(github.ref, 'refs/heads/main') }}
-    
     - name: Attach platform to tag
       shell: bash
       run: |
         echo "TAG_NAME=${{env.TAG_NAME}}-${{inputs.platform}}" >> "$GITHUB_ENV"
       if: "${{ inputs.platform != 'ARM64' }}"
-
-    - name: Login to Docker Hub
-      shell: bash
-      run: |
-          echo "${{ inputs.docker-auth-token }}" | docker login --username awiciroh --password-stdin
-    
     - name: Create Cache and Builder for Buildx
       shell: bash
       run: |
           docker buildx create --use --name mybuilder --node mybuilder
 
     - name: Build and Cache Docker Image
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v5
       with:
         context: ./docker
         file: ./docker/${{ inputs.dockerfile-name}}
         build-args: |
           TAG_NAME=${{ env.TAG_NAME}}
         push: true
+        platforms: linux/arm64
         tags: |
           awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}}
         builder: mybuilder
         no-cache: true
+        # cache-from: type=local,src=/tmp/.buildx-cache
+        # cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
       env:
         DOCKER_BUILDKIT: 1
         DOCKER_CLI_EXPERIMENTAL: enabled
+    # - name: Move cache
+    #   shell: bash
+    #   run: |
+    #     rm -rf /tmp/.buildx-cache
+    #     mv /tmp/.buildx-cache-new /tmp/.buildx-cache 
