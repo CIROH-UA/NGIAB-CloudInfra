@@ -57,7 +57,7 @@ runs:
           TAG_NAME=${{ env.TAG_NAME}}
         push: true
         tags: |
-          awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}}
+          awiciroh/${{ inputs.image-name}}:forked-x86
         builder: mybuilder
         no-cache: true
       env:
