@@ -1,0 +1,14 @@
+name: Print Reference
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  print:
+    runs-on: ubuntu-latest
+    steps:
+      - name: print ref
+        run: |
+          echo "git ref: ${{github.ref}}"
+          echo "github.head_ref: ${{github.head_ref}}"
+          echo "github.base_ref: ${{github.base_ref}}"
