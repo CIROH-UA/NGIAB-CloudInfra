@@ -9,7 +9,6 @@ on:
 jobs:
   start-runner:
    runs-on: ubuntu-latest
-   if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA')
    steps:
      - name: start runner
        uses: gagoar/invoke-aws-lambda@master
@@ -17,11 +16,13 @@ jobs:
          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
          FunctionName: StartCirohRunner
+       if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA')
 
      - name: wait runner up
        shell: bash
        run: |
            sleep 300
+       if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA')
   deps:
     needs: start-runner
     uses: ./.github/workflows/docker_deps_image.yml
