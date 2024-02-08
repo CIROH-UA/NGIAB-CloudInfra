@@ -49,18 +49,10 @@ runs:
         build-args: |
           TAG_NAME=${{ env.TAG_NAME}}
         push: true
-        platforms: linux/arm64
         tags: |
           awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}}
         builder: mybuilder
         no-cache: true
-        # cache-from: type=local,src=/tmp/.buildx-cache
-        # cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
       env:
         DOCKER_BUILDKIT: 1
         DOCKER_CLI_EXPERIMENTAL: enabled
-    # - name: Move cache
-    #   shell: bash
-    #   run: |
-    #     rm -rf /tmp/.buildx-cache
-    #     mv /tmp/.buildx-cache-new /tmp/.buildx-cache 
