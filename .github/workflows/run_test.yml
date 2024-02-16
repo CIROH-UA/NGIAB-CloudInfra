@@ -1,5 +1,7 @@
 name: Run Test
 on:
+  push:
+    branches: [89-adding-unit-testing-for-the-pr-validation]
   workflow_dispatch:
 
 jobs:
