@@ -48,7 +48,7 @@ runs:
         file: ./docker/${{ inputs.dockerfile-name}}
         build-args: |
           TAG_NAME=${{ env.TAG_NAME}}
-        load: true
+        push: true
         tags: |
           awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}}
         builder: mybuilder
