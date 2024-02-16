@@ -61,6 +61,7 @@ runs:
         test_data_path: '/home/ubuntu/workspace/AWI_03W_113060_003'
       shell: bash
       run: |
+        ls /home/ubuntu/workspace/AWI_03W_113060_003/*.csv
         rm -rf ${{env.test_data_path}}/*.csv
         rm -rf ${{env.test_data_path}}/*.parquet
         rm -rf ${{env.test_data_path}}/outputs/*
