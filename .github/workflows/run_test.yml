@@ -11,6 +11,7 @@ jobs:
       - name: Test
         shell: bash
         run: |
+          echo "$TEST_DATA_PATH/*.csv"
           rm -rf "$TEST_DATA_PATH/*.csv"
           rm -rf /home/ubuntu/workspace/AWI_03W_113060_003/*.parquet
           rm -rf /home/ubuntu/workspace/AWI_03W_113060_003/outputs/*
