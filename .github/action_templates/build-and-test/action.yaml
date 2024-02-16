@@ -15,7 +15,7 @@ inputs:
     description: 'The platform to build'
     required: false
 env:
-  test_data_path: ${{vars.TEST_DATA_PATH}}
+  test_data_path: '/home/ubuntu/workspace/AWI_03W_113060_003'
 
 runs:
   using: "composite"
@@ -61,8 +61,8 @@ runs:
     - name: Test
       shell: bash
       run: |
-#      rm -rf ${{vars.TEST_DATA_PATH}}/*.csv
-#       rm -rf ${{vars.TEST_DATA_PATH}}/*.parquet
+        rm -rf ${{env.test_data_path}}/*.csv
+        rm -rf ${{env.test_data_path}}/*.parquet
         rm -rf ${{env.test_data_path}}/outputs/*
         docker run --rm -v /home/ubuntu/workspace/AWI_03W_113060_003:/ngen/ngen/data awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}} /ngen/ngen/data auto
       if: inputs.image-name == 'ciroh-ngen-image'
