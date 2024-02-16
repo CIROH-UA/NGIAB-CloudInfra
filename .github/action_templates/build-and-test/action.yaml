@@ -67,5 +67,5 @@ runs:
         ls ${{env.test_data_path}}/*.csv
         ls ${{env.test_data_path}}/*.parquet
         ls ${{env.test_data_path}}/outputs/
-        docker run --rm -v /home/ubuntu/workspace/AWI_03W_113060_003:/ngen/ngen/data awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}} /ngen/ngen/data auto
+        docker run --rm -v ${{env.test_data_path}}:/ngen/ngen/data awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}} /ngen/ngen/data auto
       if: inputs.image-name == 'ciroh-ngen-image'
