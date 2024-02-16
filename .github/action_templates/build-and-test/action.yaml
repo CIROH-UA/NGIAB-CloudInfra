@@ -43,21 +43,21 @@ runs:
       run: |
           docker buildx create --use --name mybuilder --node mybuilder
 
-    - name: Build and Cache Docker Image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./docker
-        file: ./docker/${{ inputs.dockerfile-name}}
-        build-args: |
-          TAG_NAME=${{ env.TAG_NAME}}
-        push: true
-        tags: |
-          awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}}
-        builder: mybuilder
-        no-cache: true
-      env:
-        DOCKER_BUILDKIT: 1
-        DOCKER_CLI_EXPERIMENTAL: enabled
+    # - name: Build and Cache Docker Image
+    #   uses: docker/build-push-action@v5
+    #   with:
+    #     context: ./docker
+    #     file: ./docker/${{ inputs.dockerfile-name}}
+    #     build-args: |
+    #       TAG_NAME=${{ env.TAG_NAME}}
+    #     push: true
+    #     tags: |
+    #       awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}}
+    #     builder: mybuilder
+    #     no-cache: true
+    #   env:
+    #     DOCKER_BUILDKIT: 1
+    #     DOCKER_CLI_EXPERIMENTAL: enabled
     - name: Test
       shell: bash
       run: |
@@ -67,5 +67,5 @@ runs:
         ls ${{env.test_data_path}}/*.csv
         ls ${{env.test_data_path}}/*.parquet
         ls ${{env.test_data_path}}/outputs/
-        docker run --rm -v ${{env.test_data_path}}:/ngen/ngen/data awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}} /ngen/ngen/data auto
+    #    docker run --rm -v ${{env.test_data_path}}:/ngen/ngen/data awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}} /ngen/ngen/data auto
       if: inputs.image-name == 'ciroh-ngen-image'
