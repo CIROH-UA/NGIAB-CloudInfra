@@ -57,8 +57,9 @@ runs:
         DOCKER_BUILDKIT: 1
         DOCKER_CLI_EXPERIMENTAL: enabled
     - name: Test
-        run: |
-          rm -rf /home/ubuntu/workspace/AWI_03W_113060_003/*.csv
-          rm -rf /home/ubuntu/workspace/AWI_03W_113060_003/*.parquet
-          rm -rf /home/ubuntu/workspace/AWI_03W_113060_003/outputs/*
-          docker run --rm -it -v /home/ubuntu/workspace/AWI_03W_113060_003:/ngen/ngen/data awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}} /ngen/ngen/data auto
+      shell: bash
+      run: |
+        rm -rf /home/ubuntu/workspace/AWI_03W_113060_003/*.csv
+        rm -rf /home/ubuntu/workspace/AWI_03W_113060_003/*.parquet
+        rm -rf /home/ubuntu/workspace/AWI_03W_113060_003/outputs/*
+        docker run --rm -it -v /home/ubuntu/workspace/AWI_03W_113060_003:/ngen/ngen/data awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}} /ngen/ngen/data auto
