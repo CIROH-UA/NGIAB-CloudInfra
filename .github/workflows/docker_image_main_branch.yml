@@ -25,8 +25,15 @@ jobs:
            sleep 300
        if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA') || 
            (startsWith(github.ref, 'refs/heads/main') && github.event_name != 'pull_request')
-  deps:
+  init:
     needs: start-runner
+    runs-on: ARM64
+    steps:
+      - name: clear docker cache
+        run: |
+          docker system prune -af
+  deps:
+    needs: init
     uses: ./.github/workflows/docker_deps_image.yml
     with:
       runner_label: ARM64
