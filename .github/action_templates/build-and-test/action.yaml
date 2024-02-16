@@ -63,3 +63,4 @@ runs:
         rm -rf /home/ubuntu/workspace/AWI_03W_113060_003/*.parquet
         rm -rf /home/ubuntu/workspace/AWI_03W_113060_003/outputs/*
         docker run --rm -it -v /home/ubuntu/workspace/AWI_03W_113060_003:/ngen/ngen/data awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}} /ngen/ngen/data auto
+      if: inputs.image-name == 'ciroh-ngen-image'
