@@ -41,32 +41,26 @@ runs:
       run: |
           docker buildx create --use --name mybuilder --node mybuilder
 
-    # - name: Build and Cache Docker Image
-    #   uses: docker/build-push-action@v5
-    #   with:
-    #     context: ./docker
-    #     file: ./docker/${{ inputs.dockerfile-name}}
-    #     build-args: |
-    #       TAG_NAME=${{ env.TAG_NAME}}
-    #     push: true
-    #     tags: |
-    #       awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}}
-    #     builder: mybuilder
-    #     no-cache: true
-    #   env:
-    #     DOCKER_BUILDKIT: 1
-    #     DOCKER_CLI_EXPERIMENTAL: enabled
-    - name: Test
+    - name: Build and Cache Docker Image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./docker
+        file: ./docker/${{ inputs.dockerfile-name}}
+        build-args: |
+          TAG_NAME=${{ env.TAG_NAME}}
+        push: true
+        tags: |
+          awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}}
+        builder: mybuilder
+        no-cache: true
       env:
-        test_data_path: '/home/ubuntu/workspace/AWI_03W_113060_003'
+        DOCKER_BUILDKIT: 1
+        DOCKER_CLI_EXPERIMENTAL: enabled
+    - name: Test
       shell: bash
       run: |
-        ls /home/ubuntu/workspace/AWI_03W_113060_003/*.csv
-        rm -rf ${{env.test_data_path}}/*.csv
-        rm -rf ${{env.test_data_path}}/*.parquet
-        rm -rf ${{env.test_data_path}}/outputs/*
-        ls ${{env.test_data_path}}/*.csv
-        ls ${{env.test_data_path}}/*.parquet
-        ls ${{env.test_data_path}}/outputs/
-    #    docker run --rm -v ${{env.test_data_path}}:/ngen/ngen/data awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}} /ngen/ngen/data auto
+        rm -rf /home/ubuntu/workspace/AWI_03W_113060_003/*.csv
+        rm -rf /home/ubuntu/workspace/AWI_03W_113060_003/*.parquet
+        rm -rf /home/ubuntu/workspace/AWI_03W_113060_003/outputs/*
+        docker run --rm -v /home/ubuntu/workspace/AWI_03W_113060_003:/ngen/ngen/data awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}} /ngen/ngen/data auto
       if: inputs.image-name == 'ciroh-ngen-image'
