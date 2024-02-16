@@ -9,7 +9,7 @@ jobs:
     runs-on: ARM64
     steps:
       - name: Test
-        #shell: bash
+        shell: bash
         run: |
           echo "${{vars.TEST_DATA_PATH}}"
           echo "$TEST_DATA_PATH /*.csv"
