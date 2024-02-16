@@ -13,7 +13,7 @@ jobs:
         run: |
           echo "${{vars.TEST_DATA_PATH}}"
           echo "$TEST_DATA_PATH /*.csv"
-          rm -rf "$TEST_DATA_PATH/*.csv"
+          rm -rf ${{vars.TEST_DATA_PATH}}/*.csv
           rm -rf /home/ubuntu/workspace/AWI_03W_113060_003/*.parquet
           rm -rf /home/ubuntu/workspace/AWI_03W_113060_003/outputs/*
 #          docker run --rm -v /home/ubuntu/workspace/AWI_03W_113060_003:/ngen/ngen/data awiciroh/ciroh-ngen-image:89-adding-unit-testing-for-the-pr-validation /ngen/ngen/data auto
