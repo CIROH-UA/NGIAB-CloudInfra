@@ -14,4 +14,3 @@ jobs:
           rm -rf /home/ubuntu/workspace/AWI_03W_113060_003/*.csv
           rm -rf /home/ubuntu/workspace/AWI_03W_113060_003/*.parquet
           rm -rf /home/ubuntu/workspace/AWI_03W_113060_003/outputs/*
-          docker run --rm -it -v /home/ubuntu/workspace/AWI_03W_113060_003:/ngen/ngen/data awiciroh/ciroh-ngen-image:89-adding-unit-testing-for-the-pr-validation /ngen/ngen/data auto
