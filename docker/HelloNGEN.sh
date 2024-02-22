@@ -54,7 +54,7 @@ if [ "$2" == "auto" ]
     echo "AUTO MODE ENGAGED"
     echo "Running NextGen model framework in parallel mode"
     if [ -z "$3" ]; then
-      procs=(($(nproc) - 2))
+      procs=$(($(nproc) - 2))
     else
       procs=$3
     fi
