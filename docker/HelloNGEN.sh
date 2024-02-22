@@ -28,8 +28,8 @@ auto_select_file() {
 }
 
 # Finding files
-HYDRO_FABRIC_CATCHMENTS=$(find . -name "*catchment*.geojson")
-HYDRO_FABRIC_NEXUS=$(find . -name "*nexus*.geojson")
+HYDRO_FABRIC_CATCHMENTS=$(find . -name "*datastream*.gpkg")
+HYDRO_FABRIC_NEXUS=$(find . -name "*datastream*.gpkg")
 NGEN_REALIZATIONS=$(find . -name "*realization*.json")
 
 # Auto-selecting files if only one is found
@@ -53,8 +53,12 @@ if [ "$2" == "auto" ]
   then
     echo "AUTO MODE ENGAGED"
     echo "Running NextGen model framework in parallel mode"
-    procs=$(nproc)
-    procs=2 # Temporary fixed value, remove for full utilization
+    if [ -z "$3" ]; then
+      procs=(($(nproc) - 2))
+    else
+      procs=$3
+    fi
+
     partitions=$(find . -name "*partitions_$procs.json")
     if [[ -z $partitions ]]; then
       echo "No partitions file found, generating..."
@@ -62,6 +66,7 @@ if [ "$2" == "auto" ]
     else
       echo "Found paritions file! "$partitions
     fi
+
     mpirun -n $procs /dmod/bin/ngen-parallel $selected_catchment all $selected_nexus all $selected_realization $(pwd)/partitions_$procs.json
     echo "Run completed successfully, exiting, have a nice day!"
     exit 0
@@ -79,7 +84,7 @@ select option in "${options[@]}"; do
       n1=${selected_catchment:-$(read -p "Enter the hydrofabric catchment file path: " n1; echo "$n1")}
       n2=${selected_nexus:-$(read -p "Enter the hydrofabric nexus file path: " n2; echo "$n2")}
       n3=${selected_realization:-$(read -p "Enter the Realization file path: " n3; echo "$n3")}
-      
+
       echo -e "${GREEN}Selected files:\nCatchment: $n1\nNexus: $n2\nRealization: $n3${RESET}\n"
 
       if [ "$option" == "Run NextGen model framework in parallel mode" ]; then
@@ -102,7 +107,7 @@ select option in "${options[@]}"; do
     "Exit")
       exit 0
       ;;
-    *) 
+    *)
       echo -e "${RED}Invalid option $REPLY${RESET}"
       ;;
   esac
@@ -147,7 +152,7 @@ select option in "${options[@]}"; do
       echo -e "${GREEN}Have a nice day.${RESET}"
       break
       ;;
-    *) 
+    *)
       echo -e "${RED}Invalid option $REPLY${RESET}"
       ;;
   esac
