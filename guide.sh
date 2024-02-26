@@ -160,14 +160,14 @@ fi
 
 # Model run options
 echo -e "${UYellow}Select an option (type a number): ${Color_Off}"
-options=("Run NextGen Model using local docker image" "Run Nextgen using remote docker image" "Exit")
+options=("Run NextGen using existing local docker image" "Run NextGen after updating to latest docker image" "Exit")
 select option in "${options[@]}"; do
     case $option in
-        "Run NextGen Model using local docker image")
+        "Run NextGen using existing local docker image")
             echo "running the model"
             break
             ;;
-        "Run Nextgen using remote docker image")
+        "Run NextGen after updating to latest docker image")
             echo "pulling container and running the model"
             docker pull $IMAGE_NAME
             break
@@ -176,7 +176,7 @@ select option in "${options[@]}"; do
             echo "Have a nice day!"
             exit 0
             ;;
-        *) echo "Invalid option $REPLY, 1 to continue and 2 to exit"
+        *) echo "Invalid option $REPLY, 1 to continue with existing local image, 2 to update and run, and 3 to exit"
             ;;
     esac
 done
