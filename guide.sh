@@ -139,8 +139,8 @@ find_files() {
     echo "$files" || echo "No $name files found."
 }
 
-find_files "$HOST_DATA_PATH" "catchment" "$UGreen"
-find_files "$HOST_DATA_PATH" "nexus" "$UGreen"
+find_files "$HOST_DATA_PATH" "datastream" "$UGreen"
+find_files "$HOST_DATA_PATH" "datastream" "$UGreen"
 find_files "$HOST_DATA_PATH" "realization" "$UGreen"
 
 # Detect Arch and Docker
