@@ -1,31 +1,30 @@
 name: Build and push ngen image
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - docker/**
-  workflow_run:
-    workflows: [Build and push t-route image]
-    types:
-      - completed
   workflow_dispatch:
-    
+  workflow_call:
+    inputs:
+      runner_label:
+        required: true
+        type: string
 jobs:
-  on-success:
-    runs-on: self-hosted
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+  build-and-push:
+    runs-on: ["${{inputs.runner_label}}"]
     steps:
       - name: deploy
         uses: actions/checkout@v2
       - name: Build and push Docker image
+        uses: ./.github/action_templates/build-and-test
+        with:
+          docker-auth-token: ${{ secrets.DOCKER_AUTH_TOKEN }}
+          image-name: "ngen"
+          dockerfile-name: "Dockerfile.ngen"
+          platform: ${{inputs.runner_label}}
+        if: ${{ !startsWith(github.ref, 'refs/heads/main') }}
+      - name: Build and push Docker image
         uses: ./.github/action_templates/build-and-push
         with:
           docker-auth-token: ${{ secrets.DOCKER_AUTH_TOKEN }}
-          github-sha: ${{ github.sha }}
           image-name: "ngen"
           dockerfile-name: "Dockerfile.ngen"
-  on-failure:
-    runs-on: self-hosted
-    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
-    steps:
-      - run: echo 'The triggering workflow failed'
+          platform: ${{inputs.runner_label}}
+        if: startsWith(github.ref, 'refs/heads/main')

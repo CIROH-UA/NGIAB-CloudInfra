@@ -5,50 +5,39 @@ ARG NGEN_BUILD_CONFIG_TYPE="Release" \
     REPO_URL=https://github.com/NOAA-OWP/ngen.git \
     BRANCH=master \
     COMMIT \
-    WORKDIR=/ngen
+    TAG_NAME 
 
 
 ################################################################################################################
 ################################################################################################################
 ##### Create intermediate Docker build stage for building framework in Rocky Linux environment
-FROM awiciroh/ngen-deps:latest as rocky_init_repo
+FROM awiciroh/ngen-deps:${TAG_NAME} as rocky_init_repo
 ARG REPO_URL \
     BRANCH \
     COMMIT \
     WORKDIR \
     UPDATE=2023-04-27
 
-WORKDIR ${WORKDIR}
+WORKDIR /ngen
 
-RUN cd ${WORKDIR} \
-    && if [ "x$COMMIT" != "x" ]; then \
-        git clone --single-branch --branch $BRANCH $REPO_URL \
-        && cd ./ngen \
-        && git checkout $COMMIT; \
+RUN if [ "x$COMMIT" != "x" ]; then \
+    git clone --single-branch --branch $BRANCH $REPO_URL \
+    && cd ./ngen \
+    && git checkout $COMMIT; \
     else \
-        git clone --depth 1 --branch $BRANCH $REPO_URL \
-        && cd ./ngen ; \
+    git clone --depth 1 --branch $BRANCH $REPO_URL \
+    && cd ./ngen ; \
     fi \
-    && echo "#!/bin/bash" > build_sub \
-    && echo "cmake -B \$1/cmake_build -DCMAKE_BUILD_TYPE=${NGEN_BUILD_CONFIG_TYPE} -S \$1" >> build_sub \
-    && echo "cmake --build \$1/cmake_build" >> build_sub \
-    #&& echo "cd \$1/cmake_build && make install" >> build_sub \
-    && chmod u+x build_sub \
     && git submodule update --init --depth 1 test/googletest \
     && git submodule update --init --recursive --depth 1
 
-################################################################################################################
-################################################################################################################
-FROM awiciroh/ngen-deps:latest as rocky_ngen_build_testing
-
-COPY --chown=${USER} --from=rocky_init_repo ${WORKDIR}/ngen ${WORKDIR}/ngen
-ENV BOOST_ROOT=${WORKDIR}/boost
-WORKDIR ${WORKDIR}/ngen
+# Make an alias for t-route with tag name
+FROM awiciroh/t-route:${TAG_NAME} as troute
 
 ################################################################################################################
 ################################################################################################################
 ##### Create intermediate Docker build stage for building framework in Rocky Linux environment
-FROM awiciroh/ngen-deps:latest as rocky_build_ngen
+FROM awiciroh/ngen-deps:${TAG_NAME} as rocky_build_ngen
 
 ARG REPO_URL \
     BRANCH \
@@ -59,6 +48,7 @@ ARG REPO_URL \
     NGEN_ACTIVATE_PYTHON="ON" \
     NGEN_NETCDF_ACTIVE="ON" \
     NGEN_ROUTING_ACTIVE="ON" \
+    NGEN_WITH_SQLITE="ON" \
     NGEN_UDUNITS_ACTIVE="ON" \
     NGEN_UDUNITS_QUIET="ON" \
     BUILD_NGEN_SERIAL="true" \
@@ -70,103 +60,94 @@ ARG REPO_URL \
     BUILD_PET="true" \
     BUILD_SLOTH="true"
 
-COPY --chown=${USER} --from=rocky_init_repo ${WORKDIR}/ngen ${WORKDIR}/ngen
-COPY --chown=${USER} --from=awiciroh/t-route:latest ${WORKDIR}/t-route/wheels /tmp/t-route-wheels
-COPY --chown=${USER} --from=awiciroh/t-route:latest ${WORKDIR}/t-route/requirements.txt /tmp/t-route-requirements.txt
-ENV BOOST_ROOT=${WORKDIR}/boost
+COPY --chown=${USER} --from=rocky_init_repo /ngen/ngen /ngen/ngen
+COPY --chown=${USER} --from=troute /ngen/t-route/wheels /tmp/t-route-wheels
+COPY --chown=${USER} --from=troute /ngen/t-route/requirements.txt /tmp/t-route-requirements.txt
+ENV BOOST_ROOT=/ngen/boost
 
 USER root
 RUN if [ "${NGEN_ACTIVATE_PYTHON}" == "ON" ]; then \
-        chgrp -R ${USER} /usr/local/lib*/python3.* ; \
-        chmod -R g+sw /usr/local/lib*/python3.* ; \
+    chgrp -R ${USER} /usr/local/lib*/python3.* ; \
+    chmod -R g+sw /usr/local/lib*/python3.* ; \
     fi \
     && if [ "${NGEN_ROUTING_ACTIVE}" == "ON" ]; then \
-        # These packages install command line tools, which try to go in /usr/local/bin \
-        pip3 install pyarrow pyproj fiona; \
+    # These packages install command line tools, which try to go in /usr/local/bin \
+    pip3 install pyarrow pyproj fiona; \
     fi
 USER ${USER}
 
 #These patches are from ngen commit 7551590a415b89026559c1c570d4154e4746161b
 #and are needed to fix an I/O bug in the sub modules (and bmi tests) that cause an infinite loop
 #https://github.com/NOAA-OWP/ngen/pull/515, https://github.com/NOAA-OWP/ngen/pull/518 both merged upstream, patch no longer needed
-# All the affected submodules have patched/merged in their respective upstream repos, 
-# but ngen submodules have not been updated to the current HEAD
-# of all the submdoules, and that might prove difficult to do in the near future, but if that does happen,
-# then this can be removed at that point.
-COPY fix_io_sub_7551590a415b89026559c1c570d4154e4746161b.patch ${WORKDIR}/ngen/fix_io_sub.patch
-# Apply the IO fix to submodules, once they all get patched/merged, this can be dropped...
-RUN cd ${WORKDIR}/ngen && git apply --reject --whitespace=fix \
-    #patch the submodules
-    fix_io_sub.patch
+# All the affected submodules have been patched and the ngen submodule commits have been updated
+# so this patch is no longer needed.  I'm leaving these lines commented out in case custom patches
+# need to be applied in the future.
+# Patches can be generated with
+# generate submodule patch:
+#git submodule --quiet foreach --recursive 'export NAME="${PWD##*/}"; git --no-pager diff --src-prefix="a/extern/${NAME}/${NAME}/" --dst-prefix="b/extern/${NAME}/${NAME}/"' > fix_io_sub.patch
+# generate patch of ngen without submodules
+#git --no-pager diff --ignore-submodules > fix_io.patch
+#It is then probably a good idea to to add a commit hash to thee patch file name as below
+#to indicate from what point the patch was generated.
 
-RUN cd ${WORKDIR}/ngen \
-    && if [ "${NGEN_ACTIVATE_PYTHON}" == "ON" ]; then \
-        pip3 install -r extern/test_bmi_py/requirements.txt; \
-        if [ "${NGEN_ROUTING_ACTIVE}" == "ON" ] ; then \
-            pip3 install /tmp/t-route-wheels/*.whl; \
-            pip3 install -r /tmp/t-route-requirements.txt; \
-            pip3 install deprecated geopandas ; \
-            fi; \
-        fi \
-    &&  if [ "${NGEN_ACTIVATE_FORTRAN}" == "ON" ]; then \
-                ./build_sub extern/iso_c_fortran_bmi; \
-                if [ "${BUILD_NOAH_OWP}" == "true" ] ; then ./build_sub extern/noah-owp-modular; fi; \
-        fi \
-    &&  if [ "${NGEN_ACTIVATE_C}" == "ON" ]; then \
-                if [ "${BUILD_CFE}" == "true" ] ; then ./build_sub extern/cfe; fi; \
-                if [ "${BUILD_PET}" == "true" ] ; then ./build_sub extern/evapotranspiration/evapotranspiration; fi; \
-                if [ "${BUILD_TOPMODEL}" == "true" ] ; then ./build_sub extern/topmodel; fi; \
-        fi \
-    && if [ "${BUILD_SLOTH}" == "true" ] ; then ./build_sub extern/sloth; fi \
-    && if [ "${BUILD_NGEN_SERIAL}" == "true" ]; then \
-        cmake -B cmake_build_serial -S . \
-        -DMPI_ACTIVE:BOOL=OFF \
-        -DNETCDF_ACTIVE:BOOL=${NGEN_NETCDF_ACTIVE} \
-        -DBMI_C_LIB_ACTIVE:BOOL=${NGEN_ACTIVATE_C} \
-        -DBMI_FORTRAN_ACTIVE:BOOL=${NGEN_ACTIVATE_FORTRAN} \
-        -DNGEN_ACTIVATE_PYTHON:BOOL=${NGEN_ACTIVATE_PYTHON} \
-        -DNGEN_ACTIVATE_ROUTING:BOOL=${NGEN_ROUTING_ACTIVE} \
-        -DUDUNITS_ACTIVE:BOOL=${NGEN_UDUNITS_ACTIVE} \
-        -DUDUNITS_QUIET:BOOL=${NGEN_UDUNITS_QUIET} \
-        -DCMAKE_INSTALL_PREFIX=${WORKDIR} \
-        -DNETCDF_INCLUDE_DIR=/usr/include \
-        -DNETCDF_LIBRARY=/usr/lib/libnetcdf.so \
-        -DNETCDF_CXX_INCLUDE_DIR=/usr/local/include \
-        -DNETCDF_CXX_LIBRARY=/usr/local/lib64/libnetcdf-cxx4.so ; \
-        cmake --build cmake_build_serial --target all -j $(nproc); \
-    fi \
-    && if [ "${BUILD_NGEN_PARALLEL}" == "true" ]; then \
-        cmake -B cmake_build_parallel -S . \
-        -DMPI_ACTIVE:BOOL=ON \
-        -DNETCDF_ACTIVE:BOOL=${NGEN_NETCDF_ACTIVE} \
-        -DBMI_C_LIB_ACTIVE:BOOL=${NGEN_ACTIVATE_C} \
-        -DBMI_FORTRAN_ACTIVE:BOOL=${NGEN_ACTIVATE_FORTRAN} \
-        -DNGEN_ACTIVATE_PYTHON:BOOL=${NGEN_ACTIVATE_PYTHON} \
-        -DNGEN_ACTIVATE_ROUTING:BOOL=${NGEN_ROUTING_ACTIVE} \
-        -DUDUNITS_ACTIVE:BOOL=${NGEN_UDUNITS_ACTIVE} \
-        -DUDUNITS_QUIET:BOOL=${NGEN_UDUNITS_QUIET} \
-        -DCMAKE_INSTALL_PREFIX=${WORKDIR} \
-        -DNETCDF_INCLUDE_DIR=/usr/include \
-        -DNETCDF_LIBRARY=/usr/lib/libnetcdf.so \
-        -DNETCDF_CXX_INCLUDE_DIR=/usr/local/include \
-        -DNETCDF_CXX_LIBRARY=/usr/local/lib64/libnetcdf-cxx4.so ; \
-        cmake --build cmake_build_parallel --target all -j $(nproc); \
-    fi \
-    # Build the required submodules/external libs needed for running the tests later \
-    # C++ functionality isn't separate, so always build the test_bmi_cpp shared lib (also needed for test_bmi_multi) \
-    # && ./build_sub extern/test_bmi_cpp \
-    # For the external language BMI integrations, conditionally build the test packages/libraries and run tests \
-    &&  if [ "${NGEN_ACTIVATE_C}" == "ON" ]; then \
-            ./build_sub extern/test_bmi_c; \
-        fi \
-    &&  if [ "${NGEN_ACTIVATE_FORTRAN}" == "ON" ]; then \
-            ./build_sub extern/test_bmi_fortran; \
-        fi \
-    # run the serial tests \
-    && cd ${WORKDIR}/ngen \
-    # && cmake --build cmake_build_serial --target test \ 
-    # have to remove the output from the previous tests runs for routing test to be run again... \
-    && rm -f ./test/data/routing/*.parquet \
+#COPY fix_io_sub_7551590a415b89026559c1c570d4154e4746161b.patch ${WORKDIR}/ngen/fix_io_sub.patch
+# Apply the IO fix to submodules, once they all get patched/merged, this can be dropped...
+#RUN cd ${WORKDIR}/ngen && git apply --reject --whitespace=fix \
+#    #patch the submodules
+#    fix_io_sub.patch
+WORKDIR /ngen/ngen
+RUN if [ "${NGEN_ACTIVATE_PYTHON}" == "ON" ]; then \
+    pip3 install -r extern/test_bmi_py/requirements.txt; \
+    if [ "${NGEN_ROUTING_ACTIVE}" == "ON" ] ; then \
+    pip3 install /tmp/t-route-wheels/*.whl; \
+    pip3 install -r /tmp/t-route-requirements.txt; \
+    pip3 install deprecated geopandas ; \
+    fi; \
+    fi 
+
+RUN if [ "${BUILD_NGEN_SERIAL}" == "true" ]; then \
+    cmake -B cmake_build_serial -S . \
+    -DNGEN_WITH_EXTERN_ALL=ON \
+    -DMPI_ACTIVE:BOOL=OFF \
+    -DNETCDF_ACTIVE:BOOL=${NGEN_NETCDF_ACTIVE} \
+    -DBMI_C_LIB_ACTIVE:BOOL=${NGEN_ACTIVATE_C} \
+    -DBMI_FORTRAN_ACTIVE:BOOL=${NGEN_ACTIVATE_FORTRAN} \
+    -DNGEN_ACTIVATE_PYTHON:BOOL=${NGEN_ACTIVATE_PYTHON} \
+    -DNGEN_ACTIVATE_ROUTING:BOOL=${NGEN_ROUTING_ACTIVE} \
+    -DNGEN_WITH_SQLITE:BOOL=${NGEN_WITH_SQLITE} \
+    -DUDUNITS_ACTIVE:BOOL=${NGEN_UDUNITS_ACTIVE} \
+    -DUDUNITS_QUIET:BOOL=${NGEN_UDUNITS_QUIET} \
+    -DCMAKE_INSTALL_PREFIX=/ngen/ngen \
+    -DNETCDF_INCLUDE_DIR=/usr/include \
+    -DNETCDF_LIBRARY=/usr/lib/libnetcdf.so \
+    -DNETCDF_CXX_INCLUDE_DIR=/usr/local/include \
+    -DNETCDF_CXX_LIBRARY=/usr/local/lib64/libnetcdf-cxx4.so ; \
+    cmake --build cmake_build_serial --target all -j $(nproc); \
+    fi 
+RUN if [ "${BUILD_NGEN_PARALLEL}" == "true" ]; then \
+    cmake -B cmake_build_parallel -S . \
+    -DNGEN_WITH_EXTERN_ALL=ON \
+    -DMPI_ACTIVE:BOOL=ON \
+    -DNETCDF_ACTIVE:BOOL=${NGEN_NETCDF_ACTIVE} \
+    -DBMI_C_LIB_ACTIVE:BOOL=${NGEN_ACTIVATE_C} \
+    -DBMI_FORTRAN_ACTIVE:BOOL=${NGEN_ACTIVATE_FORTRAN} \
+    -DNGEN_ACTIVATE_PYTHON:BOOL=${NGEN_ACTIVATE_PYTHON} \
+    -DNGEN_ACTIVATE_ROUTING:BOOL=${NGEN_ROUTING_ACTIVE} \
+    -DNGEN_WITH_SQLITE:BOOL=${NGEN_WITH_SQLITE} \
+    -DUDUNITS_ACTIVE:BOOL=${NGEN_UDUNITS_ACTIVE} \
+    -DUDUNITS_QUIET:BOOL=${NGEN_UDUNITS_QUIET} \
+    -DCMAKE_INSTALL_PREFIX=${WORKDIR} \
+    -DNETCDF_INCLUDE_DIR=/usr/include \
+    -DNETCDF_LIBRARY=/usr/lib/libnetcdf.so \
+    -DNETCDF_CXX_INCLUDE_DIR=/usr/local/include \
+    -DNETCDF_CXX_LIBRARY=/usr/local/lib64/libnetcdf-cxx4.so ; \
+    cmake --build cmake_build_parallel --target all -j $(nproc); \
+    fi 
+WORKDIR /ngen/ngen
+# run the serial tests \
+# && cmake --build cmake_build_serial --target test \ 
+# have to remove the output from the previous tests runs for routing test to be run again... \
+RUN rm -f ./test/data/routing/*.parquet \
     # run the parallel tests \
     # && cmake --build cmake_build_parallel --target test \
     # clean these up again... \

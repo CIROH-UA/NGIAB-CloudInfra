@@ -1,58 +1,28 @@
-name: Build and push final image
+name: X86 Build and push final image
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
-  start-runner:
-   runs-on: ubuntu-latest
-   steps:
-     - name: start runner
-       uses: gagoar/invoke-aws-lambda@master
-       with:
-         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-         FunctionName: StartCirohRunner
-       if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA') || 
-           (startsWith(github.ref, 'refs/heads/main') && github.event_name != 'pull_request')
-
-     - name: wait runner up
-       shell: bash
-       run: |
-           sleep 300
-       if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA') || 
-           (startsWith(github.ref, 'refs/heads/main') && github.event_name != 'pull_request')
-  init:
-    needs: start-runner
-    runs-on: ARM64
-    steps:
-      - name: clear docker cache
-        run: |
-          docker system prune -af
   deps:
-    needs: init
     uses: ./.github/workflows/docker_deps_image.yml
     with:
-      runner_label: ARM64
+      runner_label: X86
     secrets: inherit
   troute:
     needs: deps
     uses: ./.github/workflows/docker_troute_image.yml
     with:
-      runner_label: ARM64
+      runner_label: X86
     secrets: inherit
   ngen:
     needs: troute
     uses: ./.github/workflows/docker_ngen_image.yml
     with:
-      runner_label: ARM64
+      runner_label: X86
     secrets: inherit
   final:
     needs: ngen
-    runs-on: ARM64
+    runs-on: X86
     steps:
       - name: deploy
         uses: actions/checkout@v2
@@ -62,7 +32,7 @@ jobs:
           docker-auth-token: ${{ secrets.DOCKER_AUTH_TOKEN }}
           image-name: "ciroh-ngen-image"
           dockerfile-name: "Dockerfile"
-          platform: ARM64
+          platform: X86
         if: ${{ !startsWith(github.ref, 'refs/heads/main') }}
       - name: Build and push Docker image
         uses: ./.github/action_templates/build-and-push
@@ -70,11 +40,11 @@ jobs:
           docker-auth-token: ${{ secrets.DOCKER_AUTH_TOKEN }}
           image-name: "ciroh-ngen-image"
           dockerfile-name: "Dockerfile"
-          platform: ARM64
+          platform: X86
         if: startsWith(github.ref, 'refs/heads/main')
   check_result:
     needs: final
-    runs-on: ARM64
+    runs-on: X86
     outputs:
       output1: ${{ steps.step1.outputs.result }}
     steps:
@@ -82,9 +52,8 @@ jobs:
         run: echo "result=success" >> "$GITHUB_OUTPUT"
 
   slack:
-    runs-on: ARM64
-    if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA') || 
-        (startsWith(github.ref, 'refs/heads/main') && github.event_name != 'pull_request')
+    runs-on: X86
+    if: ${{ always() }}
     needs: [deps, troute, ngen, final, check_result]
     env:
       OUTPUT: ${{needs.check_result.outputs.output1}}
@@ -109,15 +78,3 @@ jobs:
           job-status: ${{ env.JOBSTATUS }}
           pull_request_url: ${{ github.event.pull_request.html_url }}
           head_commit_url: ${{ github.event.head_commit.url }}
-  stop-runner:
-   needs: slack
-   runs-on: ubuntu-latest
-   if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA') || 
-       (startsWith(github.ref, 'refs/heads/main') && github.event_name != 'pull_request')
-   steps:
-     - name: stop runner
-       uses: gagoar/invoke-aws-lambda@master
-       with:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        FunctionName: StopCirohRunner

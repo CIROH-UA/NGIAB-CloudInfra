@@ -1,5 +1,5 @@
-name: build and push template
-description: "A template to build and push docker image based on provided inputs"
+name: build and test template
+description: "A template to build and test docker image based on provided inputs"
 
 inputs:
   docker-auth-token:
@@ -31,25 +31,18 @@ runs:
       run: |
         echo "TAG_NAME=${GITHUB_REF##*/}" >> "$GITHUB_ENV"
       if: ${{ !startsWith(github.ref, 'refs/heads/main') }}
-    
     - name: Attach platform to tag
       shell: bash
       run: |
         echo "TAG_NAME=${{env.TAG_NAME}}-${{inputs.platform}}" >> "$GITHUB_ENV"
       if: "${{ inputs.platform != 'ARM64' }}"
-
-    - name: Login to Docker Hub
-      shell: bash
-      run: |
-          echo "${{ inputs.docker-auth-token }}" | docker login --username awiciroh --password-stdin
-    
     - name: Create Cache and Builder for Buildx
       shell: bash
       run: |
           docker buildx create --use --name mybuilder --node mybuilder
 
     - name: Build and Cache Docker Image
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v5
       with:
         context: ./docker
         file: ./docker/${{ inputs.dockerfile-name}}
@@ -63,3 +56,11 @@ runs:
       env:
         DOCKER_BUILDKIT: 1
         DOCKER_CLI_EXPERIMENTAL: enabled
+    - name: Test
+      shell: bash
+      run: |
+        rm -rf /home/ubuntu/workspace/AWI_03W_113060_003/*.csv
+        rm -rf /home/ubuntu/workspace/AWI_03W_113060_003/*.parquet
+        rm -rf /home/ubuntu/workspace/AWI_03W_113060_003/outputs/*
+        docker run --rm -v /home/ubuntu/workspace/AWI_03W_113060_003:/ngen/ngen/data awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}} /ngen/ngen/data auto
+      if: inputs.image-name == 'ciroh-ngen-image'
