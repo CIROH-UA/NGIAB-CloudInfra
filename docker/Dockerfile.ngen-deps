@@ -15,7 +15,6 @@ ARG WORKDIR=/ngen \
     NETCDF_FORTRAN_VERSION=4.6.0 \
     HD5_VERSION=1.10.9 \
     BLOSC2_VERSION=v2.2.0 \
-    FFLAGS="-w -fallow-argument-mismatch -O2" \
     MPICH_CONFIGURE_OPTIONS="" \
     MPICH_MAKE_OPTIONS \
     NGEN_ACTIVATE_PYTHON="ON"
