@@ -5,15 +5,10 @@
 # Also, for those with defaults, set those up here so that's easier to find.
 
 ARG WORKDIR=/ngen \
-#### Default arguments for required dependencies needed during various build stages
-# The Rocky-Linux-based "ngen-deps" stage, rocky-ngen-deps
-# TODO: later look at separating build and run images again, and install static lib netcdf packages in run images
     ROCKY_NGEN_DEPS_REQUIRED="sudo gcc gcc-c++ make cmake tar git gcc-gfortran libgfortran sqlite sqlite-devel \
     python3 python3-devel python3-pip gdal gdal-devel\
     bzip2 expat expat-devel flex bison udunits2 udunits2-devel zlib-devel" \
     BOOST_VERSION=1.79.0 \
-#TODO Try mpich 4.x for native arm build support (https://raw.githubusercontent.com/pmodels/mpich/v4.1.1/CHANGES)
-#mpich 3.2 doesn't work well gfortran 11 it seems, an alignment error crops up, but 3.3.2 seems to work...
     MPICH_VERSION="3.3.2" \
     NETCDF_C_VERSION=4.8.1 \
     NETCDF_CXX_VERSION=4.3.1 \
@@ -149,7 +144,6 @@ RUN dnf update -y && dnf install -y ${ROCKY_NGEN_DEPS_REQUIRED} \
 ##### Create intermediate Docker build stage for Rocky-Linux-based "ngen-deps"
 FROM rocky-ngen-packaged-deps as rocky-ngen-deps
 
-#USER root
 ARG BOOST_VERSION \
     WORKDIR  \
     MPICH_VERSION \
@@ -206,8 +200,6 @@ RUN pip3 install --upgrade pip \
     && cd netcdf \
     && LIBS=curl && ./configure --prefix=/usr \
     && make -j $(nproc) && make install \
-    # TODO: if we run into any problem, might need to reactivate this \
-    #&& make check \
     ##### Build and install NetCDF Fortran \
     && cd /tmp/ngen-deps \
     && mkdir netcdf-fortran \
@@ -226,15 +218,13 @@ RUN pip3 install --upgrade pip \
     && ../configure --enable-parallel --prefix=/usr \
     && cmake .. \
     && make \
-    # TODO: if we run into any problem, might need to reactivate this \
-    #&& ctest \
     && make install \
     # Install required python dependency packages with Pip \
     # Except blosc2, since packaged wheels on pypi seem to have some issues, build it ourselves
     && cd /tmp/ngen-deps \
     && git clone https://github.com/Blosc/python-blosc2/ \
     && cd python-blosc2 \
-    #checkout a release tag
+    # checkout a release tag
     && git checkout ${BLOSC2_VERSION} \ 
     && git submodule update --init --recursive \
     && python3 -m pip install -r requirements-build.txt \
