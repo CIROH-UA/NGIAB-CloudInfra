@@ -4,82 +4,38 @@
 # Any args that will need to be set, first declare them here, then later redeclare them within stage that uses.
 # Also, for those with defaults, set those up here so that's easier to find.
 
-# Swap or override this as needed (below are the "standard" types from
-#   https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#default-and-custom-configurations)
-ARG DOCKER_INTERNAL_REGISTRY \
-    NGEN_BUILD_CONFIG_TYPE="Release" \
-    DATASET_DIRECTORIES="config forcing hydrofabric observation output" 
-ARG REPO_URL=https://github.com/NOAA-OWP/ngen.git \
-    BRANCH=master \
-    WORKDIR=/ngen \
-    TROUTE_REPO_URL=https://github.com/NOAA-OWP/t-route.git \
-    TROUTE_BRANCH=master \
+ARG WORKDIR=/ngen \
 #### Default arguments for required dependencies needed during various build stages
 # The Rocky-Linux-based "ngen-deps" stage, rocky-ngen-deps
 # TODO: later look at separating build and run images again, and install static lib netcdf packages in run images
-#ARG ROCKY_NGEN_DEPS_REQUIRED="mpich mpich-devel sudo gcc gcc-c++ make cmake tar git gcc-gfortran libgfortran \
-#    python39 python39-devel python39-pip python39-numpy \
-#    netcdf-cxx4-devel netcdf-cxx4-mpich-devel netcdf-fortran-devel netcdf-fortran-mpich-devel \
-#    hdf5 hdf5-devel hdf5-mpich hdf5-mpich-devel \
-#    bzip2 expat expat-devel flex bison udunits2 udunits2-devel"
     ROCKY_NGEN_DEPS_REQUIRED="sudo gcc gcc-c++ make cmake tar git gcc-gfortran libgfortran sqlite sqlite-devel \
     python3 python3-devel python3-pip gdal gdal-devel\
     bzip2 expat expat-devel flex bison udunits2 udunits2-devel zlib-devel" \
-# TODO: removed texinfo from list because it couldn't be found; make sure this doesn't lead to issues
     BOOST_VERSION=1.79.0 \
 #TODO Try mpich 4.x for native arm build support (https://raw.githubusercontent.com/pmodels/mpich/v4.1.1/CHANGES)
 #mpich 3.2 doesn't work well gfortran 11 it seems, an alignment error crops up, but 3.3.2 seems to work...
     MPICH_VERSION="3.3.2" \
-    MIN_PYTHON="3.8.0" \
-    MIN_NUMPY="1.18.0" \
     NETCDF_C_VERSION=4.8.1 \
     NETCDF_CXX_VERSION=4.3.1 \
     NETCDF_FORTRAN_VERSION=4.6.0 \
     HD5_VERSION=1.10.9 \
     BLOSC2_VERSION=v2.2.0 \
-    FCFLAGS="-w -fallow-argument-mismatch -O2" \
     FFLAGS="-w -fallow-argument-mismatch -O2" \
     MPICH_CONFIGURE_OPTIONS="" \
     MPICH_MAKE_OPTIONS \
-    NGEN_ACTIVATE_C="ON" \
-    NGEN_ACTIVATE_FORTRAN="ON" \
-    NGEN_ACTIVATE_PYTHON="ON" \
-    NGEN_NETCDF_ACTIVE="ON" \
-    NGEN_ROUTING_ACTIVE="ON" \
-    NGEN_UDUNITS_ACTIVE="ON" \
-    NGEN_UDUNITS_QUIET="ON" \
-    BUILD_NGEN_SERIAL="true" \
-    BUILD_NGEN_PARALLEL="true" \
-    BUILD_NGEN_PARTITIONER="true" \
-    BUILD_NOAH_OWP="true" \
-    BUILD_CFE="true" \
-    BUILD_TOPMODEL="true" \
-    BUILD_PET="true" \
-    BUILD_SLOTH="true" 
+    NGEN_ACTIVATE_PYTHON="ON"
 
 ################################################################################################################
 ################################################################################################################
 ##### Create intermediate Docker build stage for Rocky-Linux-based "base"
 FROM rockylinux:9.1 as rocky-base
 
-#USER=root
-
-ARG ROCKY_BASE_REQUIRED="sudo bash git" \
-    WORKDIR=/ngen 
+ARG WORKDIR=/ngen 
 RUN dnf update -y \
     && dnf install -y 'dnf-command(config-manager)' \
     && dnf config-manager --set-enabled crb \
     && dnf install -y epel-release \
-    && dnf -y install ${ROCKY_BASE_REQUIRED} 
-    # Note that adduser -p expects an encrypted/hashed password, so it will ignore a simple password \
-    # Config SSH Daemon \
-    # Unlock non-password USER to enable SSH login \
-    #&& passwd -u ${USER} 
-
-
-
-
-# Switch back to default user when continue the build process
+    && dnf -y install sudo bash git
 
 ################################################################################################################
 ################################################################################################################
@@ -102,7 +58,6 @@ FROM rockylinux:9.1 AS download_mpich
 ARG MPICH_VERSION
 
 RUN curl -o /tmp/mpich-${MPICH_VERSION}.tar.gz https://www.mpich.org/static/downloads/${MPICH_VERSION}/mpich-${MPICH_VERSION}.tar.gz
-
 
 ################################################################################################################
 ################################################################################################################
@@ -133,10 +88,6 @@ RUN if [[ "${NETCDF_C_VERSION}" == "latest" ]]; then \
                 | grep "${NETCDF_C_VERSION}" \
                 | cut -d '"' -f 4 \
                 | xargs curl -L -o /tmp/netcdf-${NETCDF_C_VERSION}.tar.gz ; \
-        #fi \
-        #&& mkdir /tmp/netcdf \
-        #&& tar -xzf /tmp/netcdf-${NETCDF_C_VERSION}.tar.gz -C /tmp/netcdf --strip 1 \
-        #&& rm /tmp/netcdf-${NETCDF_C_VERSION}.tar.gz
         fi
 
 ################################################################################################################
@@ -158,10 +109,6 @@ RUN if [[ "${NETCDF_FORTRAN_VERSION}" == "latest" ]]; then \
                 | grep "${NETCDF_FORTRAN_VERSION}" \
                 | cut -d '"' -f 4 \
                 | xargs curl -L -o /tmp/netcdf-fortran-${NETCDF_FORTRAN_VERSION}.tar.gz ; \
-        #fi \
-        #&& mkdir /tmp/netcdf-fortran \
-        #&& tar -xzf /tmp/netcdf-fortran-${NETCDF_FORTRAN_VERSION}.tar.gz -C /tmp/netcdf-fortran --strip 1 \
-        #&& rm /tmp/netcdf-fortran-${NETCDF_FORTRAN_VERSION}.tar.gz
         fi
 
 ################################################################################################################
@@ -183,13 +130,8 @@ RUN if [[ "${NETCDF_CXX_VERSION}" == "latest" ]]; then \
                 | grep "${NETCDF_CXX_VERSION}" \
                 | cut -d '"' -f 4 \
                 | xargs curl -L -o /tmp/netcdf-cxx4-${NETCDF_CXX_VERSION}.tar.gz ; \
-        #fi \
-        #&& mkdir /tmp/netcdf-cxx4 \
-        #&& tar -xzf /tmp/netcdf-cxx4-${NETCDF_CXX_VERSION}.tar.gz -C /tmp/netcdf-cxx4 --strip 1 \
-        #&& rm /tmp/netcdf-cxx4-${NETCDF_CXX_VERSION}.tar.gz
         fi
-    # This URL might also work for the analogous version:
-    #   https://downloads.unidata.ucar.edu/netcdf-cxx/4.3.1/netcdf-cxx4-4.3.1.tar.gz
+
 ################################################################################################################
 ################################################################################################################
 ##### Create intermediate Docker build stage for just prior to "ngen-deps" for installing packaged deps
@@ -198,11 +140,9 @@ FROM rocky-base as rocky-ngen-packaged-deps
 ARG ROCKY_NGEN_DEPS_REQUIRED
 
 # Note that this includes numpy, which is needed for Python BMI support, regardless of BMI module 
-#USER root
 RUN dnf update -y && dnf install -y ${ROCKY_NGEN_DEPS_REQUIRED} \
     && pip3 install --upgrade pip \
     && if [ "${NGEN_ACTIVATE_PYTHON}" == "ON" ]; then pip3 install numpy; fi
-#USER ${USER}
 
 ################################################################################################################
 ################################################################################################################
@@ -213,8 +153,6 @@ FROM rocky-ngen-packaged-deps as rocky-ngen-deps
 ARG BOOST_VERSION \
     WORKDIR  \
     MPICH_VERSION \
-    MIN_PYTHON \
-    MIN_NUMPY \
     ROCKY_NGEN_DEPS_REQUIRED \
     MPICH_CONFIGURE_OPTIONS \
     MPICH_MAKE_OPTIONS \
