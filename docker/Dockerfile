@@ -6,10 +6,6 @@ FROM awiciroh/ngen:${TAG_NAME} as rocky_build_staging
 
 ARG DATASET_DIRECTORIES
 
-#RUN cd ./ngen && mkdir ${WORKDIR}/bin && cp cmake_build/ngen ${WORKDIR}/bin && cp -r data ${WORKDIR}/data \
-#    && cd $WORKDIR && rm -rf ngen boost
-
-
 # Remove the boost headers now that ngen is compiled; also update path and make sure dataset directory is there
 RUN rm -rf ${BOOST_ROOT} && echo "export PATH=${PATH}" >> /etc/profile \
     && mkdir -p /dmod/datasets && chown root /dmod/datasets \
