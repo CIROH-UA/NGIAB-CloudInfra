@@ -33,98 +33,42 @@ RUN dnf update -y \
 
 ################################################################################################################
 ################################################################################################################
-##### Create intermediate Docker build stage for downloading Boost
-FROM rockylinux:9.1 AS download_boost
+##### Create intermediate Docker build stage for downloading netcdf-fortran
+FROM rocky-base AS downloads
 
 # Redeclaring inside this stage to get default from before first FROM
-ARG BOOST_VERSION
+ARG BOOST_VERSION \
+    MPICH_VERSION \
+    HD5_VERSION \
+    NETCDF_C_VERSION \
+    NETCDF_FORTRAN_VERSION \
+    NETCDF_CXX_VERSION
 
 RUN curl -L -o boost_${BOOST_VERSION//./_}.tar.bz2 https://sourceforge.net/projects/boost/files/boost/${BOOST_VERSION}/boost_${BOOST_VERSION//./_}.tar.bz2/download \
     && mkdir /boost \
     && mv boost_${BOOST_VERSION//./_}.tar.bz2 /boost/.
 
-################################################################################################################
-##https://support.hdfgroup.org/ftp/HDF5/releases##############################################################################################################
-##### Create intermediate Docker build stage for downloading MPICH
-FROM rockylinux:9.1 AS download_mpich
-
-# Redeclaring inside this stage to get default from before first FROM
-ARG MPICH_VERSION
-
 RUN curl -o /tmp/mpich-${MPICH_VERSION}.tar.gz https://www.mpich.org/static/downloads/${MPICH_VERSION}/mpich-${MPICH_VERSION}.tar.gz
-
-################################################################################################################
-################################################################################################################
-##### Create intermediate Docker build stage for downloading MPICH
-FROM rockylinux:9.1 AS download_hd5
-
-# Redeclaring inside this stage to get default from before first FROM
-ARG HD5_VERSION
 
 RUN curl -o /tmp/hdf5-${HD5_VERSION}.tar.gz https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.10/hdf5-${HD5_VERSION}/src/hdf5-${HD5_VERSION}.tar.gz
 
-################################################################################################################
-################################################################################################################
-##### Create intermediate Docker build stage for downloading netcdf
-FROM rocky-base AS download_netcdf
+RUN curl -s https://api.github.com/repos/Unidata/netcdf-c/releases \
+    | grep "tarball_url" \
+    | grep "${NETCDF_C_VERSION}" \
+    | cut -d '"' -f 4 \
+    | xargs curl -L -o /tmp/netcdf-${NETCDF_C_VERSION}.tar.gz
 
-# Redeclaring inside this stage to get default from before first FROM
-ARG NETCDF_C_VERSION
+RUN curl -s https://api.github.com/repos/Unidata/netcdf-fortran/releases \
+    | grep "tarball_url" \
+    | grep "${NETCDF_FORTRAN_VERSION}" \
+    | cut -d '"' -f 4 \
+    | xargs curl -L -o /tmp/netcdf-fortran-${NETCDF_FORTRAN_VERSION}.tar.gz
 
-RUN if [[ "${NETCDF_C_VERSION}" == "latest" ]]; then \
-            curl -s https://api.github.com/repos/Unidata/netcdf-c/releases/latest \
-                | grep "tarball_url" \
-                | cut -d '"' -f 4 \
-                | xargs curl -L -o /tmp/netcdf-${NETCDF_C_VERSION}.tar.gz ; \
-        else \
-            curl -s https://api.github.com/repos/Unidata/netcdf-c/releases \
-                | grep "tarball_url" \
-                | grep "${NETCDF_C_VERSION}" \
-                | cut -d '"' -f 4 \
-                | xargs curl -L -o /tmp/netcdf-${NETCDF_C_VERSION}.tar.gz ; \
-        fi
-
-################################################################################################################
-################################################################################################################
-##### Create intermediate Docker build stage for downloading netcdf-fortran
-FROM rocky-base AS download_netcdf_fortran
-
-# Redeclaring inside this stage to get default from before first FROM
-ARG NETCDF_FORTRAN_VERSION
-
-RUN if [[ "${NETCDF_FORTRAN_VERSION}" == "latest" ]]; then \
-            curl -s https://api.github.com/repos/Unidata/netcdf-fortran/releases/latest \
-                | grep "tarball_url" \
-                | cut -d '"' -f 4 \
-                | xargs curl -L -o /tmp/netcdf-fortran-${NETCDF_FORTRAN_VERSION}.tar.gz ; \
-        else \
-            curl -s https://api.github.com/repos/Unidata/netcdf-fortran/releases \
-                | grep "tarball_url" \
-                | grep "${NETCDF_FORTRAN_VERSION}" \
-                | cut -d '"' -f 4 \
-                | xargs curl -L -o /tmp/netcdf-fortran-${NETCDF_FORTRAN_VERSION}.tar.gz ; \
-        fi
-
-################################################################################################################
-################################################################################################################
-##### Create intermediate Docker build stage for downloading NetCDF C++
-FROM rocky-base AS download_netcdf_cxx
-
-# Redeclaring inside this stage to get default from before first FROM
-ARG NETCDF_CXX_VERSION
-
-RUN if [[ "${NETCDF_CXX_VERSION}" == "latest" ]]; then \
-            curl -s https://api.github.com/repos/Unidata/netcdf-cxx4/releases/latest \
-                | grep "tarball_url" \
-                | cut -d '"' -f 4 \
-                | xargs curl -L -o /tmp/netcdf-cxx4-${NETCDF_CXX_VERSION}.tar.gz ; \
-        else \
-            curl -s https://api.github.com/repos/Unidata/netcdf-cxx4/releases \
-                | grep "tarball_url" \
-                | grep "${NETCDF_CXX_VERSION}" \
-                | cut -d '"' -f 4 \
-                | xargs curl -L -o /tmp/netcdf-cxx4-${NETCDF_CXX_VERSION}.tar.gz ; \
-        fi
+RUN curl -s https://api.github.com/repos/Unidata/netcdf-cxx4/releases \
+    | grep "tarball_url" \
+    | grep "${NETCDF_CXX_VERSION}" \
+    | cut -d '"' -f 4 \
+    | xargs curl -L -o /tmp/netcdf-cxx4-${NETCDF_CXX_VERSION}.tar.gz
 
 ################################################################################################################
 ################################################################################################################
@@ -164,12 +108,12 @@ ENV WORKDIR=${WORKDIR} \
     NETCDF_FORTRAN_VERSION=${NETCDF_FORTRAN_VERSION} \
     HYDRA_HOST_FILE=/etc/opt/hosts
 
-COPY --from=download_boost /boost ${WORKDIR}/boost 
-COPY --from=download_mpich /tmp/mpich-${MPICH_VERSION}.tar.gz /tmp/ngen-deps/mpich-${MPICH_VERSION}.tar.gz  
-COPY --from=download_hd5 /tmp/hdf5-${HD5_VERSION}.tar.gz /tmp/ngen-deps/hdf5-${HD5_VERSION}.tar.gz 
-COPY --from=download_netcdf /tmp/netcdf-${NETCDF_C_VERSION}.tar.gz /tmp/ngen-deps/netcdf-${NETCDF_C_VERSION}.tar.gz 
-COPY --from=download_netcdf_cxx /tmp/netcdf-cxx4-${NETCDF_CXX_VERSION}.tar.gz /tmp/ngen-deps/netcdf-cxx4-${NETCDF_CXX_VERSION}.tar.gz 
-COPY --from=download_netcdf_fortran /tmp/netcdf-fortran-${NETCDF_FORTRAN_VERSION}.tar.gz /tmp/ngen-deps/netcdf-fortran-${NETCDF_FORTRAN_VERSION}.tar.gz
+COPY --from=downloads /boost ${WORKDIR}/boost 
+COPY --from=downloads /tmp/mpich-${MPICH_VERSION}.tar.gz /tmp/ngen-deps/mpich-${MPICH_VERSION}.tar.gz  
+COPY --from=downloads /tmp/hdf5-${HD5_VERSION}.tar.gz /tmp/ngen-deps/hdf5-${HD5_VERSION}.tar.gz 
+COPY --from=downloads /tmp/netcdf-${NETCDF_C_VERSION}.tar.gz /tmp/ngen-deps/netcdf-${NETCDF_C_VERSION}.tar.gz 
+COPY --from=downloads /tmp/netcdf-cxx4-${NETCDF_CXX_VERSION}.tar.gz /tmp/ngen-deps/netcdf-cxx4-${NETCDF_CXX_VERSION}.tar.gz 
+COPY --from=downloads /tmp/netcdf-fortran-${NETCDF_FORTRAN_VERSION}.tar.gz /tmp/ngen-deps/netcdf-fortran-${NETCDF_FORTRAN_VERSION}.tar.gz
 
 RUN pip3 install --upgrade pip \
     && pip3 install -t /ngen numpy pandas pyyaml bmipy Cython netCDF4 wheel packaging opencv-contrib-python-headless \
