@@ -32,10 +32,6 @@ RUN cd ${WORKDIR} \
 ARG TAG_NAME
 FROM awiciroh/ngen-deps:${TAG_NAME} as rocky_build_troute
 
-ARG REPO_URL \
-    BRANCH \
-    COMMIT
-
 COPY --chown=root --from=rocky_init_troute_repo ${WORKDIR}/t-route ${WORKDIR}/t-route
 
 RUN cp -s /usr/bin/python3 /usr/bin/python \
