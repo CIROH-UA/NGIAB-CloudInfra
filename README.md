@@ -2,11 +2,7 @@
 
 "NextGen In A Box" (NGIAB) is a containerized version of the NextGen National Water Resources Modeling Framework.
 
-[![Build and push deps image](https://github.com/CIROH-UA/NGIAB-CloudInfra/actions/workflows/docker_deps_image.yml/badge.svg)](https://github.com/CIROH-UA/NGIAB-CloudInfra/actions/workflows/docker_deps_image.yml)
-[![Build and push ngen image](https://github.com/CIROH-UA/NGIAB-CloudInfra/actions/workflows/docker_ngen_image.yml/badge.svg)](https://github.com/CIROH-UA/NGIAB-CloudInfra/actions/workflows/docker_ngen_image.yml)
-[![Build and push t-route image](https://github.com/CIROH-UA/NGIAB-CloudInfra/actions/workflows/docker_troute_image.yml/badge.svg)](https://github.com/CIROH-UA/NGIAB-CloudInfra/actions/workflows/docker_troute_image.yml)
 [![ARM Build and push final image](https://github.com/CIROH-UA/NGIAB-CloudInfra/actions/workflows/docker_image_main_branch.yml/badge.svg)](https://github.com/CIROH-UA/NGIAB-CloudInfra/actions/workflows/docker_image_main_branch.yml)
-[![Run Test](https://github.com/CIROH-UA/NGIAB-CloudInfra/actions/workflows/run_test.yml/badge.svg)](https://github.com/CIROH-UA/NGIAB-CloudInfra/actions/workflows/run_test.yml)
 [![X86 Build and push final image](https://github.com/CIROH-UA/NGIAB-CloudInfra/actions/workflows/docker_image_main_x86.yml/badge.svg)](https://github.com/CIROH-UA/NGIAB-CloudInfra/actions/workflows/docker_image_main_x86.yml)
 
 
