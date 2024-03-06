@@ -67,10 +67,10 @@ This repository contains :
 ```bash   
     mkdir -p NextGen/ngen-data
     cd NextGen/ngen-data
-    wget --no-parent https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-004/AWI_004.tar.gz
-    tar -xf AWI_004.tar.gz
+    wget --no-parent https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-004/AWI_09_004.tar.gz
+    tar -xf AWI_09_004.tar.gz
     # to rename your folder
-    mv AWI_004 my_data
+    mv AWI_09_004 my_data
 ```
 
 ### How to Generate Your Own Input Data?

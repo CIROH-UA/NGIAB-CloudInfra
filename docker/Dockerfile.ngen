@@ -1,12 +1,10 @@
 ################################################################################################################
 ##### External Global Args Declaration and Defaults
 ################################################################################################################
-ARG NGEN_BUILD_CONFIG_TYPE="Release" \
-    REPO_URL=https://github.com/NOAA-OWP/ngen.git \
+ARG REPO_URL=https://github.com/NOAA-OWP/ngen.git \
     BRANCH=master \
     COMMIT \
     TAG_NAME 
-
 
 ################################################################################################################
 ################################################################################################################
@@ -39,11 +37,7 @@ FROM awiciroh/t-route:${TAG_NAME} as troute
 ##### Create intermediate Docker build stage for building framework in Rocky Linux environment
 FROM awiciroh/ngen-deps:${TAG_NAME} as rocky_build_ngen
 
-ARG REPO_URL \
-    BRANCH \
-    COMMIT \
-    NGEN_BUILD_CONFIG_TYPE="Release" \
-    NGEN_ACTIVATE_C="ON" \
+ARG NGEN_ACTIVATE_C="ON" \
     NGEN_ACTIVATE_FORTRAN="ON" \
     NGEN_ACTIVATE_PYTHON="ON" \
     NGEN_NETCDF_ACTIVE="ON" \
@@ -52,13 +46,7 @@ ARG REPO_URL \
     NGEN_UDUNITS_ACTIVE="ON" \
     NGEN_UDUNITS_QUIET="ON" \
     BUILD_NGEN_SERIAL="true" \
-    BUILD_NGEN_PARALLEL="true" \
-    BUILD_NGEN_PARTITIONER="true" \
-    BUILD_NOAH_OWP="true" \
-    BUILD_CFE="true" \
-    BUILD_TOPMODEL="true" \
-    BUILD_PET="true" \
-    BUILD_SLOTH="true"
+    BUILD_NGEN_PARALLEL="true"
 
 COPY --chown=${USER} --from=rocky_init_repo /ngen/ngen /ngen/ngen
 COPY --chown=${USER} --from=troute /ngen/t-route/wheels /tmp/t-route-wheels
@@ -76,25 +64,6 @@ RUN if [ "${NGEN_ACTIVATE_PYTHON}" == "ON" ]; then \
     fi
 USER ${USER}
 
-#These patches are from ngen commit 7551590a415b89026559c1c570d4154e4746161b
-#and are needed to fix an I/O bug in the sub modules (and bmi tests) that cause an infinite loop
-#https://github.com/NOAA-OWP/ngen/pull/515, https://github.com/NOAA-OWP/ngen/pull/518 both merged upstream, patch no longer needed
-# All the affected submodules have been patched and the ngen submodule commits have been updated
-# so this patch is no longer needed.  I'm leaving these lines commented out in case custom patches
-# need to be applied in the future.
-# Patches can be generated with
-# generate submodule patch:
-#git submodule --quiet foreach --recursive 'export NAME="${PWD##*/}"; git --no-pager diff --src-prefix="a/extern/${NAME}/${NAME}/" --dst-prefix="b/extern/${NAME}/${NAME}/"' > fix_io_sub.patch
-# generate patch of ngen without submodules
-#git --no-pager diff --ignore-submodules > fix_io.patch
-#It is then probably a good idea to to add a commit hash to thee patch file name as below
-#to indicate from what point the patch was generated.
-
-#COPY fix_io_sub_7551590a415b89026559c1c570d4154e4746161b.patch ${WORKDIR}/ngen/fix_io_sub.patch
-# Apply the IO fix to submodules, once they all get patched/merged, this can be dropped...
-#RUN cd ${WORKDIR}/ngen && git apply --reject --whitespace=fix \
-#    #patch the submodules
-#    fix_io_sub.patch
 WORKDIR /ngen/ngen
 RUN if [ "${NGEN_ACTIVATE_PYTHON}" == "ON" ]; then \
     pip3 install -r extern/test_bmi_py/requirements.txt; \
