@@ -47,6 +47,12 @@ else
     read -erp "Enter your input data directory path (use absolute path): " HOST_DATA_PATH
 fi
 
+# Check the directory exists
+if [ ! -d "$HOST_DATA_PATH" ]; then
+  echo -e "${BRed}Directory does not exist. Exiting the program.${Color_Off}"
+  exit 0
+fi
+
 # Save the new path to the config file
 echo "$HOST_DATA_PATH" > "$CONFIG_FILE"
 echo -e "The Directory you've given is:\n$HOST_DATA_PATH\n"
