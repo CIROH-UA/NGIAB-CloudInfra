@@ -62,12 +62,22 @@ This repository contains :
     
 ### Download the sample input data in "ngen-data" folder from S3 bucket :
 
-#### Linux & Mac & WSL
+#### Linux ,Mac 
 
 ```bash   
     mkdir -p NextGen/ngen-data
     cd NextGen/ngen-data
     wget --no-parent https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-004/AWI_09_004.tar.gz
+    tar -xf AWI_09_004.tar.gz
+    # to rename your folder
+    mv AWI_09_004 my_data
+```
+#### WSL use Powershell- Run as Administrator
+
+```bash   
+    mkdir -p NextGen/ngen-data
+    cd NextGen/ngen-data
+    Invoke-WebRequest -Uri 'https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-004/AWI_09_004.tar.gz' -OutFile 'AWI_09_004.tar.gz'
     tar -xf AWI_09_004.tar.gz
     # to rename your folder
     mv AWI_09_004 my_data
