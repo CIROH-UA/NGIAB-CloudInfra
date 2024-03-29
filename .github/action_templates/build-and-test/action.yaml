@@ -34,7 +34,7 @@ runs:
     - name: Attach platform to tag
       shell: bash
       run: |
-        echo "TAG_NAME=latest-x86" >> "$GITHUB_ENV"
+        echo "TAG_NAME=${{env.TAG_NAME}}-${{inputs.platform}}" >> "$GITHUB_ENV"
       if: "${{ inputs.platform != 'ARM64' }}"
     - name: Create Cache and Builder for Buildx
       shell: bash
