@@ -24,12 +24,21 @@ check_http_response() {
     fi
 }
 
+
+# Copy the data to the app workspace
+link_data_to_app_workspace(){
+    local path_to_data="$1"
+    local path_to_app_workspace="$2"
+    local data_folder_before_rename=$(basename "$path_to_data")
+    docker exec -it tethys-ngen-portal sh -c "ln -s $path_to_data $path_to_app_workspace/ngen-data"
+}
+
+
 convert_gpkg_to_geojson() {
     local path_script="$1"
     local gpkg_file="$2"
     local layer_name="$3"
     local geojson_file="$4"
-
     docker exec -it tethys-ngen-portal /opt/conda/envs/tethys/bin/python $path_script $gpkg_file $layer_name $geojson_file
 }
 
@@ -55,28 +64,63 @@ wait_tethys_portal() {
     return 1
 }
 
+check_for_existing_tethys_container(){
+    # Container name
+    CONTAINER_NAME="tethys-ngen-portal"
 
+    # Check if the container exists
+    if docker container inspect "$CONTAINER_NAME" &>/dev/null; then
+        printf "Container '%s' exists. Stopping and removing...\n" "$CONTAINER_NAME"
+
+        # Stop the container if it is running
+        if ! docker container stop "$CONTAINER_NAME"; then
+            printf "Failed to stop container '%s'.\n" "$CONTAINER_NAME" >&2
+            exit 1
+        fi
+
+        printf "Container '%s' has been stopped and removed successfully.\n" "$CONTAINER_NAME"
+    else
+        printf "Container '%s' does not exist.\n" "$CONTAINER_NAME"
+    fi
+}
 
 # Create tethys portal
 create_tethys_portal(){
     local data_folder_path="$1"
-    local tethys_home_path="$2"
+    local tethys_persist_path="$2"
     local tethys_image_name="$3"
-    echo -e "${YELLOW}Do you want to visualize your outputs using tethys? (y/N, default: y):${RESET}"
 
+    local tethys_home_path="/usr/lib/tethys/ngen_visualizer"
+    local app_relative_path="tethysapp/ngen_visualizer"
+    local geopackage_name="datastream.gpkg"
+    local tethys_workspace_volume="workspaces/app_workspace"
+    
+    echo -e "${YELLOW}Do you want to visualize your outputs using tethys? (y/N, default: y):${RESET}"
     read -r visualization_choice
 
     # Execute the command
     if [[ "$visualization_choice" == [Yy]* ]]; then
         echo -e "${GREEN}Creating Tethys Portal...${RESET}"
-        docker run --rm -it -d -v "$data_folder_path:$tethys_home_path" -p 80:80 --name "tethys-ngen-portal" $tethys_image_name 
+        echo -e "${GREEN}$tethys_home_path/$app_relative_path/$tethys_workspace_volume${RESET}"
+        check_for_existing_tethys_container
+        docker run --rm -it -d -v "$data_folder_path:$tethys_persist_path" -p 80:80 --name "tethys-ngen-portal" $tethys_image_name 
         wait_tethys_portal
-        convert_gpkg_to_geojson    #convert the geopackage to geojson for the catchments and for the nexus
+
+        echo -e "${CYAN}Moving data to the app workspace.${RESET}"
+        link_data_to_app_workspace "$tethys_persist_path" "$tethys_home_path/$app_relative_path/$tethys_workspace_volume"
+
+        echo -e "${CYAN}Preparing the data for the portal...${RESET}"
+        echo -e "${CYAN}Preparing the catchtments...${RESET}"
+        convert_gpkg_to_geojson "$tethys_home_path/$app_relative_path/cli/convert_geom.py" "$tethys_home_path/$app_relative_path/$tethys_workspace_volume/ngen-data/config/$geopackage_name" "divides" $tethys_home_path/$app_relative_path/$tethys_workspace_volume/ngen-data/config/catchments.geojson
+        
+        echo -e "${CYAN}Preparing the nexus...${RESET}"
+        convert_gpkg_to_geojson "$tethys_home_path/$app_relative_path/cli/convert_geom.py" "$tethys_home_path/$app_relative_path/$tethys_workspace_volume/ngen-data/config/$geopackage_name" "nexus" $tethys_home_path/$app_relative_path/$tethys_workspace_volume/ngen-data/config/nexus.geojson
         echo -e "${GREEN}Your outputs are ready to be visualized at http://localhost:80 ${RESET}"
+
     else
         echo ""
     fi
 }
 
 
-create_tethys_portal "/home/gio/tethysdev/docker/NextGen/ngen-data/AWI_09_004" "/var/lib/tethys_persist/ngen" "micro-tethys-portal:latest"
+create_tethys_portal $1 $2 $3

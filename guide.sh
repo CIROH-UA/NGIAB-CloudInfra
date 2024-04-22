@@ -22,6 +22,7 @@ Color_Off='\033[0m'
 set -e
 
 CONFIG_FILE="$HOME/.host_data_path.conf"
+TETHYS_SCRIPT="./ViewOnTethys.sh"
 
 echo -e "\n========================================================="
 echo -e "${UWhite} Welcome to CIROH-UA:NextGen National Water Model App! ${Color_Off}"
@@ -196,5 +197,16 @@ docker run --rm -it -v "$HOST_DATA_PATH:/ngen/ngen/data" "$IMAGE_NAME" /ngen/nge
 Final_Outputs_Count=$(ls "$HOST_DATA_PATH/outputs" | wc -l)
 echo -e "$Final_Outputs_Count new outputs created."
 echo -e "Any copied files can be found here: $HOST_DATA_PATH/outputs"
+
+# visuazlize with Tethys
+if [ $Final_Outputs_Count -gt 0 ]; then
+    ARG1="$HOST_DATA_PATH"
+    ARG2="/var/lib/tethys_persist/ngen-data"
+    ARG3="micro-tethys-portal:latest" 
+    if ! "$TETHYS_SCRIPT" "$ARG1" "$ARG2" "$ARG3"; then
+        printf "Failed to visualize outputs in Tethys:"
+    fi
+fi
+
 echo -e "Thank you for running NextGen In A Box: National Water Model! Have a nice day!"
 exit 0
