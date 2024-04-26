@@ -24,6 +24,48 @@ check_http_response() {
     fi
 }
 
+# todo
+create_docker_network(){
+    # we need to create a docker network and connect the tethys container and geoserver to that network.
+}
+
+# to do need to add the newtwork to the docker run command
+run_geoserver_docker(){
+    docker run -d \
+    --name geoserver \
+    -p 8181:8181 \
+    -p 8081:8081 \
+    -p 8082:8082 \
+    -p 8083:8083 \
+    -p 8084:8084 \
+    -e ENABLED_NODES=4 \
+    -e REST_NODES=1 \
+    -e MAX_MEMORY=512 \
+    -e MIN_MEMORY=512 \
+    -e NUM_CORES=2 \
+    -e MAX_TIMEOUT=60 \
+    tethysplatform/geoserver:latest
+}
+
+# to check
+wait_geoserver(){
+    local PORT=8181  # Port to check
+    local MAX_TRIES=10
+    local SLEEP_TIME=5  # Sleep time in seconds
+    local count=0
+
+    while [[ $count -lt $MAX_TRIES ]]; do
+        if check_http_response "${PORT}"; then
+            printf "GeoServer is up and running.\n"
+            return 0
+        fi
+        ((count++))
+        sleep $SLEEP_TIME
+    done
+
+    printf "Server failed to return HTTP 200 OK on port %d after %d attempts.\n" "${PORT}" "$MAX_TRIES" >&2
+    return 1
+}
 
 # Copy the data to the app workspace
 link_data_to_app_workspace(){
@@ -111,6 +153,10 @@ create_tethys_portal(){
 
         echo -e "${CYAN}Preparing the data for the portal...${RESET}"
         echo -e "${CYAN}Preparing the catchtments...${RESET}"
+
+
+        # this needs to be changed
+        # this needs to be done calling the docker container
         convert_gpkg_to_geojson "$tethys_home_path/$app_relative_path/cli/convert_geom.py" "$tethys_home_path/$app_relative_path/$tethys_workspace_volume/ngen-data/config/$geopackage_name" "divides" $tethys_home_path/$app_relative_path/$tethys_workspace_volume/ngen-data/config/catchments.geojson
         
         echo -e "${CYAN}Preparing the nexus...${RESET}"
