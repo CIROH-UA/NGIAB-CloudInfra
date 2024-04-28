@@ -31,20 +31,28 @@ create_docker_network(){
 
 # to do need to add the newtwork to the docker run command
 run_geoserver_docker(){
-    docker run -d \
-    --name geoserver \
-    -p 8181:8181 \
-    -p 8081:8081 \
-    -p 8082:8082 \
-    -p 8083:8083 \
-    -p 8084:8084 \
-    -e ENABLED_NODES=4 \
-    -e REST_NODES=1 \
-    -e MAX_MEMORY=512 \
-    -e MIN_MEMORY=512 \
-    -e NUM_CORES=2 \
-    -e MAX_TIMEOUT=60 \
-    tethysplatform/geoserver:latest
+    local path_to_local_data="$1"
+    docker run -it -p 8181:8080 \ 
+    -e CORS_ENABLED=true \
+    # -e SKIP_DEMO_DATA=true \
+    -d \
+    --mount src="$path_to_local_data",target=/opt/geoserver_data/,type=bind \
+    docker.osgeo.org/geoserver:2.25.x
+
+    # docker run -d \
+    # --name geoserver \
+    # -p 8181:8181 \
+    # -p 8081:8081 \
+    # -p 8082:8082 \
+    # -p 8083:8083 \
+    # -p 8084:8084 \
+    # -e ENABLED_NODES=1 \
+    # -e REST_NODES=1 \
+    # -e MAX_MEMORY=512 \
+    # -e MIN_MEMORY=512 \
+    # -e NUM_CORES=2 \
+    # -e MAX_TIMEOUT=60 \
+    # tethysplatform/geoserver:latest
 }
 
 # to check
