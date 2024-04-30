@@ -16,7 +16,7 @@ def create_partitions(gpkg_path: Path, num_partitions: int = None) -> None:
     nexus = defaultdict(list)
     for row in con.execute("SELECT toid, divide_id FROM divides"):
         nexus[row[0]].append(row[1])
-
+    con.close()
     num_partitions = min(num_partitions, len(nexus))
     partition_size = ceil(len(nexus) / num_partitions)
     num_nexus = len(nexus)
