@@ -164,8 +164,6 @@ else
     IMAGE_NAME=awiciroh/ciroh-ngen-image:latest-x86
 fi
 
-IMAGE_NAME=test_fix_new
-
 # Model run options
 echo -e "${UYellow}Select an option (type a number): ${Color_Off}"
 options=("Run NextGen using existing local docker image" "Run NextGen after updating to latest docker image" "Exit")
