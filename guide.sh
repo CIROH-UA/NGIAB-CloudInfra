@@ -63,7 +63,7 @@ validate_directory() {
     local color=$3
 
     if [ -d "$dir" ]; then
-        local count=$(ls "$dir" | wc -l)
+        local count=$(find $dir -type f | uniq | wc -l)
         echo -e "${color}${name}${Color_Off} exists. $count ${name} found."
     else
         echo -e "Error: Directory $dir does not exist."
@@ -81,7 +81,7 @@ cleanup_folder() {
     local folder_name="$3"
 
     # Construct the find command
-    local find_cmd="find \"$folder_path\" -maxdepth 1 -type f \( $file_types \)"
+    local find_cmd="find \"$folder_path\" -maxdepth 2 -type f \( $file_types \)"
 
     # Execute the find command and count the results
     local file_count=$(eval "$find_cmd" 2> /dev/null | wc -l)
@@ -105,7 +105,7 @@ choose_option() {
                 echo "Cleaning folder for fresh run"
 
                 # Construct the find delete command
-                local find_delete_cmd="find \"$folder_path\" -maxdepth 1 -type f \( $file_types \) -delete"
+                local find_delete_cmd="find \"$folder_path\" -maxdepth 2 -type f \( $file_types \) -delete"
 
                 # Execute the find delete command
                 eval "$find_delete_cmd"
@@ -129,8 +129,9 @@ choose_option() {
 # Cleanup Process for Outputs Folder
 cleanup_folder "$HOST_DATA_PATH/outputs/" "-name '*' " "Outputs"
 
-# Cleanup Process for ngen/data Folder
-cleanup_folder "$HOST_DATA_PATH/" "-name '*.parquet' -o -name '*.csv' -o -name '*.cn'" "ngen/data"
+# Cleanup Process for restarts Folder
+cleanup_folder "$HOST_DATA_PATH/restarts/" "-name '*' " "Restarts"
+
 
 
 # File discovery
@@ -138,16 +139,16 @@ echo -e "\nLooking in the provided directory gives us:"
 find_files() {
     local path=$1
     local name=$2
-    local color=$3
+    local regex=$3
+    local color=$4
 
-    local files=$(find "$path" -iname "*$name*.*")
+    local files=$(find "$path" -iname "$regex")
     echo -e "${color}Found these $name files:${Color_Off}"
     echo "$files" || echo "No $name files found."
 }
 
-find_files "$HOST_DATA_PATH" "datastream" "$UGreen"
-find_files "$HOST_DATA_PATH" "datastream" "$UGreen"
-find_files "$HOST_DATA_PATH" "realization" "$UGreen"
+find_files "$HOST_DATA_PATH" "hydrofabric" "*.gpkg" "$UGreen"
+find_files "$HOST_DATA_PATH" "realization" "realization.json" "$UGreen"
 
 # Detect Arch and Docker
 echo -e "\nDetected ISA = $(uname -a)"
@@ -163,6 +164,7 @@ else
     IMAGE_NAME=awiciroh/ciroh-ngen-image:latest-x86
 fi
 
+IMAGE_NAME=test_fix_new
 
 # Model run options
 echo -e "${UYellow}Select an option (type a number): ${Color_Off}"

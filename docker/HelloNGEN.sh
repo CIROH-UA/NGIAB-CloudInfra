@@ -28,8 +28,8 @@ auto_select_file() {
 }
 
 # Finding files
-HYDRO_FABRIC_CATCHMENTS=$(find . -name "*datastream*.gpkg")
-HYDRO_FABRIC_NEXUS=$(find . -name "*datastream*.gpkg")
+HYDRO_FABRIC_CATCHMENTS=$(find . -name "*.gpkg")
+HYDRO_FABRIC_NEXUS=$(find . -name "*.gpkg")
 NGEN_REALIZATIONS=$(find . -name "*realization*.json")
 
 # Auto-selecting files if only one is found
@@ -71,9 +71,12 @@ if [ "$2" == "auto" ]
     echo "Run completed successfully, exiting, have a nice day!"
     exit 0
   else
-    echo "Entering Interactive Mode"
-    continue
+    echo "Entering Interactive Mode"    
 fi
+
+nexus_first_partition() {
+  /ngen/partition_gen.py "$1"
+}
 
 echo -e "${YELLOW}Select an option (type a number): ${RESET}"
 options=("Run NextGen model framework in serial mode" "Run NextGen model framework in parallel mode" "Run Bash shell" "Exit")
@@ -89,15 +92,23 @@ select option in "${options[@]}"; do
 
       if [ "$option" == "Run NextGen model framework in parallel mode" ]; then
         procs=$(nproc)
-        procs=2 # Temporary fixed value
-        generate_partition "$n1" "$n2" "$procs"
-        run_command="mpirun -n $procs /dmod/bin/ngen-parallel $n1 all $n2 all $n3 $(pwd)/partitions_$procs.json"
+        if [ -f "/ngen/ngen/data/.partition_by_nexus" ]; then
+          echo ".partition_by_nexus file found, running nexus first partition generator."
+          # Delete existing partitions files
+          find /ngen/ngen/data/ -type f -name partitions_*.json -delete
+          nexus_first_partition "$n2"
+          # Get the number of partitions generated from the partition file as it may be less than the number of processors
+          procs=$(find . -name partitions_*.json | sed -n 's/.*partitions_\([0-9]*\)\.json/\1/p')          
+        else
+          procs=2 # Temporary fixed value
+          generate_partition "$n1" "$n2" "$procs"
+        fi
+        run_command="mpirun -n $procs /dmod/bin/ngen-parallel $n1 all $n2 all $n3 $(find . -name partitions_*.json)"
       else
         run_command="/dmod/bin/ngen-serial $n1 all $n2 all $n3"
       fi
 
       echo -e "${YELLOW}Your NGEN run command is $run_command${RESET}"
-      sleep 3
       break
       ;;
     "Run Bash shell")
