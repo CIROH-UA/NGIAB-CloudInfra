@@ -202,7 +202,7 @@ echo -e "Any copied files can be found here: $HOST_DATA_PATH/outputs"
 if [ $Final_Outputs_Count -gt 0 ]; then
     ARG1="$HOST_DATA_PATH"
     ARG2="/var/lib/tethys_persist/ngen-data"
-    ARG3="micro-tethys-portal:latest" 
+    ARG3="gioelkin/tethys-ngiab:dev_latest" 
     if ! "$TETHYS_SCRIPT" "$ARG1" "$ARG2" "$ARG3"; then
         printf "Failed to visualize outputs in Tethys:"
     fi
