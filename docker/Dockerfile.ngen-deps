@@ -171,7 +171,7 @@ RUN pip3 install --upgrade pip \
     #&& git checkout ${BLOSC2_VERSION} \ 
     #&& git submodule update --init --recursive \
     #&& python3 -m pip install -r requirements-build.txt \
-    #&& pip3 install . \
+    #vf&& pip3 install . \
     && pip3 install blosc2 \
     && pip3 install numpy pandas pyyaml bmipy Cython==3.0.3 netCDF4==1.6.3 wheel packaging \
     && HDF5_DIR=/usr pip3 install -v --no-build-isolation tables \
@@ -183,8 +183,10 @@ RUN pip3 install --upgrade pip \
     # Also set up boost here, since we copied the download but only just installed bzip2 to work with it \
     && cd ${BOOST_ROOT} \
     && tar -xjf boost_${BOOST_VERSION//./_}.tar.bz2 \
+    && mv boost_${BOOST_VERSION//./_} boost \
     && rm boost_${BOOST_VERSION//./_}.tar.bz2 \
     && rm -rf /tmp/ngen-deps 
 
 ENV PATH=${PATH}:/usr/lib64/mpich/bin
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/lib:/usr/local/lib64
+ 
