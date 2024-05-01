@@ -87,11 +87,11 @@ create_tethys_docker_network(){
 
 
 
-# Copy the data to the app workspace
+# link the data to the app workspace
 link_data_to_app_workspace(){
     local path_to_data="$1"
     local path_to_app_workspace="$2"
-    docker exec -it tethys-ngen-portal sh -c "ln -s $path_to_data $path_to_app_workspace/ngen-data"
+    docker exec -it tethys-ngen-portal sh -c "mkdir -p $path_to_app_workspace && chown -R www: $path_to_app_workspace  && ln -s $path_to_data $path_to_app_workspace/ngen-data"
 }
 
 
@@ -229,7 +229,7 @@ create_tethys_portal(){
         "$tethys_home_path/$app_directory/$app_relative_path/$tethys_workspace_volume/ngen-data/config/nexus.geojson" \
         "/tmp/nextgen/geoserver_data/cathments" \
         "$geoserver_host" \
-        8181
+        "8181"
         
         echo -e "${GREEN}Your outputs are ready to be visualized at http://localhost:80 ${RESET}"
 
