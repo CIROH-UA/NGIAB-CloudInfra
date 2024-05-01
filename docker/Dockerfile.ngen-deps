@@ -180,4 +180,3 @@ RUN pip3 install --upgrade pip \
 
 ENV PATH=${PATH}:/usr/lib64/mpich/bin
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/lib:/usr/local/lib64
- 
