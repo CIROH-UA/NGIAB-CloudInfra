@@ -183,7 +183,7 @@ RUN pip3 install --upgrade pip \
     # Also set up boost here, since we copied the download but only just installed bzip2 to work with it \
     && cd ${BOOST_ROOT} \
     && tar -xjf boost_${BOOST_VERSION//./_}.tar.bz2 \
-    && mv boost_${BOOST_VERSION//./_} boost \
+    && mv boost_${BOOST_VERSION//./_} ${BOOST_ROOT} \
     && rm boost_${BOOST_VERSION//./_}.tar.bz2 \
     && rm -rf /tmp/ngen-deps 
 
