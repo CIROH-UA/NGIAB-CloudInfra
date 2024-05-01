@@ -108,7 +108,7 @@ ENV WORKDIR=${WORKDIR} \
     NETCDF_FORTRAN_VERSION=${NETCDF_FORTRAN_VERSION} \
     HYDRA_HOST_FILE=/etc/opt/hosts
 
-COPY --from=downloads /boost ${WORKDIR}/boost 
+COPY --from=downloads /boost /tmp/ngen-deps 
 COPY --from=downloads /tmp/mpich-${MPICH_VERSION}.tar.gz /tmp/ngen-deps/mpich-${MPICH_VERSION}.tar.gz  
 COPY --from=downloads /tmp/hdf5-${HD5_VERSION}.tar.gz /tmp/ngen-deps/hdf5-${HD5_VERSION}.tar.gz 
 COPY --from=downloads /tmp/netcdf-${NETCDF_C_VERSION}.tar.gz /tmp/ngen-deps/netcdf-${NETCDF_C_VERSION}.tar.gz 
@@ -181,7 +181,7 @@ RUN pip3 install --upgrade pip \
     && alias python='python3'  \
     && echo "alias python='python3'" >> /etc/profile \
     # Also set up boost here, since we copied the download but only just installed bzip2 to work with it \
-    && cd ${BOOST_ROOT} \
+    && cd /tmp/ngen-deps \
     && tar -xjf boost_${BOOST_VERSION//./_}.tar.bz2 \
     && mv boost_${BOOST_VERSION//./_} ${BOOST_ROOT} \
     && rm boost_${BOOST_VERSION//./_}.tar.bz2 \
