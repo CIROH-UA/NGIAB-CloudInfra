@@ -9,11 +9,12 @@ CYAN='\e[36m'
 RESET='\e[0m'
 
 
-get_geoserver_container_ip(){
-    docker inspect   -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' tethys-geoserver
-    return 
-}
 
+# Function to get the IP address of the GeoServer container
+get_geoserver_container_ip(){
+    local ip=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' tethys-geoserver)
+    echo $ip
+}
 
 # Function to check HTTP response from a service on a specific port
 check_http_response() {

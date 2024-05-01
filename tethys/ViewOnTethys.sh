@@ -175,8 +175,8 @@ create_tethys_portal(){
     local tethys_image_name="$3"
 
     local tethys_home_path="/usr/lib/tethys"
-    local app_directory="apps"
-    local app_relative_path="ngiab/tethysapp/ngiab"
+    local app_directory="apps/ngiab"
+    local app_relative_path="tethysapp/ngiab"
     local geopackage_name="datastream.gpkg"
     local tethys_workspace_volume="workspaces/app_workspace"
     local geoserver_host=$(get_geoserver_container_ip)
@@ -186,13 +186,14 @@ create_tethys_portal(){
     # Execute the command
     if [[ "$visualization_choice" == [Yy]* ]]; then
         echo -e "${GREEN}Creating Tethys Portal...${RESET}"
-        echo -e "${GREEN}$tethys_home_path/$app_directory/$app_relative_path/$tethys_workspace_volume${RESET}"
         #create the docker network to communicate between tethys and geoserver
         create_tethys_docker_network
         check_for_existing_tethys_container
         
-        docker run --rm -it -d -v "$data_folder_path:$tethys_persist_path" \
+        docker run --rm -it -d \
+        -v "$data_folder_path:$tethys_persist_path" \
         -p 80:80 \
+        --network tethys-network \
         --name "tethys-ngen-portal" \
         --env MEDIA_ROOT="${tethys_persist_path}/media" \
         --env MEDIA_URL="/media/" $tethys_image_name
@@ -206,14 +207,14 @@ create_tethys_portal(){
 
         echo -e "${CYAN}Preparing the nexus...${RESET}"
         
-        convert_gpkg_to_geojson "$tethys_home_path/cli/convert_geom.py" \
+        convert_gpkg_to_geojson "$tethys_home_path/$app_directory/cli/convert_geom.py" \
         "$tethys_home_path/$app_directory/$app_relative_path/$tethys_workspace_volume/ngen-data/config/$geopackage_name" \
         "nexus" \
         $tethys_home_path/$app_directory/$app_relative_path/$tethys_workspace_volume/ngen-data/config/nexus.geojson
 
 
         echo -e "${CYAN}Preparing the catchtments...${RESET}"
-        convert_gpkg_to_geojson "$tethys_home_path/cli/convert_geom.py" \
+        convert_gpkg_to_geojson "$tethys_home_path/$app_directory/cli/convert_geom.py" \
         "$tethys_home_path/$app_directory/$app_relative_path/$tethys_workspace_volume/ngen-data/config/$geopackage_name" \
         "divides" \
         $tethys_home_path/$app_directory/$app_relative_path/$tethys_workspace_volume/ngen-data/config/catchments.geojson
@@ -223,11 +224,11 @@ create_tethys_portal(){
         start_geoserver_docker
         
         echo -e "${CYAN}Publishing catchment layer to geoserver${RESET}"
-        publish_gpkg_layer_to_geoserver "$tethys_home_path/cli/convert_geom.py" \
+        publish_gpkg_layer_to_geoserver "$tethys_home_path/$app_directory/cli/convert_geom.py" \
         "$tethys_home_path/$app_directory/$app_relative_path/$tethys_workspace_volume/ngen-data/config/$geopackage_name" \
         "divides" \
-        "$tethys_home_path/$app_directory/$app_relative_path/$tethys_workspace_volume/ngen-data/config/nexus.geojson" \
-        "/tmp/nextgen/geoserver_data/cathments" \
+        --publish \
+        $tethys_home_path/$app_directory/$app_relative_path/$tethys_workspace_volume/ngen-data/config/catchments \
         "$geoserver_host" \
         "8181"
         

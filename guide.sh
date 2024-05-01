@@ -22,7 +22,7 @@ Color_Off='\033[0m'
 set -e
 
 CONFIG_FILE="$HOME/.host_data_path.conf"
-TETHYS_SCRIPT="./ViewOnTethys.sh"
+TETHYS_SCRIPT="./tethys/ViewOnTethys.sh"
 
 echo -e "\n========================================================="
 echo -e "${UWhite} Welcome to CIROH-UA:NextGen National Water Model App! ${Color_Off}"
