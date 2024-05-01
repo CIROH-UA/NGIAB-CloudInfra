@@ -8,6 +8,62 @@ MAGENTA='\e[35m'
 CYAN='\e[36m'
 RESET='\e[0m'
 
+# GEOSERVER FUNCTIONS
+
+# get the IP address of the GeoServer container
+get_geoserver_container_ip(){
+    local ip=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' tethys-geoserver)
+    echo $ip
+}
+
+
+# create a tmp folder for the data
+create_tmp_geoserver_data_folder(){
+    mkdir -p /tmp/nextgen/geoserver_data
+}
+
+# run the geoserver docker container
+run_geoserver_docker(){
+    docker run -it -p 8181:8080 \
+    --env CORS_ENABLED=true \
+    --env SKIP_DEMO_DATA=true \
+    --network tethys-network \
+    --name tethys-geoserver \
+    -d \
+    --mount src=/tmp/nextgen/geoserver_data,target=/opt/geoserver_data/,type=bind \
+    docker.osgeo.org/geoserver:2.25.x
+}
+
+
+
+# check if the geoserver is up and running
+wait_geoserver(){
+    local PORT=8181  # Port to check
+    local MAX_TRIES=10
+    local SLEEP_TIME=5  # Sleep time in seconds
+    local count=0
+    local geoserver_ip=$(get_geoserver_container_ip)
+
+    while [[ $count -lt $MAX_TRIES ]]; do
+        if check_http_response "${PORT}"; then
+            printf "GeoServer is up and running at ${geoserver_ip}.\n"
+            return 0
+        fi
+        ((count++))
+        sleep $SLEEP_TIME
+    done
+
+    printf "Server failed to return HTTP 200 OK on port %d after %d attempts.\n" "${PORT}" "$MAX_TRIES" >&2
+    return 1
+}
+
+# Start the geoserver container
+start_geoserver_docker(){
+    create_tmp_geoserver_data_folder
+    run_geoserver_docker
+    wait_geoserver
+}
+
 
 # Function to check HTTP response from a service on a specific port
 check_http_response() {
@@ -24,62 +80,17 @@ check_http_response() {
     fi
 }
 
-# todo
-create_docker_network(){
-    # we need to create a docker network and connect the tethys container and geoserver to that network.
+#create the docker network to communicate between tethys and geoserver
+create_tethys_docker_network(){
+    docker network create -d bridge tethys-network
 }
 
-# to do need to add the newtwork to the docker run command
-run_geoserver_docker(){
-    local path_to_local_data="$1"
-    docker run -it -p 8181:8080 \ 
-    -e CORS_ENABLED=true \
-    # -e SKIP_DEMO_DATA=true \
-    -d \
-    --mount src="$path_to_local_data",target=/opt/geoserver_data/,type=bind \
-    docker.osgeo.org/geoserver:2.25.x
 
-    # docker run -d \
-    # --name geoserver \
-    # -p 8181:8181 \
-    # -p 8081:8081 \
-    # -p 8082:8082 \
-    # -p 8083:8083 \
-    # -p 8084:8084 \
-    # -e ENABLED_NODES=1 \
-    # -e REST_NODES=1 \
-    # -e MAX_MEMORY=512 \
-    # -e MIN_MEMORY=512 \
-    # -e NUM_CORES=2 \
-    # -e MAX_TIMEOUT=60 \
-    # tethysplatform/geoserver:latest
-}
-
-# to check
-wait_geoserver(){
-    local PORT=8181  # Port to check
-    local MAX_TRIES=10
-    local SLEEP_TIME=5  # Sleep time in seconds
-    local count=0
-
-    while [[ $count -lt $MAX_TRIES ]]; do
-        if check_http_response "${PORT}"; then
-            printf "GeoServer is up and running.\n"
-            return 0
-        fi
-        ((count++))
-        sleep $SLEEP_TIME
-    done
-
-    printf "Server failed to return HTTP 200 OK on port %d after %d attempts.\n" "${PORT}" "$MAX_TRIES" >&2
-    return 1
-}
 
 # Copy the data to the app workspace
 link_data_to_app_workspace(){
     local path_to_data="$1"
     local path_to_app_workspace="$2"
-    local data_folder_before_rename=$(basename "$path_to_data")
     docker exec -it tethys-ngen-portal sh -c "ln -s $path_to_data $path_to_app_workspace/ngen-data"
 }
 
@@ -91,6 +102,29 @@ convert_gpkg_to_geojson() {
     local geojson_file="$4"
     docker exec -it tethys-ngen-portal /opt/conda/envs/tethys/bin/python $path_script $gpkg_file $layer_name $geojson_file
 }
+
+publish_gpkg_layer_to_geoserver() {
+    local path_script="$1"
+    local gpkg_file="$2"
+    local layer_name="$3"
+    local geojson_file="$4"
+    local shapefile_path="$5"
+    local geoserver_host="$6"
+    local geoserver_port="$7"
+
+    docker exec -it tethys-ngen-portal /opt/conda/envs/tethys/bin/python \
+    $path_script \
+    $gpkg_file \
+    $layer_name \
+    $geojson_file \
+    --publish \
+    --shp_path "$shapefile_path.shp" \
+    --geoserver_host $geoserver_host \
+    --geoserver_port $geoserver_port \
+    --geoserver_username admin \
+    --geoserver_password geoserver
+}
+
 
 # Main function that implements the retry logic
 wait_tethys_portal() {
@@ -140,35 +174,63 @@ create_tethys_portal(){
     local tethys_persist_path="$2"
     local tethys_image_name="$3"
 
-    local tethys_home_path="/usr/lib/tethys/ngen_visualizer"
-    local app_relative_path="tethysapp/ngen_visualizer"
+    local tethys_home_path="/usr/lib/tethys"
+    local app_directory="apps"
+    local app_relative_path="ngiab/tethysapp/ngiab"
     local geopackage_name="datastream.gpkg"
     local tethys_workspace_volume="workspaces/app_workspace"
-    
+    local geoserver_host=$(get_geoserver_container_ip)
     echo -e "${YELLOW}Do you want to visualize your outputs using tethys? (y/N, default: y):${RESET}"
     read -r visualization_choice
 
     # Execute the command
     if [[ "$visualization_choice" == [Yy]* ]]; then
         echo -e "${GREEN}Creating Tethys Portal...${RESET}"
-        echo -e "${GREEN}$tethys_home_path/$app_relative_path/$tethys_workspace_volume${RESET}"
+        echo -e "${GREEN}$tethys_home_path/$app_directory/$app_relative_path/$tethys_workspace_volume${RESET}"
+        #create the docker network to communicate between tethys and geoserver
+        create_tethys_docker_network
         check_for_existing_tethys_container
-        docker run --rm -it -d -v "$data_folder_path:$tethys_persist_path" -p 80:80 --name "tethys-ngen-portal" $tethys_image_name 
+        
+        docker run --rm -it -d -v "$data_folder_path:$tethys_persist_path" \
+        -p 80:80 \
+        --name "tethys-ngen-portal" \
+        --env MEDIA_ROOT="${tethys_persist_path}/media" \
+        --env MEDIA_URL="/media/" $tethys_image_name
+
         wait_tethys_portal
 
-        echo -e "${CYAN}Moving data to the app workspace.${RESET}"
-        link_data_to_app_workspace "$tethys_persist_path" "$tethys_home_path/$app_relative_path/$tethys_workspace_volume"
+        echo -e "${CYAN}Link data to the Tethys app workspace.${RESET}"
+        link_data_to_app_workspace "$tethys_persist_path" "$tethys_home_path/$app_directory/$app_relative_path/$tethys_workspace_volume"
 
         echo -e "${CYAN}Preparing the data for the portal...${RESET}"
-        echo -e "${CYAN}Preparing the catchtments...${RESET}"
 
-
-        # this needs to be changed
-        # this needs to be done calling the docker container
-        convert_gpkg_to_geojson "$tethys_home_path/$app_relative_path/cli/convert_geom.py" "$tethys_home_path/$app_relative_path/$tethys_workspace_volume/ngen-data/config/$geopackage_name" "divides" $tethys_home_path/$app_relative_path/$tethys_workspace_volume/ngen-data/config/catchments.geojson
-        
         echo -e "${CYAN}Preparing the nexus...${RESET}"
-        convert_gpkg_to_geojson "$tethys_home_path/$app_relative_path/cli/convert_geom.py" "$tethys_home_path/$app_relative_path/$tethys_workspace_volume/ngen-data/config/$geopackage_name" "nexus" $tethys_home_path/$app_relative_path/$tethys_workspace_volume/ngen-data/config/nexus.geojson
+        
+        convert_gpkg_to_geojson "$tethys_home_path/cli/convert_geom.py" \
+        "$tethys_home_path/$app_directory/$app_relative_path/$tethys_workspace_volume/ngen-data/config/$geopackage_name" \
+        "nexus" \
+        $tethys_home_path/$app_directory/$app_relative_path/$tethys_workspace_volume/ngen-data/config/nexus.geojson
+
+
+        echo -e "${CYAN}Preparing the catchtments...${RESET}"
+        convert_gpkg_to_geojson "$tethys_home_path/cli/convert_geom.py" \
+        "$tethys_home_path/$app_directory/$app_relative_path/$tethys_workspace_volume/ngen-data/config/$geopackage_name" \
+        "divides" \
+        $tethys_home_path/$app_directory/$app_relative_path/$tethys_workspace_volume/ngen-data/config/catchments.geojson
+
+        echo -e "${CYAN}Preparing a geoserver instance to be used ${RESET}"
+        
+        start_geoserver_docker
+        
+        echo -e "${CYAN}Publishing catchment layer to geoserver${RESET}"
+        publish_gpkg_layer_to_geoserver "$tethys_home_path/cli/convert_geom.py" \
+        "$tethys_home_path/$app_directory/$app_relative_path/$tethys_workspace_volume/ngen-data/config/$geopackage_name" \
+        "divides" \
+        "$tethys_home_path/$app_directory/$app_relative_path/$tethys_workspace_volume/ngen-data/config/nexus.geojson" \
+        "/tmp/nextgen/geoserver_data/cathments" \
+        "$geoserver_host" \
+        8181
+        
         echo -e "${GREEN}Your outputs are ready to be visualized at http://localhost:80 ${RESET}"
 
     else
