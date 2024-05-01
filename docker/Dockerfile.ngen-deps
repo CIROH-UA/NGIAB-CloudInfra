@@ -163,15 +163,6 @@ RUN pip3 install --upgrade pip \
     && make \
     && make install \
     # Install required python dependency packages with Pip \
-    # Except blosc2, since packaged wheels on pypi seem to have some issues, build it ourselves
-    && cd /tmp/ngen-deps \
-    #&& git clone https://github.com/Blosc/python-blosc2/ \
-    #&& cd python-blosc2 \
-    # checkout a release tag
-    #&& git checkout ${BLOSC2_VERSION} \ 
-    #&& git submodule update --init --recursive \
-    #&& python3 -m pip install -r requirements-build.txt \
-    #vf&& pip3 install . \
     && pip3 install blosc2 \
     && pip3 install numpy pandas pyyaml bmipy Cython==3.0.3 netCDF4==1.6.3 wheel packaging \
     && HDF5_DIR=/usr pip3 install -v --no-build-isolation tables \
