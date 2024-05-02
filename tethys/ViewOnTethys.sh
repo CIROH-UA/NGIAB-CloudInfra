@@ -111,7 +111,7 @@ convert_gpkg_to_geojson() {
         $path_script \
         $gpkg_file \
         $layer_name \
-        $geojson_file
+        $geojson_file > /dev/null 2>&1
 }
 
 publish_gpkg_layer_to_geoserver() {
@@ -136,7 +136,7 @@ publish_gpkg_layer_to_geoserver() {
         --geoserver_host $GEOSERVER_CONTAINER_NAME \
         --geoserver_port $geoserver_port \
         --geoserver_username admin \
-        --geoserver_password geoserver
+        --geoserver_password geoserver > /dev/null 2>&1
 }
 
 
@@ -145,13 +145,13 @@ publish_gpkg_layer_to_geoserver() {
 # Main function that implements the retry logic
 wait_tethys_portal() {
     local PORT=80  # Port to check
-    local MAX_TRIES=10
+    local MAX_TRIES=1000
     local SLEEP_TIME=5  # Sleep time in seconds
     local count=0
 
     while [[ $count -lt $MAX_TRIES ]]; do
         if check_http_response "${PORT}"; then
-            docker exec -it $TETHYS_CONTAINER_NAME /opt/conda/envs/tethys/bin/tethys settings --set TETHYS_PORTAL_CONFIG.ENABLE_OPEN_PORTAL true #make portal open
+            docker exec -it $TETHYS_CONTAINER_NAME /opt/conda/envs/tethys/bin/tethys settings --set TETHYS_PORTAL_CONFIG.ENABLE_OPEN_PORTAL true > /dev/null 2>&1
             # docker exec -it $TETHYS_CONTAINER_NAME /opt/conda/envs/tethys/bin/tethys settings --set TETHYS_PORTAL_CONFIG.MULTIPLE_APP_MODE false
             # docker exec -it $TETHYS_CONTAINER_NAME /opt/conda/envs/tethys/bin/tethys settings --set TETHYS_PORTAL_CONFIG.STANDALONE_APP ngiab 
             #todo make portal open
@@ -236,9 +236,17 @@ prepare_hydrofabrics(){
             $catchment_gpkg_layer \
             $catchment_geojson_path
     else
-        n1=${selected_catchment:-$(read -p "Enter the hydrofabric catchment file path: " n1; echo "$n1")}  
-        #copy the file to the data folder
-        cp $n1 $DATA_FOLDER_PATH/config/catchments.geojson
+        n1=${selected_catchment:-$(read -p "Enter the hydrofabric catchment geojson file path: " n1; echo "$n1")}
+        local catchmentfilename=$(basename "$n1")
+        local catchment_path_check="$DATA_FOLDER_PATH/config/$catchmentfilename"
+
+        if [[ -e "$catchment_path_check" ]]; then
+            if [[ "$catchmentfilename" != "nexus.json" ]]; then
+                docker cp $n1 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/catchments.geojson > /dev/null 2>&1
+            fi
+        else
+                docker cp $n1 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/catchments.geojson > /dev/null 2>&1
+        fi
 
     fi
 
@@ -253,9 +261,17 @@ prepare_hydrofabrics(){
             $nexus_gpkg_layer \
             $nexus_geojson_path
     else
-        n2=${selected_nexus:-$(read -p "Enter the hydrofabric nexus file path: " n2; echo "$n2")} 
-        #copy the file to the data folder
-        cp $n2 $DATA_FOLDER_PATH/config/nexus.geojson
+        n2=${selected_nexus:-$(read -p "Enter the hydrofabric nexus geojson file path: " n2; echo "$n2")} 
+        local nexusfilename=$(basename "$n2")
+        local nexus_path_check="$DATA_FOLDER_PATH/config/$nexusfilename"
+
+        if [[ -e "$nexus_path_check" ]]; then
+            if [[ "$nexusfilename" != "nexus.json" ]]; then
+                docker cp $n2 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/nexus.geojson > /dev/null 2>&1
+            fi
+        else
+            docker cp $n2 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/nexus.geojson > /dev/null 2>&1
+        fi
 
     fi
     
@@ -289,7 +305,7 @@ create_tethys_portal(){
 
         echo -e "${CYAN}Link data to the Tethys app workspace.${RESET}"
         link_data_to_app_workspace         
-        echo -e "${CYAN}Preparing the hydrofabrics for the portal...${RESET}"
+        echo -e "${GREEN}Preparing the hydrofabrics for the portal...${RESET}"
         prepare_hydrofabrics
         
         echo -e "${CYAN}Preparing a geoserver instance to be used ${RESET}"
