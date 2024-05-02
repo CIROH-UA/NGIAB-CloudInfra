@@ -145,7 +145,7 @@ publish_gpkg_layer_to_geoserver() {
 # Main function that implements the retry logic
 wait_tethys_portal() {
     local PORT=80  # Port to check
-    local MAX_TRIES=1000
+    local MAX_TRIES=10
     local SLEEP_TIME=5  # Sleep time in seconds
     local count=0
 
@@ -331,7 +331,6 @@ GEOSERVER_PORT_HOST="8181"
 DOCKER_NETWORK="tethys-network"
 APP_WORKSPACE_PATH="/usr/lib/tethys/apps/ngiab/tethysapp/ngiab/workspaces/app_workspace"
 DATA_FOLDER_PATH="$1"
-echo "$DATA_FOLDER_PATH"
 TETHYS_PERSIST_PATH="$2"
 # Finding files
 HYDRO_FABRIC=$(find "$DATA_FOLDER_PATH/config" -name "*datastream*.gpkg")
