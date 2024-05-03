@@ -50,6 +50,7 @@ RUN chmod a+x /dmod/bin/* /ngen/HelloNGEN.sh /root
 WORKDIR /ngen
 
 COPY partition_gen.py /ngen/partition_gen.py
+RUN chmod a+x /ngen/partition_gen.py
 
 ENTRYPOINT ["./HelloNGEN.sh"]
 CMD [""]
