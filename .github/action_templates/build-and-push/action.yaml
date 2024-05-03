@@ -35,7 +35,7 @@ runs:
     - name: Attach platform to tag
       shell: bash
       run: |
-        echo "TAG_NAME=${{env.TAG_NAME}}-${{inputs.platform}}" >> "$GITHUB_ENV"
+        echo "TAG_NAME=${{env.TAG_NAME}}-${{inputs.platform},}" >> "$GITHUB_ENV"
       if: "${{ inputs.platform != 'ARM64' }}"
 
     - name: Login to Docker Hub
