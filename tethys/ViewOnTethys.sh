@@ -11,8 +11,6 @@ RESET='\e[0m'
 # GEOSERVER FUNCTIONS
 # create a tmp folder for the data
 create_geoserver_data_folder(){
-    # mkdir -p $DATA_FOLDER_PATH/tethys/geoserver_data
-
     #need to create through the tethys directory for permission issues
     docker exec -it \
     $TETHYS_CONTAINER_NAME \
@@ -23,6 +21,7 @@ create_geoserver_data_folder(){
 # run the geoserver docker container
 run_geoserver(){
     docker run -it --rm -d -p $GEOSERVER_PORT_HOST:$GEOSERVER_PORT_CONTAINER \
+    --platform $PLATFORM \
     --env CORS_ENABLED=true \
     --env SKIP_DEMO_DATA=true \
     --network $DOCKER_NETWORK \
@@ -152,8 +151,6 @@ wait_tethys_portal() {
     while [[ $count -lt $MAX_TRIES ]]; do
         if check_http_response "${PORT}"; then
             docker exec -it $TETHYS_CONTAINER_NAME /opt/conda/envs/tethys/bin/tethys settings --set TETHYS_PORTAL_CONFIG.ENABLE_OPEN_PORTAL true > /dev/null 2>&1
-            # docker exec -it $TETHYS_CONTAINER_NAME /opt/conda/envs/tethys/bin/tethys settings --set TETHYS_PORTAL_CONFIG.MULTIPLE_APP_MODE false
-            # docker exec -it $TETHYS_CONTAINER_NAME /opt/conda/envs/tethys/bin/tethys settings --set TETHYS_PORTAL_CONFIG.STANDALONE_APP ngiab 
             #todo make portal open
             docker exec -it $TETHYS_CONTAINER_NAME sh -c "supervisorctl restart all" #restart asgi service to make tethys take into account he open portal
             printf "Tethys Portal is up and running.\n"
@@ -283,6 +280,7 @@ run_tethys(){
     docker run --rm -it -d \
     -v "$DATA_FOLDER_PATH:$TETHYS_PERSIST_PATH/ngen-data" \
     -p 80:80 \
+    --platform $PLATFORM \
     --network $DOCKER_NETWORK \
     --name "$TETHYS_CONTAINER_NAME" \
     --env MEDIA_ROOT="$TETHYS_PERSIST_PATH/media" \
