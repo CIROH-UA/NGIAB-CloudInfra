@@ -169,8 +169,6 @@ wait_tethys_portal() {
             printf "Tethys Portal is up and running.\n"
             return 0
         fi
-        printf "\rProgress: [%-20s] %d%%" "$(printf '%0.s#' $(seq 1 $((count * 20 / MAX_TRIES))))" "$((count * 100 / MAX_TRIES))"
-
         ((count++))
         sleep $SLEEP_TIME
     done
@@ -383,11 +381,8 @@ fi
 
 # Function to handle the SIGINT (Ctrl-C)
 handle_sigint() {
-    printf "SIGINT caught, cleaning up and exiting.\n" >&2
     echo -e "${GREEN}Cleaning up . . .${RESET}"
-    tear_down_tethys
-    tear_down_geoserver
-    docker network rm $DOCKER_NETWORK > /dev/null 2>&1
+    tear_down
     exit 1
 }
 
