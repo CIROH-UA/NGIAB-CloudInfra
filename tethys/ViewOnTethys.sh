@@ -91,7 +91,7 @@ create_tethys_docker_network(){
 
 # Link the data to the app workspace
 link_data_to_app_workspace(){
-    docker exec -it $TETHYS_CONTAINER_NAME sh -c \
+    execute_command docker exec -it $TETHYS_CONTAINER_NAME sh -c \
         "mkdir -p $APP_WORKSPACE_PATH && \
         ln -s $TETHYS_PERSIST_PATH/ngen-data $APP_WORKSPACE_PATH/ngen-data"
 }
@@ -104,13 +104,14 @@ convert_gpkg_to_geojson() {
     local layer_name="$4"
     local geojson_file="$5"
 
-    docker exec -it \
+    execute_command docker exec -it \
         $TETHYS_CONTAINER_NAME \
         $python_bin_path \
         $path_script \
-        $gpkg_file \
-        $layer_name \
-        $geojson_file > /dev/null 2>&1
+        --convert_to_geojson \
+        --gpkg_path $gpkg_file \
+        --layer_name $layer_name \
+        --output_path $geojson_file
 }
 
 publish_gpkg_layer_to_geoserver() {
@@ -123,29 +124,47 @@ publish_gpkg_layer_to_geoserver() {
     local shapefile_path="$APP_WORKSPACE_PATH/ngen-data/config/catchments"
     local geoserver_port="$GEOSERVER_PORT_CONTAINER"
     
-    docker exec -it \
+    execute_command docker exec -it \
         $TETHYS_CONTAINER_NAME \
         $python_bin_path \
         $path_script \
-        $gpkg_file_path \
-        $catchment_gpkg_layer \
-        $catchment_geojson_path \
         --publish \
+        --gpkg_path $gpkg_file_path \
+        --layer_name $catchment_gpkg_layer \
         --shp_path "$shapefile_path" \
         --geoserver_host $GEOSERVER_CONTAINER_NAME \
         --geoserver_port $geoserver_port \
         --geoserver_username admin \
-        --geoserver_password geoserver > /dev/null 2>&1
+        --geoserver_password geoserver
 }
 
+publish_geojson_layer_to_geoserver() {
 
+    local python_bin_path="/opt/conda/envs/tethys/bin/python"
+    local path_script="/usr/lib/tethys/apps/ngiab/cli/convert_geom.py"
+    local geojson_path="$APP_WORKSPACE_PATH/ngen-data/config/catchments.geojson"
+    local shapefile_path="$APP_WORKSPACE_PATH/ngen-data/config/catchments"
+    local geoserver_port="$GEOSERVER_PORT_CONTAINER"
+    
+    execute_command docker exec -it \
+        $TETHYS_CONTAINER_NAME \
+        $python_bin_path \
+        $path_script \
+        --publish_geojson \
+        --geojson_path $geojson_path \
+        --shp_path "$shapefile_path" \
+        --geoserver_host $GEOSERVER_CONTAINER_NAME \
+        --geoserver_port $geoserver_port \
+        --geoserver_username admin \
+        --geoserver_password geoserver
+}
 
 
 # Main function that implements the retry logic
 wait_tethys_portal() {
     local PORT=80  # Port to check
-    local MAX_TRIES=10
-    local SLEEP_TIME=5  # Sleep time in seconds
+    local MAX_TRIES=20
+    local SLEEP_TIME=6  # Sleep time in seconds
     local count=0
 
     while [[ $count -lt $MAX_TRIES ]]; do
@@ -188,7 +207,23 @@ check_for_existing_tethys_image(){
         esac
     done
 }
+function execute_command {
+  "$@"
+  local status=$?
+  if [ $status -ne 0 ]; then
+    # echo "Error executing command: $1"
+    tear_down
+    exit 1
+  fi
+  return $status
+}
 
+
+tear_down(){
+    tear_down_tethys
+    tear_down_geoserver
+    docker network rm $DOCKER_NETWORK > /dev/null 2>&1
+}
 
 tear_down_tethys(){
     if [ "$(docker ps -aq -f name=$TETHYS_CONTAINER_NAME)" ]; then
@@ -208,9 +243,7 @@ pause_script_execution(){
     read -r exit_choice
     if [[ "$exit_choice" == [qQ]* ]]; then
         echo -e "${GREEN}Cleaning up Tethys ...${RESET}"
-        tear_down_tethys
-        tear_down_geoserver
-        docker network rm $DOCKER_NETWORK > /dev/null 2>&1
+        tear_down
         exit 0
     fi
 }
@@ -233,8 +266,9 @@ prepare_hydrofabrics(){
             $python_bin_path \
             $path_script \
             $gpkg_file_path \
-            $catchment_gpkg_layer \
+            $nexus_gpkg_layer \
             $catchment_geojson_path
+        publish_gpkg_layer_to_geoserver
     else
         n1=${selected_catchment:-$(read -p "Enter the hydrofabric catchment geojson file path: " n1; echo "$n1")}
         local catchmentfilename=$(basename "$n1")
@@ -242,11 +276,12 @@ prepare_hydrofabrics(){
 
         if [[ -e "$catchment_path_check" ]]; then
             if [[ "$catchmentfilename" != "nexus.json" ]]; then
-                docker cp $n1 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/catchments.geojson > /dev/null 2>&1
+                execute_command docker cp $n1 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/catchments.geojson
             fi
         else
-                docker cp $n1 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/catchments.geojson > /dev/null 2>&1
+                execute_command docker cp $n1 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/catchments.geojson
         fi
+        publish_geojson_layer_to_geoserver
 
     fi
 
@@ -267,10 +302,10 @@ prepare_hydrofabrics(){
 
         if [[ -e "$nexus_path_check" ]]; then
             if [[ "$nexusfilename" != "nexus.json" ]]; then
-                docker cp $n2 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/nexus.geojson > /dev/null 2>&1
+                execute_command docker cp $n2 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/nexus.geojson
             fi
         else
-            docker cp $n2 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/nexus.geojson > /dev/null 2>&1
+            execute_command docker cp $n2 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/nexus.geojson
         fi
 
     fi
@@ -288,6 +323,14 @@ run_tethys(){
     $TETHYS_IMAGE_NAME > /dev/null 2>&1
 }
 
+# start containers
+
+run_containers(){
+    run_tethys
+    run_geoserver
+    wait_tethys_portal
+}
+
 # Create tethys portal
 create_tethys_portal(){
 
@@ -297,26 +340,25 @@ create_tethys_portal(){
     # Execute the command
     if [[ "$visualization_choice" == [Yy]* ]]; then
         echo -e "${GREEN}Starting Tethys Portal...${RESET}"
-        #create the docker network to communicate between tethys and geoserver
         create_tethys_docker_network
         check_for_existing_tethys_image
         
-        run_tethys
-        wait_tethys_portal
-
+        run_containers
+        
         echo -e "${CYAN}Link data to the Tethys app workspace.${RESET}"
         link_data_to_app_workspace         
         echo -e "${GREEN}Preparing the hydrofabrics for the portal...${RESET}"
         prepare_hydrofabrics
         
-        echo -e "${CYAN}Preparing a geoserver instance to be used ${RESET}"
-        start_geoserver
+        # echo -e "${CYAN}Preparing a geoserver instance to be used ${RESET}"
+        # start_geoserver
         
-        echo -e "${CYAN}Publishing catchment layer to geoserver${RESET}"
-        publish_gpkg_layer_to_geoserver
-        # copy_shp_to_geoserver_data_folder "$DATA_FOLDER_PATH/config/catchments.zip" "$APP_WORKSPACE_PATH/ngen-data/tethys/geoserver_data"
+        # echo -e "${CYAN}Publishing catchment layer to geoserver${RESET}"
+        # publish_gpkg_layer_to_geoserver
 
         echo -e "${GREEN}Your outputs are ready to be visualized at http://localhost/apps/ngiab ${RESET}"
+        echo -e "${GREEN}You can use: user: admin, password: pass to login into tethys ${RESET}"
+
         pause_script_execution
 
     else
@@ -332,22 +374,18 @@ GEOSERVER_PORT_CONTAINER="8080"
 GEOSERVER_PORT_HOST="8181"
 DOCKER_NETWORK="tethys-network"
 APP_WORKSPACE_PATH="/usr/lib/tethys/apps/ngiab/tethysapp/ngiab/workspaces/app_workspace"
+TETHYS_IMAGE_NAME=gioelkin/tethys-ngiab:dev
+GEOSERVER_IMAGE_NAME=docker.osgeo.org/geoserver:2.25.x
 DATA_FOLDER_PATH="$1"
 TETHYS_PERSIST_PATH="$2"
 # Finding files
 HYDRO_FABRIC=$(find "$DATA_FOLDER_PATH/config" -name "*datastream*.gpkg")
-# check for architecture again 
+
+# check for architecture
 if uname -a | grep arm64 || uname -a | grep aarch64 ; then
-    echo "$(uname -a | grep arm64 || uname -a | grep aarch64)"
     PLATFORM=linux/arm64
-    TETHYS_IMAGE_NAME=gioelkin/tethys-ngiab:dev_latest
-    GEOSERVER_IMAGE_NAME=docker.osgeo.org/geoserver:2.25.x
-    
 else
     PLATFORM=linux/amd64
-    TETHYS_IMAGE_NAME=gioelkin/tethys-ngiab:dev_latest
-    GEOSERVER_IMAGE_NAME=docker.osgeo.org/geoserver:2.25.x
-    #TODO # IMAGE_NAME=gioelkin/tethys-ngiab:latest-x86
 fi
 
 # Function to handle the SIGINT (Ctrl-C)
