@@ -266,7 +266,7 @@ prepare_hydrofabrics(){
             $python_bin_path \
             $path_script \
             $gpkg_file_path \
-            $nexus_gpkg_layer \
+            $catchment_gpkg_layer \
             $catchment_geojson_path
         publish_gpkg_layer_to_geoserver
     else
