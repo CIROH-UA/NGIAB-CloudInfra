@@ -6,19 +6,19 @@ jobs:
   deps:
     uses: ./.github/workflows/docker_deps_image.yml
     with:
-      runner_label: X86
+      runner_label: x86
     secrets: inherit
   troute:
     needs: deps
     uses: ./.github/workflows/docker_troute_image.yml
     with:
-      runner_label: X86
+      runner_label: x86
     secrets: inherit
   ngen:
     needs: troute
     uses: ./.github/workflows/docker_ngen_image.yml
     with:
-      runner_label: X86
+      runner_label: x86
     secrets: inherit
   final:
     needs: ngen
@@ -32,7 +32,7 @@ jobs:
           docker-auth-token: ${{ secrets.DOCKER_AUTH_TOKEN }}
           image-name: "ciroh-ngen-image"
           dockerfile-name: "Dockerfile"
-          platform: X86
+          platform: x86
         if: ${{ !startsWith(github.ref, 'refs/heads/main') }}
       - name: Build and push Docker image
         uses: ./.github/action_templates/build-and-push
@@ -40,7 +40,7 @@ jobs:
           docker-auth-token: ${{ secrets.DOCKER_AUTH_TOKEN }}
           image-name: "ciroh-ngen-image"
           dockerfile-name: "Dockerfile"
-          platform: X86
+          platform: x86
         if: startsWith(github.ref, 'refs/heads/main')
   check_result:
     needs: final

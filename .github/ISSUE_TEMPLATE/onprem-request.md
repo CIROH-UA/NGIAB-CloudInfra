@@ -1,6 +1,6 @@
 ---
 name: OnPremise Request Form
-about: This template is used to request the on-premise requests from CIROH consortium and members utilizing the NextGen framework for the research projects.
+about: This template is used to request the on-premise requests from CIROH members and partners utilizing the NextGen framework for the research projects. This form must be submitted by Principal Investigator (PI) of the project.
 title: ''
 labels: on-prem
 assignees: ''
@@ -10,8 +10,9 @@ assignees: ''
 
 **1.	Requester Information:**
 This should include the name and contact information of the person making the request.
-
-
+- PI's Full Name:
+- PI's Affiliated Institute:
+- PI's Affiliated Email Address:
 
 **2.	Project Information:** 
 Provide a brief description of the project and its goals. This can help the infrastructure team understand the context and purpose of the requested resources. *Please highlight how this project will be benefit from and/or provide benefit to other resources on the shared infrastructure.*
