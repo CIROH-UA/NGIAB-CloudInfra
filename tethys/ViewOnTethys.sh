@@ -47,12 +47,6 @@ wait_geoserver(){
     return 1
 }
 
-# Start the geoserver container
-start_geoserver(){
-    run_geoserver
-    wait_geoserver
-}
-
 # HELPER FUNCTIONS
 
 # Function to automatically select file if only one is found
@@ -175,6 +169,8 @@ wait_tethys_portal() {
             printf "Tethys Portal is up and running.\n"
             return 0
         fi
+        printf "\rProgress: [%-20s] %d%%" "$(printf '%0.s#' $(seq 1 $((count * 20 / MAX_TRIES))))" "$((count * 100 / MAX_TRIES))"
+
         ((count++))
         sleep $SLEEP_TIME
     done
@@ -350,14 +346,11 @@ create_tethys_portal(){
         echo -e "${GREEN}Preparing the hydrofabrics for the portal...${RESET}"
         prepare_hydrofabrics
         
-        # echo -e "${CYAN}Preparing a geoserver instance to be used ${RESET}"
-        # start_geoserver
-        
-        # echo -e "${CYAN}Publishing catchment layer to geoserver${RESET}"
-        # publish_gpkg_layer_to_geoserver
-
         echo -e "${GREEN}Your outputs are ready to be visualized at http://localhost/apps/ngiab ${RESET}"
-        echo -e "${GREEN}You can use: user: admin, password: pass to login into tethys ${RESET}"
+        echo -e "${GREEN}You can use the following to login: ${RESET}"
+        echo -e "${GREEN}user: admin${RESET}"
+        echo -e "${GREEN}password: pass${RESET}"
+
 
         pause_script_execution
 
