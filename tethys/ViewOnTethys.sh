@@ -194,13 +194,16 @@ check_for_existing_tethys_image(){
 
 
 tear_down_tethys(){
-    docker stop $TETHYS_CONTAINER_NAME > /dev/null 2>&1
+    if [ "$(docker ps -aq -f name=$TETHYS_CONTAINER_NAME)" ]; then
+        docker stop $TETHYS_CONTAINER_NAME > /dev/null 2>&1
+    fi
 }
 
 tear_down_geoserver(){
-    docker stop $GEOSERVER_CONTAINER_NAME > /dev/null 2>&1
-    # remove the geoserver data folder
-    rm -rf $DATA_FOLDER_PATH/tethys/geoserver_data
+    if [ "$(docker ps -aq -f name=$GEOSERVER_CONTAINER_NAME)" ]; then
+        docker stop $GEOSERVER_CONTAINER_NAME > /dev/null 2>&1 
+        rm -rf $DATA_FOLDER_PATH/tethys/geoserver_data
+    fi
 }
 
 pause_script_execution(){
@@ -324,6 +327,7 @@ create_tethys_portal(){
 }
 
 # Constanst
+PLATFORM='linux/amd64'
 TETHYS_CONTAINER_NAME="tethys-ngen-portal"
 GEOSERVER_CONTAINER_NAME="tethys-geoserver"
 GEOSERVER_PORT_CONTAINER="8080"
@@ -336,13 +340,30 @@ TETHYS_PERSIST_PATH="$2"
 HYDRO_FABRIC=$(find "$DATA_FOLDER_PATH/config" -name "*datastream*.gpkg")
 # check for architecture again 
 if uname -a | grep arm64 || uname -a | grep aarch64 ; then
+    echo "$(uname -a | grep arm64 || uname -a | grep aarch64)"
+    PLATFORM=linux/arm64
     TETHYS_IMAGE_NAME=gioelkin/tethys-ngiab:dev_latest
     GEOSERVER_IMAGE_NAME=docker.osgeo.org/geoserver:2.25.x
+    
 else
+    PLATFORM=linux/amd64
     TETHYS_IMAGE_NAME=gioelkin/tethys-ngiab:dev_latest
     GEOSERVER_IMAGE_NAME=docker.osgeo.org/geoserver:2.25.x
     #TODO # IMAGE_NAME=gioelkin/tethys-ngiab:latest-x86
 fi
+
+# Function to handle the SIGINT (Ctrl-C)
+handle_sigint() {
+    printf "SIGINT caught, cleaning up and exiting.\n" >&2
+    echo -e "${GREEN}Cleaning up . . .${RESET}"
+    tear_down_tethys
+    tear_down_geoserver
+    docker network rm $DOCKER_NETWORK > /dev/null 2>&1
+    exit 1
+}
+
+# Set up the SIGINT trap to call the handle_sigint function
+trap handle_sigint SIGINT
 
 create_tethys_portal
 
