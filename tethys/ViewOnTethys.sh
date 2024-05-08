@@ -18,7 +18,8 @@ _run_geoserver(){
     --env SKIP_DEMO_DATA=true \
     --network $DOCKER_NETWORK \
     --name $GEOSERVER_CONTAINER_NAME \
-    $GEOSERVER_IMAGE_NAME > /dev/null 2>&1
+    $GEOSERVER_IMAGE_NAME 
+    # > /dev/null 2>&1
 }
 
 # HELPER FUNCTIONS
@@ -112,32 +113,71 @@ _publish_geojson_layer_to_geoserver() {
 _wait_container() {
     local container_name=$1
     local container_health_status
-    until [[ "$container_health_status" == "healthy" ]]; do
+    printf "${MAGENTA}Starting container: $container_name, this can take a couple of minutes...${RESET}\n"
+    until [[ "$container_health_status" == "healthy" || "$container_health_status" == "unhealthy" ]]; do
         container_health_status=$(docker inspect -f {{.State.Health.Status}} "$container_name")
         sleep 0.1
     done
 }
 
 
-_check_for_existing_tethys_image(){
-    echo -e "${UYellow}Select an option (type a number): ${Color_Off}"
+_check_for_existing_geoserver_image() {
+    printf "${YELLOW}Select an option (type a number): ${RESET}\n"
+    options=("Run GeoServer using existing local docker image" "Run GeoServer after updating to latest docker image" "Exit")
+    select option in "${options[@]}"; do
+        case $option in
+            "Run GeoServer using existing local docker image")
+                printf "${GREEN}Using local image of GeoServer${RESET}\n"
+                return 0
+                ;;
+            "Run GeoServer after updating to latest docker image")
+                printf "${GREEN}Pulling container...${RESET}\n"
+                if ! docker pull "$GEOSERVER_IMAGE_NAME"; then
+                    printf "${RED}Failed to pull Docker image: $GEOSERVER_IMAGE_NAME${RESET}\n" >&2
+                    return 1
+                else
+                    printf "${GREEN}Successfully updated GeoServer image.${RESET}\n"
+                fi
+                return 0
+                ;;
+            "Exit")
+                printf "${CYAN}Have a nice day!${RESET}\n"
+                _tear_down
+                exit 0
+                ;;
+            *)
+                printf "${RED}Invalid option $REPLY. Please type 1 to continue with existing local image, 2 to update and run, or 3 to exit.${RESET}\n"
+                ;;
+        esac
+    done
+}
+
+
+
+_check_for_existing_tethys_image() {
+    printf "${YELLOW}Select an option (type a number): ${RESET}\n"
     options=("Run Tethys using existing local docker image" "Run Tethys after updating to latest docker image" "Exit")
     select option in "${options[@]}"; do
         case $option in
             "Run Tethys using existing local docker image")
-                echo -e "${GREEN}Creating Tethys Portal, this can take a couple of minutes . . .${RESET}."
-                break
+                printf "${GREEN}Using local image of the Tethys platform${RESET}\n"
+                return 0
                 ;;
             "Run Tethys after updating to latest docker image")
-                echo "pulling container"
-                docker pull $TETHYS_IMAGE_NAME
-                break
+                printf "${GREEN}Pulling container...${RESET}\n"
+                if ! docker pull "$TETHYS_IMAGE_NAME"; then
+                    printf "${RED}Failed to pull Docker image: $TETHYS_IMAGE_NAME${RESET}\n" >&2
+                    return 1
+                fi
+                return 0
                 ;;
-            Exit)
-                echo "Have a nice day!"
+            "Exit")
+                printf "${CYAN}Have a nice day!${RESET}\n"
+                _tear_down
                 exit 0
                 ;;
-            *) echo "Invalid option $REPLY, 1 to continue with existing local image, 2 to update and run, and 3 to exit"
+            *)
+                printf "${RED}Invalid option $REPLY, 1 to continue with existing local image, 2 to update and run, and 3 to exit${RESET}\n"
                 ;;
         esac
     done
@@ -173,16 +213,20 @@ _tear_down_geoserver(){
     fi
 }
 
-_pause_script_execution(){
-    echo -e "${YELLOW}Press q to exit the visualization (default: q/Q):${RESET}"
-    read -r exit_choice
-    if [[ "$exit_choice" == [qQ]* ]]; then
-        echo -e "${GREEN}Cleaning up Tethys ...${RESET}"
-        _tear_down
-        exit 0
-    fi
-}
+_pause_script_execution() {
+    while true; do
+        printf "${YELLOW}Press q to exit the visualization (default: q/Q):${RESET}\n"
+        read -r exit_choice
 
+        if [[ "$exit_choice" =~ ^[qQ]$ ]]; then
+            printf "${RED}Cleaning up Tethys ...${RESET}\n"
+            _tear_down
+            exit 0
+        else
+            printf "${RED}Invalid input. Please press 'q' or 'Q' to exit.${RESET}\n"
+        fi
+    done
+}
 _prepare_hydrofabrics(){
     local python_bin_path="/opt/conda/envs/tethys/bin/python"
     local path_script="/usr/lib/tethys/apps/ngiab/cli/convert_geom.py"
@@ -255,13 +299,16 @@ _run_tethys(){
     --name "$TETHYS_CONTAINER_NAME" \
     --env MEDIA_ROOT="$TETHYS_PERSIST_PATH/media" \
     --env MEDIA_URL="/media/" \
-    $TETHYS_IMAGE_NAME > /dev/null 2>&1
+    $TETHYS_IMAGE_NAME 
+    #> /dev/null 2>&1
 }
 
 # start containers
 
 _run_containers(){
     _run_tethys
+    echo -e "${GREEN}Setup GeoServer image...${RESET}"
+    _check_for_existing_geoserver_image
     _run_geoserver
     _wait_container $TETHYS_CONTAINER_NAME
     _wait_container $GEOSERVER_CONTAINER_NAME
@@ -275,26 +322,27 @@ create_tethys_portal(){
 
     # Execute the command
     if [[ "$visualization_choice" == [Yy]* ]]; then
-        echo -e "${GREEN}Starting Tethys Portal...${RESET}"
+        echo -e "${GREEN}Setup Tethys Portal image...${RESET}"
         _create_tethys_docker_network
-        _check_for_existing_tethys_image
-        
-        _run_containers
-        
-        echo -e "${CYAN}Link data to the Tethys app workspace.${RESET}"
-        _link_data_to_app_workspace         
-        echo -e "${GREEN}Preparing the hydrofabrics for the portal...${RESET}"
-        _prepare_hydrofabrics
-        
-        echo -e "${GREEN}Your outputs are ready to be visualized at http://localhost/apps/ngiab ${RESET}"
-        echo -e "${MAGENTA}You can use the following to login: ${RESET}"
-        echo -e "${CYAN}user: admin${RESET}"
-        echo -e "${CYAN}password: pass${RESET}"
+        if _check_for_existing_tethys_image; then
+            _run_containers
+            
+            echo -e "${CYAN}Link data to the Tethys app workspace.${RESET}"
+            _link_data_to_app_workspace         
+            echo -e "${GREEN}Preparing the hydrofabrics for the portal...${RESET}"
+            _prepare_hydrofabrics
+            
+            echo -e "${GREEN}Your outputs are ready to be visualized at http://localhost/apps/ngiab ${RESET}"
+            echo -e "${MAGENTA}You can use the following to login: ${RESET}"
+            echo -e "${CYAN}user: admin${RESET}"
+            echo -e "${CYAN}password: pass${RESET}"
 
-        _pause_script_execution
-
+            _pause_script_execution
+        else
+            printf "${RED}Failed to prepare Tethys portal.${RESET}\n"
+        fi
     else
-        echo ""
+        printf "${CYAN}Skipping Tethys visualization setup.${RESET}\n"
     fi
 }
 
