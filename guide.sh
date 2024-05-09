@@ -198,7 +198,7 @@ Final_Outputs_Count=$(ls "$HOST_DATA_PATH/outputs" | wc -l)
 echo -e "$Final_Outputs_Count new outputs created."
 echo -e "Any copied files can be found here: $HOST_DATA_PATH/outputs"
 
-# visuazlize with Tethys
+# visualize with Tethys
 if [ $Final_Outputs_Count -gt 0 ]; then
     ARG1="$HOST_DATA_PATH"
     ARG2="/var/lib/tethys_persist"
