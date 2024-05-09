@@ -22,6 +22,44 @@ _run_geoserver(){
     # > /dev/null 2>&1
 }
 
+_check_for_existing_geoserver_image() {
+    printf "${YELLOW}Select an option (type a number): ${RESET}\n"
+    options=("Run GeoServer using existing local docker image" "Run GeoServer after updating to latest docker image" "Exit")
+    select option in "${options[@]}"; do
+        case $option in
+            "Run GeoServer using existing local docker image")
+                printf "${GREEN}Using local image of GeoServer${RESET}\n"
+                return 0
+                ;;
+            "Run GeoServer after updating to latest docker image")
+                printf "${GREEN}Pulling container...${RESET}\n"
+                if ! docker pull "$GEOSERVER_IMAGE_NAME"; then
+                    printf "${RED}Failed to pull Docker image: $GEOSERVER_IMAGE_NAME${RESET}\n" >&2
+                    return 1
+                else
+                    printf "${GREEN}Successfully updated GeoServer image.${RESET}\n"
+                fi
+                return 0
+                ;;
+            "Exit")
+                printf "${CYAN}Have a nice day!${RESET}\n"
+                _tear_down
+                exit 0
+                ;;
+            *)
+                printf "${RED}Invalid option $REPLY. Please type 1 to continue with existing local image, 2 to update and run, or 3 to exit.${RESET}\n"
+                ;;
+        esac
+    done
+}
+
+_tear_down_geoserver(){
+    if [ "$(docker ps -aq -f name=$GEOSERVER_CONTAINER_NAME)" ]; then
+        docker stop $GEOSERVER_CONTAINER_NAME > /dev/null 2>&1 
+        rm -rf $DATA_FOLDER_PATH/tethys/geoserver_data
+    fi
+}
+
 # HELPER FUNCTIONS
 # Function to automatically select file if only one is found
 _auto_select_file() {
@@ -31,6 +69,117 @@ _auto_select_file() {
   else
     echo ""
   fi
+}
+
+# Check if the config file exists and read from it
+_check_and_read_config() {
+    local config_file="$1"
+    if [ -f "$config_file" ]; then
+        local last_path=$(cat "$config_file")
+        printf "Last used data directory path: %s\n" "$last_path"
+        read -erp "Do you want to use the same path? (Y/n): " use_last_path
+        if [[ "$use_last_path" != [Nn]* ]]; then
+            DATA_FOLDER_PATH="$last_path"
+        else
+            read -erp "Enter your input data directory path (use absolute path): " HOST_DATA_PATH
+        fi
+    else
+        read -erp "Enter your input data directory path (use absolute path): " HOST_DATA_PATH
+    fi
+}
+_execute_command() {
+  "$@"
+  local status=$?
+  if [ $status -ne 0 ]; then
+    echo -e "${RED}Error executing command: $1${RESET}"
+    _tear_down
+    exit 1
+  fi
+  return $status
+}
+
+_tear_down(){
+    _tear_down_tethys
+    _tear_down_geoserver
+    docker network rm $DOCKER_NETWORK > /dev/null 2>&1
+}
+
+_run_containers(){
+    _run_tethys
+    echo -e "${GREEN}Setup GeoServer image...${RESET}"
+    _check_for_existing_geoserver_image
+    _run_geoserver
+    _wait_container $TETHYS_CONTAINER_NAME
+    _wait_container $GEOSERVER_CONTAINER_NAME
+}
+
+# Wait for a Docker container to become healthy or unhealthy
+_wait_container() {
+    local container_name=$1
+    local container_health_status
+    local max_attempts=300  # Set a maximum number of attempts (300 attempts * 2 seconds = 600 seconds max wait time)
+    local attempt_counter=0
+
+    printf "${MAGENTA}Waiting for container: $container_name to start, this can take a couple of minutes...${RESET}\n"
+
+    until [[ "$container_health_status" == "healthy" || "$container_health_status" == "unhealthy" ]]; do
+        if [[ $attempt_counter -eq $max_attempts ]]; then
+            printf "${RED}Timeout waiting for container $container_name to become stable.${RESET}\n" >&2
+            return 1
+        fi
+
+        # Update the health status
+        if ! container_health_status=$(docker inspect -f '{{.State.Health.Status}}' "$container_name" 2>/dev/null); then
+            printf "${RED}Failed to get health status for container $container_name. Ensure container exists and has a health check.${RESET}\n" >&2
+            return 1
+        fi
+
+        if [[ -z "$container_health_status" ]]; then
+            printf "${RED}No health status available for container $container_name. Ensure the container has a health check configured.${RESET}\n" >&2
+            return 1
+        fi
+
+        ((attempt_counter++))
+        sleep 2  # Adjusted sleep time to 2 seconds to reduce system load
+    done
+
+    printf "${MAGENTA}Container $container_name is now $container_health_status.${RESET}\n"
+    return 0
+}
+
+_pause_script_execution() {
+    while true; do
+        printf "${YELLOW}Press q to exit the visualization (default: q/Q):${RESET}\n"
+        read -r exit_choice
+
+        if [[ "$exit_choice" =~ ^[qQ]$ ]]; then
+            printf "${RED}Cleaning up Tethys ...${RESET}\n"
+            _tear_down
+            exit 0
+        else
+            printf "${RED}Invalid input. Please press 'q' or 'Q' to exit.${RESET}\n"
+        fi
+    done
+}
+
+# Function to handle the SIGINT (Ctrl-C)
+handle_sigint() {
+    echo -e "${RED}Cleaning up . . .${RESET}"
+    _tear_down
+    exit 1
+}
+
+check_last_path() {
+    if [[ -z "$1" ]]; then
+        _check_and_read_config "$CONFIG_FILE"
+        
+    else
+        DATA_FOLDER_PATH="$1"
+    fi
+    # Finding files
+    HYDRO_FABRIC=$(find "$DATA_FOLDER_PATH/config" -name "*datastream*.gpkg")
+    CATCHMENT_FILE=$(find "$DATA_FOLDER_PATH/config" -name "*catchments*.geojson")
+    NEXUS_FILE=$(find "$DATA_FOLDER_PATH/config" -name "*nexus*.geojson")
 }
 
 # TETHYS FUNCTIONS 
@@ -109,51 +258,6 @@ _publish_geojson_layer_to_geoserver() {
 }
 
 
-# Main function that implements the retry logic
-_wait_container() {
-    local container_name=$1
-    local container_health_status
-    printf "${MAGENTA}Starting container: $container_name, this can take a couple of minutes...${RESET}\n"
-    until [[ "$container_health_status" == "healthy" || "$container_health_status" == "unhealthy" ]]; do
-        container_health_status=$(docker inspect -f {{.State.Health.Status}} "$container_name")
-        sleep 0.1
-    done
-}
-
-
-_check_for_existing_geoserver_image() {
-    printf "${YELLOW}Select an option (type a number): ${RESET}\n"
-    options=("Run GeoServer using existing local docker image" "Run GeoServer after updating to latest docker image" "Exit")
-    select option in "${options[@]}"; do
-        case $option in
-            "Run GeoServer using existing local docker image")
-                printf "${GREEN}Using local image of GeoServer${RESET}\n"
-                return 0
-                ;;
-            "Run GeoServer after updating to latest docker image")
-                printf "${GREEN}Pulling container...${RESET}\n"
-                if ! docker pull "$GEOSERVER_IMAGE_NAME"; then
-                    printf "${RED}Failed to pull Docker image: $GEOSERVER_IMAGE_NAME${RESET}\n" >&2
-                    return 1
-                else
-                    printf "${GREEN}Successfully updated GeoServer image.${RESET}\n"
-                fi
-                return 0
-                ;;
-            "Exit")
-                printf "${CYAN}Have a nice day!${RESET}\n"
-                _tear_down
-                exit 0
-                ;;
-            *)
-                printf "${RED}Invalid option $REPLY. Please type 1 to continue with existing local image, 2 to update and run, or 3 to exit.${RESET}\n"
-                ;;
-        esac
-    done
-}
-
-
-
 _check_for_existing_tethys_image() {
     printf "${YELLOW}Select an option (type a number): ${RESET}\n"
     options=("Run Tethys using existing local docker image" "Run Tethys after updating to latest docker image" "Exit")
@@ -182,23 +286,7 @@ _check_for_existing_tethys_image() {
         esac
     done
 }
-_execute_command() {
-  "$@"
-  local status=$?
-  if [ $status -ne 0 ]; then
-    echo -e "${RED}Error executing command: $1${RESET}"
-    _tear_down
-    exit 1
-  fi
-  return $status
-}
 
-
-_tear_down(){
-    _tear_down_tethys
-    _tear_down_geoserver
-    docker network rm $DOCKER_NETWORK > /dev/null 2>&1
-}
 
 _tear_down_tethys(){
     if [ "$(docker ps -aq -f name=$TETHYS_CONTAINER_NAME)" ]; then
@@ -206,27 +294,7 @@ _tear_down_tethys(){
     fi
 }
 
-_tear_down_geoserver(){
-    if [ "$(docker ps -aq -f name=$GEOSERVER_CONTAINER_NAME)" ]; then
-        docker stop $GEOSERVER_CONTAINER_NAME > /dev/null 2>&1 
-        rm -rf $DATA_FOLDER_PATH/tethys/geoserver_data
-    fi
-}
 
-_pause_script_execution() {
-    while true; do
-        printf "${YELLOW}Press q to exit the visualization (default: q/Q):${RESET}\n"
-        read -r exit_choice
-
-        if [[ "$exit_choice" =~ ^[qQ]$ ]]; then
-            printf "${RED}Cleaning up Tethys ...${RESET}\n"
-            _tear_down
-            exit 0
-        else
-            printf "${RED}Invalid input. Please press 'q' or 'Q' to exit.${RESET}\n"
-        fi
-    done
-}
 _prepare_hydrofabrics(){
     local python_bin_path="/opt/conda/envs/tethys/bin/python"
     local path_script="/usr/lib/tethys/apps/ngiab/cli/convert_geom.py"
@@ -239,54 +307,66 @@ _prepare_hydrofabrics(){
 
     # Auto-selecting files if only one is found
     echo -e "${CYAN}Preparing the catchtments...${RESET}"
-    selected_catchment=$(_auto_select_file "$HYDRO_FABRIC")
-    if [[ "$selected_catchment" == "$DATA_FOLDER_PATH/config/datastream.gpkg" ]]; then
-        _convert_gpkg_to_geojson \
-            $python_bin_path \
-            $path_script \
-            $gpkg_file_path \
-            $catchment_gpkg_layer \
-            $catchment_geojson_path
-        _publish_gpkg_layer_to_geoserver
-    else
-        n1=${selected_catchment:-$(read -p "Enter the hydrofabric catchment geojson file path: " n1; echo "$n1")}
-        local catchmentfilename=$(basename "$n1")
-        local catchment_path_check="$DATA_FOLDER_PATH/config/$catchmentfilename"
-
-        if [[ -e "$catchment_path_check" ]]; then
-            if [[ "$catchmentfilename" != "nexus.json" ]]; then
-                _execute_command docker cp $n1 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/catchments.geojson
-            fi
-        else
-                _execute_command docker cp $n1 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/catchments.geojson
-        fi
+    # selected_catchment=$(_auto_select_file "$HYDRO_FABRIC")
+    selected_catchment=$(_auto_select_file "$CATCHMENT_FILE")
+    if [[ $selected_catchment ]]; then
         _publish_geojson_layer_to_geoserver
+    else
+        selected_catchment=$(_auto_select_file "$HYDRO_FABRIC")
+        echo $selected_catchment
+        if [[ "$selected_catchment" == "$DATA_FOLDER_PATH/config/datastream.gpkg" ]]; then
+            _convert_gpkg_to_geojson \
+                $python_bin_path \
+                $path_script \
+                $gpkg_file_path \
+                $catchment_gpkg_layer \
+                $catchment_geojson_path
+            _publish_gpkg_layer_to_geoserver
+        else
+            n1=${selected_catchment:-$(read -p "Enter the hydrofabric catchment geojson file path: " n1; echo "$n1")}
+            local catchmentfilename=$(basename "$n1")
+            local catchment_path_check="$DATA_FOLDER_PATH/config/$catchmentfilename"
+            if [[ -e "$catchment_path_check" ]]; then
+                if [[ "$catchmentfilename" != "nexus.json" ]]; then
+                    _execute_command docker cp $n1 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/catchments.geojson
+                fi
+            else
+                    _execute_command docker cp $n1 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/catchments.geojson
+            fi
+            _publish_geojson_layer_to_geoserver
 
+        fi
     fi
 
     echo -e "${CYAN}Preparing the nexus...${RESET}"
-    selected_nexus=$(_auto_select_file "$HYDRO_FABRIC")
+    # selected_nexus=$(_auto_select_file "$HYDRO_FABRIC")
 
-    if [[ "$selected_nexus" == "$DATA_FOLDER_PATH/config/datastream.gpkg" ]]; then
-        _convert_gpkg_to_geojson \
-            $python_bin_path \
-            $path_script \
-            $gpkg_file_path \
-            $nexus_gpkg_layer \
-            $nexus_geojson_path
+    selected_nexus=$(_auto_select_file "$NEXUS_FILE")
+    if [[ $selected_nexus ]]; then
+        _execute_command docker cp $selected_nexus $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/nexus.geojson
     else
-        n2=${selected_nexus:-$(read -p "Enter the hydrofabric nexus geojson file path: " n2; echo "$n2")} 
-        local nexusfilename=$(basename "$n2")
-        local nexus_path_check="$DATA_FOLDER_PATH/config/$nexusfilename"
+        selected_nexus=$(_auto_select_file "$HYDRO_FABRIC")
+        if [[ "$selected_nexus" == "$DATA_FOLDER_PATH/config/datastream.gpkg" ]]; then
+            _convert_gpkg_to_geojson \
+                $python_bin_path \
+                $path_script \
+                $gpkg_file_path \
+                $nexus_gpkg_layer \
+                $nexus_geojson_path
+        else
+            n2=${selected_nexus:-$(read -p "Enter the hydrofabric nexus geojson file path: " n2; echo "$n2")} 
+            local nexusfilename=$(basename "$n2")
+            local nexus_path_check="$DATA_FOLDER_PATH/config/$nexusfilename"
 
-        if [[ -e "$nexus_path_check" ]]; then
-            if [[ "$nexusfilename" != "nexus.json" ]]; then
+            if [[ -e "$nexus_path_check" ]]; then
+                if [[ "$nexusfilename" != "nexus.json" ]]; then
+                    _execute_command docker cp $n2 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/nexus.geojson
+                fi
+            else
                 _execute_command docker cp $n2 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/nexus.geojson
             fi
-        else
-            _execute_command docker cp $n2 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/nexus.geojson
-        fi
 
+        fi
     fi
     
 }
@@ -303,23 +383,11 @@ _run_tethys(){
     #> /dev/null 2>&1
 }
 
-# start containers
-
-_run_containers(){
-    _run_tethys
-    echo -e "${GREEN}Setup GeoServer image...${RESET}"
-    _check_for_existing_geoserver_image
-    _run_geoserver
-    _wait_container $TETHYS_CONTAINER_NAME
-    _wait_container $GEOSERVER_CONTAINER_NAME
-}
 
 # Create tethys portal
 create_tethys_portal(){
-
-    echo -e "${YELLOW}Do you want to visualize your outputs using tethys? (y/N, default: y):${RESET}"
     read -r visualization_choice
-
+    echo -e "${YELLOW}Do you want to visualize your outputs using tethys? (y/N, default: y):${RESET}"
     # Execute the command
     if [[ "$visualization_choice" == [Yy]* ]]; then
         echo -e "${GREEN}Setup Tethys Portal image...${RESET}"
@@ -346,6 +414,14 @@ create_tethys_portal(){
     fi
 }
 
+
+##########################
+#####START OF SCRIPT######
+##########################
+
+# Set up the SIGINT trap to call the handle_sigint function
+trap handle_sigint SIGINT
+
 # Constanst
 PLATFORM='linux/amd64'
 TETHYS_CONTAINER_NAME="tethys-ngen-portal"
@@ -357,9 +433,8 @@ APP_WORKSPACE_PATH="/usr/lib/tethys/apps/ngiab/tethysapp/ngiab/workspaces/app_wo
 TETHYS_IMAGE_NAME=gioelkin/tethys-ngiab:dev
 GEOSERVER_IMAGE_NAME=docker.osgeo.org/geoserver:2.25.x
 DATA_FOLDER_PATH="$1"
-TETHYS_PERSIST_PATH="$2"
-# Finding files
-HYDRO_FABRIC=$(find "$DATA_FOLDER_PATH/config" -name "*datastream*.gpkg")
+TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
+CONFIG_FILE="$HOME/.host_data_path.conf"
 
 # check for architecture
 if uname -a | grep arm64 || uname -a | grep aarch64 ; then
@@ -368,14 +443,8 @@ else
     PLATFORM=linux/amd64
 fi
 
-# Function to handle the SIGINT (Ctrl-C)
-handle_sigint() {
-    echo -e "${RED}Cleaning up . . .${RESET}"
-    _tear_down
-    exit 1
-}
-# Set up the SIGINT trap to call the handle_sigint function
-trap handle_sigint SIGINT
+
+check_last_path "$@"
 
 create_tethys_portal
 
