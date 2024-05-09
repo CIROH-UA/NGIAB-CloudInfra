@@ -77,6 +77,14 @@ _auto_select_file() {
   fi
 }
 
+_check_if_data_folder_exits(){
+    # Check the directory exists
+    if [ ! -d "$DATA_FOLDER_PATH" ]; then
+        echo -e "${RED}Directory does not exist. Exiting the program.${Color_Off}"
+        exit 0
+    fi
+}
+
 # Check if the config file exists and read from it
 _check_and_read_config() {
     local config_file="$1"
@@ -84,35 +92,22 @@ _check_and_read_config() {
         local last_path=$(cat "$config_file")
         printf "Last used data directory path: %s\n" "$last_path"
         read -erp "Do you want to use the same path? (Y/n): " use_last_path
-        if [[ "$use_last_path" != [Nn]* ]]; then
+        if [[ "$use_last_path" =~ ^[Yy] ]]; then
             DATA_FOLDER_PATH="$last_path"
+            _check_if_data_folder_exits
+            return 0
+        elif [[ "$use_last_path" =~ ^[Nn] ]]; then
+            read -erp "Enter your input data directory path (use absolute path): " DATA_FOLDER_PATH
+            _check_if_data_folder_exits
+            # Save the new path to the config file
+            echo "$DATA_FOLDER_PATH" > "$CONFIG_FILE"
+            echo -e "The Directory you've given is:\n$DATA_FOLDER_PATH\n"   
         else
-            read -erp "Enter your input data directory path (use absolute path): " HOST_DATA_PATH
+            printf "Invalid input. Exiting.\n" >&2
+            return 1
         fi
-    else
-        read -erp "Enter your input data directory path (use absolute path): " HOST_DATA_PATH
     fi
 }
-
-# _check_and_read_config() {
-#     local config_file="$1"
-#     if [ -f "$config_file" ]; then
-#         local last_path=$(cat "$config_file")
-#         printf "Last used data directory path: %s\n" "$last_path"
-#         read -erp "Do you want to use the same path? (Y/n): " use_last_path
-#         if [[ "$use_last_path" =~ ^[Yy] ]]; then
-#             DATA_FOLDER_PATH="$last_path"
-#             return 0
-#         elif [[ "$use_last_path" =~ ^[Nn] ]]; then
-#             read -erp "Enter your input data directory path (use absolute path): " DATA_FOLDER_PATH
-#         else
-#             printf "Invalid input. Exiting.\n" >&2
-#             return 1
-#         fi
-#     else
-#         read -erp "Enter your input data directory path (use absolute path): " DATA_FOLDER_PATH
-#     fi
-# }
 
 _execute_command() {
   "$@"
@@ -199,7 +194,7 @@ handle_sigint() {
 check_last_path() {
     if [[ -z "$1" ]]; then
         _check_and_read_config "$CONFIG_FILE"
-        
+     
     else
         DATA_FOLDER_PATH="$1"
     fi
@@ -338,7 +333,6 @@ _prepare_hydrofabrics(){
 
     # Auto-selecting files if only one is found
     echo -e "${CYAN}Preparing the catchtments...${RESET}"
-    # selected_catchment=$(_auto_select_file "$HYDRO_FABRIC")
     selected_catchment=$(_auto_select_file "$CATCHMENT_FILE")
     if [[ $selected_catchment ]]; then
         _publish_geojson_layer_to_geoserver
@@ -370,7 +364,6 @@ _prepare_hydrofabrics(){
     fi
 
     echo -e "${CYAN}Preparing the nexus...${RESET}"
-    # selected_nexus=$(_auto_select_file "$HYDRO_FABRIC")
 
     selected_nexus=$(_auto_select_file "$NEXUS_FILE")
     if [[ $selected_nexus ]]; then
@@ -417,7 +410,7 @@ _run_tethys(){
 
 # Create tethys portal
 create_tethys_portal(){
-    echo -e "${YELLOW}Visualize in Tethys? (y/N, default: y):${RESET}"
+    echo -e "${YELLOW}Visualize outputs using the Tethys Platform (https://www.tethysplatform.org/)? (y/N, default: y):${RESET}"
     read -r visualization_choice
     # Execute the command
     if [[ "$visualization_choice" == [Yy]* ]]; then
@@ -435,7 +428,7 @@ create_tethys_portal(){
             echo -e "${MAGENTA}You can use the following to login: ${RESET}"
             echo -e "${CYAN}user: admin${RESET}"
             echo -e "${CYAN}password: pass${RESET}"
-
+            echo -e "${MAGENTA}Check the App source code: https://github.com/Aquaveo/ngiab-client ${RESET}"
             _pause_script_execution
         else
             printf "${RED}Failed to prepare Tethys portal.${RESET}\n"
@@ -476,6 +469,7 @@ fi
 
 
 check_last_path "$@"
+
 
 create_tethys_portal
 
