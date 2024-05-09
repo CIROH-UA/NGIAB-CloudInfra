@@ -8,7 +8,10 @@ MAGENTA='\e[35m'
 CYAN='\e[36m'
 RESET='\e[0m'
 
-# GEOSERVER FUNCTIONS
+
+################################################
+############GEOSERVER FUNCTIONS#################
+################################################
 
 # run the geoserver docker container
 _run_geoserver(){
@@ -60,7 +63,10 @@ _tear_down_geoserver(){
     fi
 }
 
-# HELPER FUNCTIONS
+################################################
+###############HELPER FUNCTIONS#################
+################################################
+
 # Function to automatically select file if only one is found
 _auto_select_file() {
   local files=($1)
@@ -87,6 +93,27 @@ _check_and_read_config() {
         read -erp "Enter your input data directory path (use absolute path): " HOST_DATA_PATH
     fi
 }
+
+# _check_and_read_config() {
+#     local config_file="$1"
+#     if [ -f "$config_file" ]; then
+#         local last_path=$(cat "$config_file")
+#         printf "Last used data directory path: %s\n" "$last_path"
+#         read -erp "Do you want to use the same path? (Y/n): " use_last_path
+#         if [[ "$use_last_path" =~ ^[Yy] ]]; then
+#             DATA_FOLDER_PATH="$last_path"
+#             return 0
+#         elif [[ "$use_last_path" =~ ^[Nn] ]]; then
+#             read -erp "Enter your input data directory path (use absolute path): " DATA_FOLDER_PATH
+#         else
+#             printf "Invalid input. Exiting.\n" >&2
+#             return 1
+#         fi
+#     else
+#         read -erp "Enter your input data directory path (use absolute path): " DATA_FOLDER_PATH
+#     fi
+# }
+
 _execute_command() {
   "$@"
   local status=$?
@@ -143,7 +170,7 @@ _wait_container() {
         sleep 2  # Adjusted sleep time to 2 seconds to reduce system load
     done
 
-    printf "${MAGENTA}Container $container_name is now $container_health_status.${RESET}\n"
+    printf "${CYAN}Container $container_name is now $container_health_status.${RESET}\n"
     return 0
 }
 
@@ -182,7 +209,11 @@ check_last_path() {
     NEXUS_FILE=$(find "$DATA_FOLDER_PATH/config" -name "*nexus*.geojson")
 }
 
-# TETHYS FUNCTIONS 
+
+################################################
+###############TETHYS FUNCTIONS#################
+################################################
+
 #create the docker network to communicate between tethys and geoserver
 _create_tethys_docker_network(){
     docker network create -d bridge tethys-network > /dev/null 2>&1
@@ -386,8 +417,8 @@ _run_tethys(){
 
 # Create tethys portal
 create_tethys_portal(){
+    echo -e "${YELLOW}Visualize in Tethys? (y/N, default: y):${RESET}"
     read -r visualization_choice
-    echo -e "${YELLOW}Do you want to visualize your outputs using tethys? (y/N, default: y):${RESET}"
     # Execute the command
     if [[ "$visualization_choice" == [Yy]* ]]; then
         echo -e "${GREEN}Setup Tethys Portal image...${RESET}"
