@@ -92,17 +92,11 @@ select option in "${options[@]}"; do
 
       if [ "$option" == "Run NextGen model framework in parallel mode" ]; then
         procs=$(nproc)
-        if [ -f "/ngen/ngen/data/.partition_by_nexus" ]; then
-          echo ".partition_by_nexus file found, running nexus first partition generator."
-          # Delete existing partitions files
-          find /ngen/ngen/data/ -type f -name partitions_*.json -delete
-          nexus_first_partition "$n2"
-          # Get the number of partitions generated from the partition file as it may be less than the number of processors
-          procs=$(find . -name partitions_*.json | sed -n 's/.*partitions_\([0-9]*\)\.json/\1/p')          
-        else
-          procs=2 # Temporary fixed value
-          generate_partition "$n1" "$n2" "$procs"
+        num_catchments=$(find forcings -name *.csv | wc -l)
+        if [ $num_catchments -lt $procs ]; then
+                procs=$num_catchments
         fi
+        generate_partition "$n1" "$n2" "$procs"
         run_command="mpirun -n $procs /dmod/bin/ngen-parallel $n1 all $n2 all $n3 $(find . -name partitions_*.json)"
       else
         run_command="/dmod/bin/ngen-serial $n1 all $n2 all $n3"
