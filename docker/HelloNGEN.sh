@@ -74,10 +74,6 @@ if [ "$2" == "auto" ]
     echo "Entering Interactive Mode"    
 fi
 
-nexus_first_partition() {
-  /ngen/partition_gen.py "$1"
-}
-
 echo -e "${YELLOW}Select an option (type a number): ${RESET}"
 options=("Run NextGen model framework in serial mode" "Run NextGen model framework in parallel mode" "Run Bash shell" "Exit")
 select option in "${options[@]}"; do
@@ -97,7 +93,7 @@ select option in "${options[@]}"; do
                 procs=$num_catchments
         fi
         generate_partition "$n1" "$n2" "$procs"
-        run_command="mpirun -n $procs /dmod/bin/ngen-parallel $n1 all $n2 all $n3 $(find . -name partitions_*.json)"
+        run_command="mpirun -n $procs /dmod/bin/ngen-parallel $n1 all $n2 all $n3 $(pwd)/partitions_$procs.json"
       else
         run_command="/dmod/bin/ngen-serial $n1 all $n2 all $n3"
       fi
