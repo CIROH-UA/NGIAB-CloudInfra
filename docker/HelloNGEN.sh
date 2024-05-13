@@ -28,8 +28,8 @@ auto_select_file() {
 }
 
 # Finding files
-HYDRO_FABRIC_CATCHMENTS=$(find . -name "*datastream*.gpkg")
-HYDRO_FABRIC_NEXUS=$(find . -name "*datastream*.gpkg")
+HYDRO_FABRIC_CATCHMENTS=$(find . -name "*.gpkg")
+HYDRO_FABRIC_NEXUS=$(find . -name "*.gpkg")
 NGEN_REALIZATIONS=$(find . -name "*realization*.json")
 
 # Auto-selecting files if only one is found
@@ -71,8 +71,7 @@ if [ "$2" == "auto" ]
     echo "Run completed successfully, exiting, have a nice day!"
     exit 0
   else
-    echo "Entering Interactive Mode"
-    continue
+    echo "Entering Interactive Mode"    
 fi
 
 echo -e "${YELLOW}Select an option (type a number): ${RESET}"
@@ -89,7 +88,10 @@ select option in "${options[@]}"; do
 
       if [ "$option" == "Run NextGen model framework in parallel mode" ]; then
         procs=$(nproc)
-        procs=2 # Temporary fixed value
+        num_catchments=$(find forcings -name *.csv | wc -l)
+        if [ $num_catchments -lt $procs ]; then
+                procs=$num_catchments
+        fi
         generate_partition "$n1" "$n2" "$procs"
         run_command="mpirun -n $procs /dmod/bin/ngen-parallel $n1 all $n2 all $n3 $(pwd)/partitions_$procs.json"
       else
@@ -97,7 +99,6 @@ select option in "${options[@]}"; do
       fi
 
       echo -e "${YELLOW}Your NGEN run command is $run_command${RESET}"
-      sleep 3
       break
       ;;
     "Run Bash shell")

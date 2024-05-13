@@ -46,7 +46,7 @@ RUN echo "/dmod/shared_libs/" >> /etc/ld.so.conf.d/ngen.conf && ldconfig -v
 COPY   HelloNGEN.sh /ngen/HelloNGEN.sh
 RUN chown -R root /dmod /ngen /root
 RUN chmod a+x /dmod/bin/* /ngen/HelloNGEN.sh /root
-RUN rm -rf tmp var opt 
+
 WORKDIR /ngen
 
 ENTRYPOINT ["./HelloNGEN.sh"]
