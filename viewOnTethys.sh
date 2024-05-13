@@ -15,14 +15,13 @@ RESET='\e[0m'
 
 # run the geoserver docker container
 _run_geoserver(){
-    docker run -it --rm -d -p $GEOSERVER_PORT_HOST:$GEOSERVER_PORT_CONTAINER \
+    _execute_command_geoserver docker run -it --rm -d -p $GEOSERVER_PORT_HOST:$GEOSERVER_PORT_CONTAINER \
     --platform $PLATFORM \
     --env CORS_ENABLED=true \
     --env SKIP_DEMO_DATA=true \
     --network $DOCKER_NETWORK \
     --name $GEOSERVER_CONTAINER_NAME \
     $GEOSERVER_IMAGE_NAME 
-    # > /dev/null 2>&1
 }
 
 _check_for_existing_geoserver_image() {
@@ -109,6 +108,55 @@ _check_and_read_config() {
     fi
 }
 
+_execute_command_geoserver() {
+  "$@"
+  local status=$?
+  if [ $status -ne 0 ]; then
+    echo -e "${RED}Error executing command: $1${RESET}"
+    _prompt_user
+  fi
+  return $status
+}
+
+
+_prompt_user() {
+  echo -e "${YELLOW}The container was not able to be run from the script.${RESET}"
+  echo -e "${YELLOW}You are now in interactive mode${RESET}"
+  echo -e "${YELLOW}You can try to run the container manually with the following command${RESET}"
+  echo -e "${CYAN}docker run -it --rm -d -p $GEOSERVER_PORT_HOST:$GEOSERVER_PORT_CONTAINER \\
+    --platform $PLATFORM \\
+    --env CORS_ENABLED=true \\
+    --env SKIP_DEMO_DATA=true \\
+    --network $DOCKER_NETWORK \\
+    --name $GEOSERVER_CONTAINER_NAME \\
+    $GEOSERVER_IMAGE_NAME${RESET}"
+
+  echo -e "${YELLOW}or You can execute any Bash command.${RESET}"
+
+  echo -e "${YELLOW} Type 'exit' to quit interactive mode and continue the script or 'quit' to exit the entire script.${RESET}"
+
+  while true; do
+    echo -e "${CYAN}Enter a command:${RESET}"
+    read -e -p "$ " input  # -e allows user to edit the command line with arrow keys
+    if [[ $input == 'quit' ]]; then
+      echo -e "${YELLOW}Exiting the script.${RESET}"
+      exit 1
+    elif [[ $input == 'exit' ]]; then
+      echo -e "${YELLOW}Exiting interactive mode and continuing with the script.${RESET}"
+      break
+    else
+      eval "$input"  # Execute the user's command
+      local status=$?
+      if [ $status -ne 0 ]; then
+        echo -e "${RED}The command failed with exit status $status. You can try another command.${RESET}"
+      else
+        echo -e "${GREEN}Command executed successfully.${RESET}"
+      fi
+      echo -e "${YELLOW}You can continue to enter commands, or type 'exit' to continue the script, or 'quit' to exit the script.${RESET}"
+    fi
+  done
+}
+
 _execute_command() {
   "$@"
   local status=$?
@@ -132,6 +180,7 @@ _run_containers(){
     _check_for_existing_geoserver_image
     _run_geoserver
     _wait_container $TETHYS_CONTAINER_NAME
+    _tune_tethys
     _wait_container $GEOSERVER_CONTAINER_NAME
 }
 
@@ -168,6 +217,30 @@ _wait_container() {
     printf "${CYAN}Container $container_name is now $container_health_status.${RESET}\n"
     return 0
 }
+
+_open_browser(){
+    local url="http://localhost/apps/ngiab"
+    # Detect the operating system
+    case "$(uname)" in
+        "Linux")
+            # Linux users
+            xdg-open "$url"
+            ;;
+        "Darwin")
+            # MacOS users
+            open "$url"
+            ;;
+        "CYGWIN"*|"MINGW"*|"MSYS"*)
+            # Windows users using Cygwin, MinGW, or MSYS
+            cmd /c start "$url"
+            ;;
+        *)
+            echo "Unsupported operating system."
+            exit 1
+            ;;
+    esac
+}
+
 
 _pause_script_execution() {
     while true; do
@@ -209,9 +282,18 @@ check_last_path() {
 ###############TETHYS FUNCTIONS#################
 ################################################
 
+_tune_tethys(){
+    local tethys_bin='/opt/conda/envs/tethys/bin/tethys'
+    # Call the live_probeness.sh manyally
+    docker exec -it $TETHYS_CONTAINER_NAME sh -c "./liveness-probe.sh"
+    # Open Portal
+    docker exec -it $TETHYS_CONTAINER_NAME $tethys_bin settings --set TETHYS_PORTAL_CONFIG.ENABLE_OPEN_PORTAL true #make portal open
+    docker exec -it $TETHYS_CONTAINER_NAME sh -c "supervisorctl restart all >/dev/null 2>&1"  #restart asgi service to make tethys take into account he open portal
+}
+
 #create the docker network to communicate between tethys and geoserver
 _create_tethys_docker_network(){
-    docker network create -d bridge tethys-network > /dev/null 2>&1
+    _execute_command docker network create -d bridge tethys-network > /dev/null 2>&1
 }
 
 # Link the data to the app workspace
@@ -395,7 +477,7 @@ _prepare_hydrofabrics(){
     
 }
 _run_tethys(){
-    docker run --rm -it -d \
+    _execute_command docker run --rm -it -d \
     -v "$DATA_FOLDER_PATH:$TETHYS_PERSIST_PATH/ngen-data" \
     -p 80:80 \
     --platform $PLATFORM \
@@ -417,7 +499,7 @@ create_tethys_portal(){
         echo -e "${GREEN}Setup Tethys Portal image...${RESET}"
         _create_tethys_docker_network
         if _check_for_existing_tethys_image; then
-            _run_containers
+            _execute_command _run_containers
             
             echo -e "${CYAN}Link data to the Tethys app workspace.${RESET}"
             _link_data_to_app_workspace         
@@ -429,6 +511,8 @@ create_tethys_portal(){
             echo -e "${CYAN}user: admin${RESET}"
             echo -e "${CYAN}password: pass${RESET}"
             echo -e "${MAGENTA}Check the App source code: https://github.com/Aquaveo/ngiab-client ${RESET}"
+            
+            _open_browser
             _pause_script_execution
         else
             printf "${RED}Failed to prepare Tethys portal.${RESET}\n"
@@ -454,7 +538,7 @@ GEOSERVER_PORT_CONTAINER="8080"
 GEOSERVER_PORT_HOST="8181"
 DOCKER_NETWORK="tethys-network"
 APP_WORKSPACE_PATH="/usr/lib/tethys/apps/ngiab/tethysapp/ngiab/workspaces/app_workspace"
-TETHYS_IMAGE_NAME=gioelkin/tethys-ngiab:dev
+TETHYS_IMAGE_NAME=gioelkin/tethys-ngiab:new-chart
 GEOSERVER_IMAGE_NAME=docker.osgeo.org/geoserver:2.25.x
 DATA_FOLDER_PATH="$1"
 TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
