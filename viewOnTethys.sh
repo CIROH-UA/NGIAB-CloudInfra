@@ -516,6 +516,7 @@ create_tethys_portal(){
         echo -e "${GREEN}Setup Tethys Portal image...${RESET}"
         _create_tethys_docker_network
         if _check_for_existing_tethys_image; then
+
             _execute_command _run_containers
 
             _execute_command _run_containers
