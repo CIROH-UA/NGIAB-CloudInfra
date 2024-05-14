@@ -163,7 +163,6 @@ Example NGEN run command for serial mode:
 
 After the `guide.sh` is finished, the user can decide to use the [Tethys Platform]() for visualization of the outputs (nexus and catchments). The script will pull the latest image of the [Ngiab visualizer tethys app](https://github.com/CIROH-UA/ngiab-client). It will also spin a GeoServer container in order to visualize the catchments layers (due to the size of the layer, this layer is visualized as with WMS service)
 
-<<<<<<< HEAD
 ```bash
 Your NGEN run command is mpirun -n 8 /dmod/bin/ngen-parallel ./config/wb-2853886_subset.gpkg all ./config/wb-2853886_subset.gpkg all ./config/realization.json /ngen/ngen/data/partitions_8.json
 If your model didn't run, or encountered an error, try checking the Forcings paths in the Realizations file you selected.
@@ -189,7 +188,7 @@ Visualize outputs using the Tethys Platform (https://www.tethysplatform.org/)? (
 If you have previous runs that you would like to use, you can
 also visualize them running the `./ViewOnTethys.sh` script.
 
-```python
+```bash
 (base) [ubuntu@ubuntu NGIAB-CloudInfra]$ ./viewOnTethys.sh
 Last used data directory path: /home/ubuntu/AWI_16_2853886_006
 Do you want to use the same path? (Y/n): Y
@@ -198,14 +197,11 @@ y
 Setup Tethys Portal image...
 ```
 
-=======
->>>>>>> 9a61439 (added to the readme some changes)
 ### Output of the model guide script
 
 The output files are copied to the `outputs` folder in the '/NextGen/ngen-data/my_data/' directory you created in the first step
 
-<<<<<<< HEAD
-if the [Tethys Platform](https://www.tethysplatform.org/) is used to visualize the outputs after the `guide.sh`, or if the `viewOnTethys.sh` script is used, you can expect to see geospatial and time series visualization of the catchments and nexus points:
+If the [Tethys Platform](https://www.tethysplatform.org/) is used to visualize the outputs after the `guide.sh`, or if the `viewOnTethys.sh` script is used, you can expect to see geospatial and time series visualization of the catchments and nexus points:
 
 **Geopatial Visualization**
 ![1715704416415](image/README/1715704416415.png)
@@ -213,9 +209,8 @@ if the [Tethys Platform](https://www.tethysplatform.org/) is used to visualize t
 ![1715704437369](image/README/1715704437369.png)
 **Catchments Time Series**
 ![1715704450639](image/README/1715704450639.png)
-=======
+
 After the `guide.sh` is finished, the user can decide to use the [Tethys Platform]() for visualization of the outputs (nexus and catchments). The script will continue to run
->>>>>>> 9a61439 (added to the readme some changes)
 
 Using the *flowveldepth.csv files from the 'outputs' folder, the streamflow at the Clear Creek gauge (USGS site ID 02450825) is displayed here. Below is the 'Modelled' vs 'Observed' plot generated in MS Excel after *flowveldepth.csv files are post-processed using Python.
 
