@@ -16,7 +16,6 @@ RESET='\e[0m'
 # run the geoserver docker container
 _run_geoserver(){
     _execute_command_geoserver docker run -it --rm -d -p $GEOSERVER_PORT_HOST:$GEOSERVER_PORT_CONTAINER \
-    --platform $PLATFORM \
     --env CORS_ENABLED=true \
     --env SKIP_DEMO_DATA=true \
     --network $DOCKER_NETWORK \
@@ -123,7 +122,6 @@ _prompt_user() {
   echo -e "${YELLOW}You are now in interactive mode${RESET}"
   echo -e "${YELLOW}You can try to run the container manually with the following command${RESET}"
   echo -e "${CYAN}docker run -it --rm -d -p $GEOSERVER_PORT_HOST:$GEOSERVER_PORT_CONTAINER \\
-    --platform $PLATFORM \\
     --env CORS_ENABLED=true \\
     --env SKIP_DEMO_DATA=true \\
     --network $DOCKER_NETWORK \\
