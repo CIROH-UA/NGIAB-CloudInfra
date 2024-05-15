@@ -67,14 +67,6 @@ _tear_down_geoserver(){
 ################################################
 
 # Function to automatically select file if only one is found
-# _auto_select_file() {
-#   local files=($1)
-#   if [ "${#files[@]}" -eq 1 ]; then
-#     echo "${files[0]}"
-#   else
-#     echo ""
-#   fi
-# }
 _auto_select_file() {
   local files=("$@")  # Correct the handling of arguments as an array
   if [ "${#files[@]}" -eq 1 ]; then
@@ -558,7 +550,7 @@ GEOSERVER_PORT_CONTAINER="8080"
 GEOSERVER_PORT_HOST="8181"
 DOCKER_NETWORK="tethys-network"
 APP_WORKSPACE_PATH="/usr/lib/tethys/apps/ngiab/tethysapp/ngiab/workspaces/app_workspace"
-TETHYS_IMAGE_NAME=awiciroh/tethys-ngiab:dev
+TETHYS_IMAGE_NAME=awiciroh/tethys-ngiab:main
 GEOSERVER_IMAGE_NAME=docker.osgeo.org/geoserver:2.25.x
 DATA_FOLDER_PATH="$1"
 TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
