@@ -506,11 +506,7 @@ create_tethys_portal(){
         echo -e "${GREEN}Setup Tethys Portal image...${RESET}"
         _create_tethys_docker_network
         if _check_for_existing_tethys_image; then
-
-            _execute_command _run_containers
-
-            _execute_command _run_containers
-            
+            _execute_command _run_containers            
             echo -e "${CYAN}Link data to the Tethys app workspace.${RESET}"
             _link_data_to_app_workspace         
             echo -e "${GREEN}Preparing the hydrofabrics for the portal...${RESET}"
