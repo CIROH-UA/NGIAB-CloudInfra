@@ -5,7 +5,7 @@
 NGIAB provides a containerized and user-friendly solution for running the NextGen framework, allowing you to control inputs, configurations, and execution on your local machine.
 
 <p align="center">
-<img src="https://github.com/CIROH-UA/NGIAB-CloudInfra/assets/54657/1a647024-67f8-489a-9f5e-86437449b6ff" width="300">
+<img src="https://github.com/CIROH-UA/NGIAB-CloudInfra/image/README/ngiab.png" width="300">
 </p>
 
 | | |
