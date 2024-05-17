@@ -5,7 +5,7 @@
 NGIAB provides a containerized and user-friendly solution for running the NextGen framework, allowing you to control inputs, configurations, and execution on your local machine.
 
 <p align="center">
-<img src="https://github.com/CIROH-UA/NGIAB-CloudInfra/image/README/ngiab.png" width="300">
+<img src="https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/ngiab.png" width="300">
 </p>
 
 | | |
@@ -189,11 +189,11 @@ The output files are copied to the `outputs` folder in the '/NextGen/ngen-data/m
 If the [Tethys Platform](https://www.tethysplatform.org/) is used to visualize the outputs after the `guide.sh`, or if the `viewOnTethys.sh` script is used, you can expect to see geospatial and time series visualization of the catchments and nexus points:
 
 **Geopatial Visualization**
-![1715704416415](https://github.com/CIROH-UA/NGIAB-CloudInfra/image/README/1715704416415.png)
+![1715704416415](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/1715704416415.png)
 **Nexus Time Series**
-![1715704437369](https://github.com/CIROH-UA/NGIAB-CloudInfra/image/README/1715704437369.png)
+![1715704437369](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/1715704437369.png)
 **Catchments Time Series**
-![1715704450639](https://github.com/CIROH-UA/NGIAB-CloudInfra/image/README/1715704450639.png)
+![1715704450639](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/1715704450639.png)
 
   
 **Additional Resources:**
