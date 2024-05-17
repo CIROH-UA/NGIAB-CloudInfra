@@ -194,7 +194,7 @@ echo -e "Mounting local host directory $HOST_DATA_PATH to /ngen/ngen/data within
 docker run --rm -it -v "$HOST_DATA_PATH:/ngen/ngen/data" "$IMAGE_NAME" /ngen/ngen/data/
 
 # Final output count
-Final_Outputs_Count=$(ls "$HOST_DATA_PATH/outputs/*/*" | wc -l)
+Final_Outputs_Count=$(find "$HOST_DATA_PATH/outputs/" -type f | wc -l)
 echo -e "$Final_Outputs_Count new outputs created."
 echo -e "Any copied files can be found here: $HOST_DATA_PATH/outputs"
 
