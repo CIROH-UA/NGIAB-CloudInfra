@@ -97,7 +97,7 @@ Now you have successfully downloaded and prepared the sample input data in the N
 
 ### Case Study Map for the Provo River Basin, UT 
 
-![AWI_16_2853886_006](image/README/VPU16.png)
+![AWI_16_2853886_006](https://github.com/CIROH-UA/NGIAB-CloudInfra/image/README/VPU16.png)
 
 **Running NGIAB**
 
@@ -185,11 +185,11 @@ The output files are copied to the `outputs` folder in the '/NextGen/ngen-data/m
 If the [Tethys Platform](https://www.tethysplatform.org/) is used to visualize the outputs after the `guide.sh`, or if the `viewOnTethys.sh` script is used, you can expect to see geospatial and time series visualization of the catchments and nexus points:
 
 **Geopatial Visualization**
-![1715704416415](image/README/1715704416415.png)
+![1715704416415](https://github.com/CIROH-UA/NGIAB-CloudInfra/image/README/1715704416415.png)
 **Nexus Time Series**
-![1715704437369](image/README/1715704437369.png)
+![1715704437369](https://github.com/CIROH-UA/NGIAB-CloudInfra/image/README/1715704437369.png)
 **Catchments Time Series**
-![1715704450639](image/README/1715704450639.png)
+![1715704450639](https://github.com/CIROH-UA/NGIAB-CloudInfra/image/README/1715704450639.png)
 
   
 **Additional Resources:**
