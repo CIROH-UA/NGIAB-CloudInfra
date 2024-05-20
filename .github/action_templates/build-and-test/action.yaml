@@ -59,8 +59,8 @@ runs:
     - name: Test
       shell: bash
       run: |
-        rm -rf /home/ubuntu/workspace/AWI_09_004/*.csv
-        rm -rf /home/ubuntu/workspace/AWI_09_004/*.parquet
-        rm -rf /home/ubuntu/workspace/AWI_09_004/outputs/*
-        docker run --rm -v /home/ubuntu/workspace/AWI_09_004:/ngen/ngen/data awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}} /ngen/ngen/data auto
+        rm -rf /home/ubuntu/workspace/AWI_16_2853886_006/*.csv
+        rm -rf /home/ubuntu/workspace/AWI_16_2853886_006/*.parquet
+        rm -rf /home/ubuntu/workspace/AWI_16_2853886_006/outputs/*/*
+        docker run --rm -v /home/ubuntu/workspace/AWI_16_2853886_006:/ngen/ngen/data awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}} /ngen/ngen/data auto
       if: inputs.image-name == 'ciroh-ngen-image'
