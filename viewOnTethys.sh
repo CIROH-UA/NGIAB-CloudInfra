@@ -15,7 +15,9 @@ RESET='\e[0m'
 
 # run the geoserver docker container
 _run_geoserver(){
-    _execute_command_geoserver docker run -it --rm -d -p $GEOSERVER_PORT_HOST:$GEOSERVER_PORT_CONTAINER \
+    _execute_command_geoserver docker run -it --rm -d \
+    --platform $PLATFORM \
+    -p $GEOSERVER_PORT_HOST:$GEOSERVER_PORT_CONTAINER \
     --env CORS_ENABLED=true \
     --env SKIP_DEMO_DATA=true \
     --network $DOCKER_NETWORK \
@@ -545,7 +547,7 @@ GEOSERVER_PORT_HOST="8181"
 DOCKER_NETWORK="tethys-network"
 APP_WORKSPACE_PATH="/usr/lib/tethys/apps/ngiab/tethysapp/ngiab/workspaces/app_workspace"
 TETHYS_IMAGE_NAME=awiciroh/tethys-ngiab:main
-GEOSERVER_IMAGE_NAME=docker.osgeo.org/geoserver:2.25.x
+GEOSERVER_IMAGE_NAME=gioelkin/geoserver:2.25.x
 DATA_FOLDER_PATH="$1"
 TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
 CONFIG_FILE="$HOME/.host_data_path.conf"
