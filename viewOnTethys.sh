@@ -546,7 +546,7 @@ GEOSERVER_PORT_CONTAINER="8080"
 GEOSERVER_PORT_HOST="8181"
 DOCKER_NETWORK="tethys-network"
 APP_WORKSPACE_PATH="/usr/lib/tethys/apps/ngiab/tethysapp/ngiab/workspaces/app_workspace"
-TETHYS_IMAGE_NAME=awiciroh/tethys-ngiab:main
+TETHYS_IMAGE_NAME=awiciroh/tethys-ngiab:dev-r1
 GEOSERVER_IMAGE_NAME=gioelkin/geoserver:2.25.x
 DATA_FOLDER_PATH="$1"
 TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
@@ -561,7 +561,6 @@ fi
 
 
 check_last_path "$@"
-
 
 create_tethys_portal
 
