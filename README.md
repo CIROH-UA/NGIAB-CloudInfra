@@ -170,6 +170,8 @@ Any copied files can be found here: /home/ubuntu/AWI_16_2853886_006/outputs
 Visualize outputs using the Tethys Platform (https://www.tethysplatform.org/)? (y/N, default: y):
 ```
 
+### How to run NGIAB Visualizer?
+
 If you have previous runs that you would like to use, you can
 also visualize them running the `./ViewOnTethys.sh` script.
 
