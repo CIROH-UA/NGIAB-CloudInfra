@@ -501,8 +501,23 @@ _run_tethys(){
 
 # Create tethys portal
 create_tethys_portal(){
-    echo -e "${YELLOW}Visualize outputs using the Tethys Platform (https://www.tethysplatform.org/)? (y/N, default: y):${RESET}"
-    read -r visualization_choice
+    while true; do
+        echo -e "${YELLOW}Visualize outputs using the Tethys Platform (https://www.tethysplatform.org/)? (y/N, default: y):${RESET}"
+        read -r visualization_choice
+        
+        # Default to 'y' if input is empty
+        if [[ -z "$visualization_choice" ]]; then
+            visualization_choice="y"
+        fi
+
+        # Check for valid input
+        if [[ "$visualization_choice" == [YyNn]* ]]; then
+            break
+        else
+            echo -e "${RED}Invalid choice. Please enter 'y' for yes, 'n' for no, or press Enter for default (yes).${RESET}"
+        fi
+    done
+    
     # Execute the command
     if [[ "$visualization_choice" == [Yy]* ]]; then
         echo -e "${GREEN}Setup Tethys Portal image...${RESET}"
@@ -523,10 +538,10 @@ create_tethys_portal(){
             _open_browser
             _pause_script_execution
         else
-            printf "${RED}Failed to prepare Tethys portal.${RESET}\n"
+            echo -e "${RED}Failed to prepare Tethys portal.${RESET}\n"
         fi
     else
-        printf "${CYAN}Skipping Tethys visualization setup.${RESET}\n"
+        echo -e "${CYAN}Skipping Tethys visualization setup.${RESET}\n"
     fi
 }
 
