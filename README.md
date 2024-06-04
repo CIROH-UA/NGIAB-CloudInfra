@@ -56,7 +56,7 @@ NGIAB provides a containerized and user-friendly solution for running the NextGe
   - **To generate your own data:** Refer to the [NGIAB-datapreprocessor](https://github.com/AlabamaWaterInstitute/NGIAB_data_preprocess) for instructions on generating custom input data.
   - **To generate your own data and run using NGIAB:** Refer to the [ngen-datastream repository](https://github.com/CIROH-UA/ngen-datastream/tree/main) for instructions on generating custom input data.
 
-This section guides you through downloading and preparing the sample input data for the NextGen In A Box project.
+This section guides you through downloading and preparing the sample input data for the NextGen In A Box project. This follows the `ngen-run` directory standard [here](#ngen-run)
 
 **Step 1: Create Project Directory**
 
@@ -197,6 +197,37 @@ If the [Tethys Platform](https://www.tethysplatform.org/) is used to visualize t
 **Catchments Time Series**
 ![1715704450639](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/1715704450639.png)
 
+### `ngen-run/` 
+Running NextGen requires building a standard run directory complete with only the necessary files. The datastream constructs this automatically, but can be manually built as well. Below is an explanation of the standard. Reference for discussion of the standard [here](https://github.com/CIROH-UA/NGIAB-CloudInfra/pull/17). 
+
+A NextGen run directory `ngen-run` is composed of three necessary subfolders `config, forcings, outputs` and an optional fourth subfolder `metadata`.
+
+```
+ngen-run/
+│
+├── config/
+│
+├── forcings/
+|
+├── metadata/
+│
+├── outputs/
+```
+
+The `ngen-run` directory contains the following subfolders:
+
+- `config`:  model configuration files and hydrofabric configuration files. A deeper explanation [here](#Configuration-directory)
+- `forcings`: catchment-level forcing timeseries files. These can be generated with the [forcingprocessor](https://github.com/CIROH-UA/ngen-datastream/tree/main/forcingprocessor). Forcing files contain variables like wind speed, temperature, precipitation, and solar radiation.
+- `metadata` is an optional subfolder. This is programmatically generated and it used within to ngen. Do not edit this folder.
+- `outputs`: This is where ngen will place the output files.
+ 
+#### Configuration directory `ngen-run/config/`
+
+Model Configuration Example files: `config.ini`,`realization.json`
+The realization file serves as the primary model configuration for the ngen framework. Downloand an example realization file [here](https://ngenresourcesdev.s3.us-east-2.amazonaws.com/ngen-run-pass/configs/realization.json). This file specifies which models/modules to run and with which parameters, run parameters like date and time, and hydrofabric specifications. If experiencing run-time errors, the realization file is the first place to check. Other files may be placed in this subdirectory that relate to internal-ngen-models/modules (`config.ini`). It is common to define variables like soil parameters in these files for ngen modules to use.
+
+Hydrofabric Example files: `nextgen_01.gpkg`,`nextgen_01.parquet`
+NextGen requires a single geopackage file. This fle is the [hydrofabric](https://mikejohnson51.github.io/hyAggregate/) (spatial data). An example geopackage can be found [here](https://lynker-spatial.s3.amazonaws.com/v20/gpkg/nextgen_01.gpkg). Tools to subset a geopackage into a smaller domain can be found at [Lynker's hfsubset](https://github.com/LynkerIntel/hfsubset). `ngen-datastream` requires a geopackage attributes file, `nextgen_01.parquet`, which is required for generating ngen bmi module configuration files.
   
 **Additional Resources:**
 
