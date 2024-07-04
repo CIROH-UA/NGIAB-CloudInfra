@@ -3,7 +3,7 @@
 ################################################################################################################
 ARG TROUTE_REPO_URL=https://github.com/NOAA-OWP/t-route.git \
     TROUTE_BRANCH=master \
-    TROUTE_COMMIT \
+    TROUTE_COMMIT=59a6041 \
     WORKDIR=/ngen \
     TAG_NAME
 
