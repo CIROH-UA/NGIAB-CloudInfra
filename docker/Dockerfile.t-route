@@ -60,3 +60,4 @@ RUN cp -s /usr/bin/python3 /usr/bin/python \
     && cp dist/*.whl ${WORKDIR}/t-route/wheels/ 
 
 RUN rm /usr/bin/python
+
