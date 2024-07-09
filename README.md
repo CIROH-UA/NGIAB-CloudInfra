@@ -197,6 +197,25 @@ If the [Tethys Platform](https://www.tethysplatform.org/) is used to visualize t
 **Catchments Time Series**
 ![1715704450639](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/1715704450639.png)
 
+### Build NGIAB locally
+
+Here is the commands that build ngiab image locally using docker build.
+
+```
+cd docker
+docker build -f Dockerfile.ngen-deps -t awiciroh/ngen-deps . --no-cache
+docker build -f Dockerfile.t-route -t awiciroh/t-route . --no-cache --build-arg TAG_NAME=latest
+docker build -f Dockerfile.ngen -t awiciroh/ngen . --no-cache --build-arg TAG_NAME=latest
+docker build -f Dockerfile -t awiciroh/ciroh-ngen-image:latest . --no-cache --build-arg TAG_NAME=latest
+```
+
+This image will not be pushed to Docker hub, and will stay in local machine.
+If you need to run guide.sh with the image built, image tag must match with your machine platform.
+
+For Arm64 architecture, use latest tag.
+For X86 architecture, use latest-x86 tag.
+
+Note: buildx command cannot be used in local build.
   
 **Additional Resources:**
 
