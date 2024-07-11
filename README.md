@@ -212,8 +212,9 @@ docker build -f Dockerfile -t awiciroh/ciroh-ngen-image:latest . --no-cache --bu
 This image will not be pushed to Docker hub, and will stay in local machine.
 If you need to run guide.sh with the image built, image tag must match with your machine platform.
 
-For Arm64 architecture, use latest tag.
-For X86 architecture, use latest-x86 tag.
+For Arm64 architecture, use latest tag.\
+For X86 architecture, use latest-x86 tag.\
+For windows user, the build should be run as administrator.
 
 Note: buildx command cannot be used in local build.
   
