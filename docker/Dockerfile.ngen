@@ -3,7 +3,7 @@
 ################################################################################################################
 ARG REPO_URL=https://github.com/NOAA-OWP/ngen.git \
     BRANCH=master \
-    COMMIT=f91e2ea \
+    COMMIT \
     TAG_NAME 
 
 ################################################################################################################
@@ -28,6 +28,9 @@ RUN if [ "x$COMMIT" != "x" ]; then \
     fi \
     && git submodule update --init --depth 1 test/googletest \
     && git submodule update --init --recursive --depth 1
+
+# delete the pybind11 directory and re-clone it with newer version
+RUN cd /ngen/ngen/extern && rm -rf pybind11 && git clone https://github.com/pybind/pybind11.git && cd pybind11 && git checkout v2.11.0
 
 # Make an alias for t-route with tag name
 FROM awiciroh/t-route:${TAG_NAME} as troute

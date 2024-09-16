@@ -56,7 +56,8 @@ RUN cp -s /usr/bin/python3 /usr/bin/python \
     && python3 -m build . \
     && cp dist/*.whl ${WORKDIR}/t-route/wheels/ \
     && cd ../troute-nwm \
-    && python3 setup.py bdist_wheel \
+    && python3 -m build . \
     && cp dist/*.whl ${WORKDIR}/t-route/wheels/ 
 
 RUN rm /usr/bin/python
+
