@@ -275,6 +275,7 @@ check_last_path() {
     HYDRO_FABRIC=$(find "$DATA_FOLDER_PATH/config" -iname "*.gpkg")
     CATCHMENT_FILE=$(find "$DATA_FOLDER_PATH/config" -iname "catchments.geojson")
     NEXUS_FILE=$(find "$DATA_FOLDER_PATH/config" -iname "nexus.geojson")
+    FLOWPATHTS_FILE=$(find "$DATA_FOLDER_PATH/config" -iname "flowpaths.geojson")
 }
 _get_filename() {
   local full_path="$1"
@@ -332,8 +333,10 @@ _publish_gpkg_layer_to_geoserver() {
     local gpkg_file="$3"
     local catchment_gpkg_layer="$4"
     local shapefile_path="$5"
+    local store_name="$6"
     local geoserver_port="$GEOSERVER_PORT_CONTAINER"
     local gpkg_file_path="$APP_WORKSPACE_PATH/ngen-data/config/$gpkg_file"
+
     _execute_command docker exec -it \
         $TETHYS_CONTAINER_NAME \
         $python_bin_path \
@@ -342,6 +345,7 @@ _publish_gpkg_layer_to_geoserver() {
         --gpkg_path $gpkg_file_path \
         --layer_name $catchment_gpkg_layer \
         --shp_path "$shapefile_path" \
+        --store_name $store_name \
         --geoserver_host $GEOSERVER_CONTAINER_NAME \
         --geoserver_port $geoserver_port \
         --geoserver_username admin \
@@ -352,7 +356,8 @@ _publish_geojson_layer_to_geoserver() {
     local python_bin_path="$1"
     local path_script="$2"
     local geojson_path="$3"
-    local shapefile_path="$4"    
+    local shapefile_path="$4"
+    local store_name="$5"
     _execute_command docker exec -it \
         $TETHYS_CONTAINER_NAME \
         $python_bin_path \
@@ -360,11 +365,27 @@ _publish_geojson_layer_to_geoserver() {
         --publish_geojson \
         --geojson_path $geojson_path \
         --shp_path "$shapefile_path" \
+        --store_name $store_name \
         --geoserver_host $GEOSERVER_CONTAINER_NAME \
         --geoserver_port $GEOSERVER_PORT_CONTAINER \
         --geoserver_username admin \
         --geoserver_password geoserver
 }
+
+_create_geoserver_workspace() {
+    local python_bin_path="$1"
+    local path_script="$2"
+    _execute_command docker exec -it \
+        $TETHYS_CONTAINER_NAME \
+        $python_bin_path \
+        $path_script \
+        --create_workspace \
+        --geoserver_host $GEOSERVER_CONTAINER_NAME \
+        --geoserver_port $GEOSERVER_PORT_CONTAINER \
+        --geoserver_username admin \
+        --geoserver_password geoserver
+}
+
 
 
 _check_for_existing_tethys_image() {
@@ -409,19 +430,30 @@ _prepare_hydrofabrics(){
     local path_script="/usr/lib/tethys/apps/ngiab/cli/convert_geom.py"
     local catchment_gpkg_layer="divides"
     local nexus_gpkg_layer="nexus"
+    local flowpaths_gpkg_layer="flowpaths"
     local catchment_geojson_path="$APP_WORKSPACE_PATH/ngen-data/config/catchments.geojson"
     local nexus_geojson_path="$APP_WORKSPACE_PATH/ngen-data/config/nexus.geojson"
+    local flowpaths_geojson_path="$APP_WORKSPACE_PATH/ngen-data/config/flowpaths.geojson"
     local shapefile_path="$APP_WORKSPACE_PATH/ngen-data/config/catchments"
+    local flowpaths_shapefile_path="$APP_WORKSPACE_PATH/ngen-data/config/flowpaths"
+    local catchment_store_name="catchments"
+    local flowpaths_store_name="flowpaths"
+
+    echo -e "${CYAN}Creating Nextgen workspace. ${RESET}"
+    _create_geoserver_workspace \
+            $python_bin_path \
+            $path_script \
 
     # Auto-selecting files if only one is found
-    echo -e "${CYAN}Preparing the catchtments...${RESET}"
+    echo -e "${CYAN}Preparing the catchments...${RESET}"
     selected_catchment=$(_auto_select_file "$CATCHMENT_FILE")
     if [[ -n $selected_catchment ]]; then
         _publish_geojson_layer_to_geoserver \
             $python_bin_path \
             $path_script \
             $catchment_geojson_path \
-            $shapefile_path
+            $shapefile_path \
+            $catchment_store_name
     else
         selected_catchment=$(_auto_select_file "$HYDRO_FABRIC")
         if [[ -n  $selected_catchment ]]; then
@@ -432,7 +464,8 @@ _prepare_hydrofabrics(){
                 $catchment_gpkg_filename \
                 $catchment_gpkg_layer \
                 $shapefile_path \
-                $geoserver_port
+                $catchment_store_name
+
         else
             n1=${selected_catchment:-$(read -p "Enter the hydrofabric catchment geojson file path: " n1; echo "$n1")}
             local catchmentfilename=$(basename "$n1")
@@ -448,7 +481,8 @@ _prepare_hydrofabrics(){
                 $python_bin_path \
                 $path_script \
                 $catchment_geojson_path \
-                $shapefile_path
+                $shapefile_path \
+                $catchment_store_name
 
         fi
     fi
@@ -484,6 +518,52 @@ _prepare_hydrofabrics(){
         fi
     fi
     
+    echo -e "${CYAN}Preparing the flow paths...${RESET}"
+
+    selected_flowpaths=$(_auto_select_file "$FLOWPATHTS_FILE")
+    if [[ -n  $selected_flowpaths ]]; then
+        _publish_geojson_layer_to_geoserver \
+            $python_bin_path \
+            $path_script \
+            $flowpaths_geojson_path \
+            $flowpaths_shapefile_path \
+            $flowpaths_store_name
+
+    else
+        selected_flowpaths=$(_auto_select_file "$HYDRO_FABRIC")
+        if [[ -n  $selected_flowpaths ]]; then
+            flowpaths_gpkg_filename=$(_get_filename "$selected_flowpaths")
+            _publish_gpkg_layer_to_geoserver \
+                $python_bin_path \
+                $path_script \
+                $flowpaths_gpkg_filename \
+                $flowpaths_gpkg_layer \
+                $flowpaths_geojson_path \
+                $flowpaths_store_name
+
+        else
+            n2=${selected_flowpaths:-$(read -p "Enter the flow paths  geojson file path: " n2; echo "$n2")} 
+            local flowpathfilename=$(basename "$n2")
+            local flowpath_path_check="$DATA_FOLDER_PATH/config/$flowpathfilename"
+
+            if [[ -e "$flowpath_path_check" ]]; then
+                if [[ "$flowpathfilename" != "flowpaths.geojson" ]]; then
+                    _execute_command docker cp $n2 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/flowpaths.geojson
+                fi
+            else
+                _execute_command docker cp $n2 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/flowpaths.geojson
+            fi
+            _publish_geojson_layer_to_geoserver \
+                $python_bin_path \
+                $path_script \
+                $flowpaths_geojson_path \
+                $flowpaths_shapefile_path \
+                $flowpaths_store_name
+
+        fi
+    fi
+
+
 }
 _run_tethys(){
     _execute_command docker run --rm -it -d \
@@ -561,7 +641,7 @@ GEOSERVER_PORT_CONTAINER="8080"
 GEOSERVER_PORT_HOST="8181"
 DOCKER_NETWORK="tethys-network"
 APP_WORKSPACE_PATH="/usr/lib/tethys/apps/ngiab/tethysapp/ngiab/workspaces/app_workspace"
-TETHYS_IMAGE_NAME=awiciroh/tethys-ngiab:dev-r1
+TETHYS_IMAGE_NAME=awiciroh/tethys-ngiab:troute_addition
 GEOSERVER_IMAGE_NAME=gioelkin/geoserver:2.25.x
 DATA_FOLDER_PATH="$1"
 TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
