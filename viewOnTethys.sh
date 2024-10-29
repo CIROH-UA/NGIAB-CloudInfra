@@ -179,7 +179,6 @@ _run_containers(){
     _check_for_existing_geoserver_image
     _run_geoserver
     _wait_container $TETHYS_CONTAINER_NAME
-    _tune_tethys
     _wait_container $GEOSERVER_CONTAINER_NAME
 }
 
@@ -287,15 +286,6 @@ _get_filename() {
 ################################################
 ###############TETHYS FUNCTIONS#################
 ################################################
-
-_tune_tethys(){
-    local tethys_bin='/opt/conda/envs/tethys/bin/tethys'
-    # Call the live_probeness.sh manyally
-    docker exec -it $TETHYS_CONTAINER_NAME sh -c "./liveness-probe.sh"
-    # Open Portal
-    docker exec -it $TETHYS_CONTAINER_NAME $tethys_bin settings --set TETHYS_PORTAL_CONFIG.ENABLE_OPEN_PORTAL true #make portal open
-    docker exec -it $TETHYS_CONTAINER_NAME sh -c "supervisorctl restart all >/dev/null 2>&1"  #restart asgi service to make tethys take into account he open portal
-}
 
 #create the docker network to communicate between tethys and geoserver
 _create_tethys_docker_network(){
@@ -574,6 +564,7 @@ _run_tethys(){
     --name "$TETHYS_CONTAINER_NAME" \
     --env MEDIA_ROOT="$TETHYS_PERSIST_PATH/media" \
     --env MEDIA_URL="/media/" \
+    --env SKIP_DB_SETUP=$SKIP_DB_SETUP \
     $TETHYS_IMAGE_NAME 
     #> /dev/null 2>&1
 }
@@ -646,6 +637,7 @@ GEOSERVER_IMAGE_NAME=gioelkin/geoserver:2.25.x
 DATA_FOLDER_PATH="$1"
 TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
 CONFIG_FILE="$HOME/.host_data_path.conf"
+SKIP_DB_SETUP=false
 
 # check for architecture
 if uname -a | grep arm64 || uname -a | grep aarch64 ; then
