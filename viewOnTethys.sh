@@ -110,44 +110,6 @@ _check_and_read_config() {
     fi
 }
 
-
-_prompt_user() {
-  echo -e "${YELLOW}The container was not able to be run from the script.${RESET}"
-  echo -e "${YELLOW}You are now in interactive mode${RESET}"
-  echo -e "${YELLOW}You can try to run the container manually with the following command${RESET}"
-  echo -e "${CYAN}docker run -it --rm -d -p $GEOSERVER_PORT_HOST:$GEOSERVER_PORT_CONTAINER \\
-    --env CORS_ENABLED=true \\
-    --env SKIP_DEMO_DATA=true \\
-    --network $DOCKER_NETWORK \\
-    --name $GEOSERVER_CONTAINER_NAME \\
-    $GEOSERVER_IMAGE_NAME${RESET}"
-
-  echo -e "${YELLOW}or You can execute any Bash command.${RESET}"
-
-  echo -e "${YELLOW} Type 'exit' to quit interactive mode and continue the script or 'quit' to exit the entire script.${RESET}"
-
-  while true; do
-    echo -e "${CYAN}Enter a command:${RESET}"
-    read -e -p "$ " input  # -e allows user to edit the command line with arrow keys
-    if [[ $input == 'quit' ]]; then
-      echo -e "${YELLOW}Exiting the script.${RESET}"
-      exit 1
-    elif [[ $input == 'exit' ]]; then
-      echo -e "${YELLOW}Exiting interactive mode and continuing with the script.${RESET}"
-      break
-    else
-      eval "$input"  # Execute the user's command
-      local status=$?
-      if [ $status -ne 0 ]; then
-        echo -e "${RED}The command failed with exit status $status. You can try another command.${RESET}"
-      else
-        echo -e "${GREEN}Command executed successfully.${RESET}"
-      fi
-      echo -e "${YELLOW}You can continue to enter commands, or type 'exit' to continue the script, or 'quit' to exit the script.${RESET}"
-    fi
-  done
-}
-
 _execute_command() {
   "$@"
   local status=$?
