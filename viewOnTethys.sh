@@ -15,7 +15,7 @@ RESET='\e[0m'
 
 # run the geoserver docker container
 _run_geoserver(){
-    _execute_command_geoserver docker run -it --rm -d \
+    _execute_command docker run -it --rm -d \
     --platform $PLATFORM \
     -p $GEOSERVER_PORT_HOST:$GEOSERVER_PORT_CONTAINER \
     --env SAMPLE_DATA=false \
@@ -108,16 +108,6 @@ _check_and_read_config() {
             return 1
         fi
     fi
-}
-
-_execute_command_geoserver() {
-  "$@"
-  local status=$?
-  if [ $status -ne 0 ]; then
-    echo -e "${RED}Error executing command: $1${RESET}"
-    _prompt_user
-  fi
-  return $status
 }
 
 
