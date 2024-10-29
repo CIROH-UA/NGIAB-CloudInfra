@@ -18,11 +18,13 @@ _run_geoserver(){
     _execute_command_geoserver docker run -it --rm -d \
     --platform $PLATFORM \
     -p $GEOSERVER_PORT_HOST:$GEOSERVER_PORT_CONTAINER \
-    --env CORS_ENABLED=true \
-    --env SKIP_DEMO_DATA=true \
+    --env SAMPLE_DATA=false \
+    --env GEOSERVER_ADMIN_USER=admin \
+    --env GEOSERVER_ADMIN_PASSWORD=geoserver \
     --network $DOCKER_NETWORK \
     --name $GEOSERVER_CONTAINER_NAME \
-    $GEOSERVER_IMAGE_NAME 
+    $GEOSERVER_IMAGE_NAME \
+    > /dev/null 2>&1
 }
 
 _check_for_existing_geoserver_image() {
@@ -178,20 +180,19 @@ _run_containers(){
     echo -e "${GREEN}Setup GeoServer image...${RESET}"
     _check_for_existing_geoserver_image
     _run_geoserver
-    _wait_container $TETHYS_CONTAINER_NAME
-    _wait_container $GEOSERVER_CONTAINER_NAME
+    # _wait_container $GEOSERVER_CONTAINER_NAME
 }
 
 # Wait for a Docker container to become healthy or unhealthy
 _wait_container() {
     local container_name=$1
     local container_health_status
-    local max_attempts=300  # Set a maximum number of attempts (300 attempts * 2 seconds = 600 seconds max wait time)
+    local max_attempts=4  # Set a maximum number of attempts (300 attempts * 2 seconds = 600 seconds max wait time)
     local attempt_counter=0
 
     printf "${MAGENTA}Waiting for container: $container_name to start, this can take a couple of minutes...${RESET}\n"
 
-    until [[ "$container_health_status" == "healthy" || "$container_health_status" == "unhealthy" ]]; do
+    until [[ "$container_health_status" == "healthy" ]]; do
         if [[ $attempt_counter -eq $max_attempts ]]; then
             printf "${RED}Timeout waiting for container $container_name to become stable.${RESET}\n" >&2
             return 1
@@ -209,35 +210,13 @@ _wait_container() {
         fi
 
         ((attempt_counter++))
-        sleep 2  # Adjusted sleep time to 2 seconds to reduce system load
+        sleep 30  # Adjusted sleep time to 2 seconds to reduce system load
     done
 
     printf "${CYAN}Container $container_name is now $container_health_status.${RESET}\n"
     return 0
 }
 
-_open_browser(){
-    local url="http://localhost/apps/ngiab"
-    # Detect the operating system
-    case "$(uname)" in
-        "Linux")
-            # Linux users
-            xdg-open "$url"
-            ;;
-        "Darwin")
-            # MacOS users
-            open "$url"
-            ;;
-        "CYGWIN"*|"MINGW"*|"MSYS"*)
-            # Windows users using Cygwin, MinGW, or MSYS
-            cmd /c start "$url"
-            ;;
-        *)
-            echo "Unsupported operating system."
-            exit 1
-            ;;
-    esac
-}
 
 
 _pause_script_execution() {
@@ -443,7 +422,8 @@ _prepare_hydrofabrics(){
             $path_script \
             $catchment_geojson_path \
             $shapefile_path \
-            $catchment_store_name
+            $catchment_store_name \
+            > /dev/null 2>&1
     else
         selected_catchment=$(_auto_select_file "$HYDRO_FABRIC")
         if [[ -n  $selected_catchment ]]; then
@@ -454,25 +434,26 @@ _prepare_hydrofabrics(){
                 $catchment_gpkg_filename \
                 $catchment_gpkg_layer \
                 $shapefile_path \
-                $catchment_store_name
-
+                $catchment_store_name \
+                > /dev/null 2>&1
         else
             n1=${selected_catchment:-$(read -p "Enter the hydrofabric catchment geojson file path: " n1; echo "$n1")}
             local catchmentfilename=$(basename "$n1")
             local catchment_path_check="$DATA_FOLDER_PATH/config/$catchmentfilename"
             if [[ -e "$catchment_path_check" ]]; then
                 if [[ "$catchmentfilename" != "catchments.geojson" ]]; then
-                    _execute_command docker cp $n1 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/catchments.geojson
+                    _execute_command docker cp $n1 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/catchments.geojson > /dev/null 2>&1
                 fi
             else
-                    _execute_command docker cp $n1 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/catchments.geojson
+                    _execute_command docker cp $n1 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/catchments.geojson > /dev/null 2>&1
             fi
             _publish_geojson_layer_to_geoserver \
                 $python_bin_path \
                 $path_script \
                 $catchment_geojson_path \
                 $shapefile_path \
-                $catchment_store_name
+                $catchment_store_name \
+                > /dev/null 2>&1
 
         fi
     fi
@@ -491,7 +472,8 @@ _prepare_hydrofabrics(){
                 $path_script \
                 $nexus_gpkg_filename \
                 $nexus_gpkg_layer \
-                $nexus_geojson_path
+                $nexus_geojson_path \
+                > /dev/null 2>&1
         else
             n2=${selected_nexus:-$(read -p "Enter the hydrofabric nexus geojson file path: " n2; echo "$n2")} 
             local nexusfilename=$(basename "$n2")
@@ -499,10 +481,10 @@ _prepare_hydrofabrics(){
 
             if [[ -e "$nexus_path_check" ]]; then
                 if [[ "$nexusfilename" != "nexus.geojson" ]]; then
-                    _execute_command docker cp $n2 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/nexus.geojson
+                    _execute_command docker cp $n2 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/nexus.geojson > /dev/null 2>&1
                 fi
             else
-                _execute_command docker cp $n2 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/nexus.geojson
+                _execute_command docker cp $n2 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/nexus.geojson > /dev/null 2>&1
             fi
 
         fi
@@ -517,7 +499,8 @@ _prepare_hydrofabrics(){
             $path_script \
             $flowpaths_geojson_path \
             $flowpaths_shapefile_path \
-            $flowpaths_store_name
+            $flowpaths_store_name \
+            > /dev/null 2>&1
 
     else
         selected_flowpaths=$(_auto_select_file "$HYDRO_FABRIC")
@@ -529,7 +512,8 @@ _prepare_hydrofabrics(){
                 $flowpaths_gpkg_filename \
                 $flowpaths_gpkg_layer \
                 $flowpaths_geojson_path \
-                $flowpaths_store_name
+                $flowpaths_store_name \
+                > /dev/null 2>&1
 
         else
             n2=${selected_flowpaths:-$(read -p "Enter the flow paths  geojson file path: " n2; echo "$n2")} 
@@ -548,7 +532,8 @@ _prepare_hydrofabrics(){
                 $path_script \
                 $flowpaths_geojson_path \
                 $flowpaths_shapefile_path \
-                $flowpaths_store_name
+                $flowpaths_store_name \
+                > /dev/null 2>&1
 
         fi
     fi
@@ -566,7 +551,7 @@ _run_tethys(){
     --env MEDIA_URL="/media/" \
     --env SKIP_DB_SETUP=$SKIP_DB_SETUP \
     $TETHYS_IMAGE_NAME 
-    #> /dev/null 2>&1
+    > /dev/null 2>&1
 }
 
 
@@ -599,14 +584,12 @@ create_tethys_portal(){
             _link_data_to_app_workspace         
             echo -e "${GREEN}Preparing the hydrofabrics for the portal...${RESET}"
             _prepare_hydrofabrics
-            
+            _wait_container $TETHYS_CONTAINER_NAME
             echo -e "${GREEN}Your outputs are ready to be visualized at http://localhost/apps/ngiab ${RESET}"
             echo -e "${MAGENTA}You can use the following to login: ${RESET}"
             echo -e "${CYAN}user: admin${RESET}"
             echo -e "${CYAN}password: pass${RESET}"
             echo -e "${MAGENTA}Check the App source code: https://github.com/Aquaveo/ngiab-client ${RESET}"
-            
-            _open_browser
             _pause_script_execution
         else
             echo -e "${RED}Failed to prepare Tethys portal.${RESET}\n"
@@ -633,7 +616,8 @@ GEOSERVER_PORT_HOST="8181"
 DOCKER_NETWORK="tethys-network"
 APP_WORKSPACE_PATH="/usr/lib/tethys/apps/ngiab/tethysapp/ngiab/workspaces/app_workspace"
 TETHYS_IMAGE_NAME=awiciroh/tethys-ngiab:troute_addition
-GEOSERVER_IMAGE_NAME=gioelkin/geoserver:2.25.x
+# GEOSERVER_IMAGE_NAME=gioelkin/geoserver:2.25.x
+GEOSERVER_IMAGE_NAME=kartoza/geoserver:2.26.0
 DATA_FOLDER_PATH="$1"
 TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
 CONFIG_FILE="$HOME/.host_data_path.conf"
