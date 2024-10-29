@@ -180,24 +180,17 @@ _run_containers(){
     echo -e "${GREEN}Setup GeoServer image...${RESET}"
     _check_for_existing_geoserver_image
     _run_geoserver
-    # _wait_container $GEOSERVER_CONTAINER_NAME
 }
 
 # Wait for a Docker container to become healthy or unhealthy
 _wait_container() {
     local container_name=$1
     local container_health_status
-    local max_attempts=4  # Set a maximum number of attempts (300 attempts * 2 seconds = 600 seconds max wait time)
     local attempt_counter=0
 
     printf "${MAGENTA}Waiting for container: $container_name to start, this can take a couple of minutes...${RESET}\n"
 
-    until [[ "$container_health_status" == "healthy" ]]; do
-        if [[ $attempt_counter -eq $max_attempts ]]; then
-            printf "${RED}Timeout waiting for container $container_name to become stable.${RESET}\n" >&2
-            return 1
-        fi
-
+    until [[ "$container_health_status" == "healthy" || "$container_health_status" == "unhealthy" ]]; do
         # Update the health status
         if ! container_health_status=$(docker inspect -f '{{.State.Health.Status}}' "$container_name" 2>/dev/null); then
             printf "${RED}Failed to get health status for container $container_name. Ensure container exists and has a health check.${RESET}\n" >&2
@@ -210,7 +203,7 @@ _wait_container() {
         fi
 
         ((attempt_counter++))
-        sleep 30  # Adjusted sleep time to 2 seconds to reduce system load
+        sleep 2  # Adjusted sleep time to 2 seconds to reduce system load
     done
 
     printf "${CYAN}Container $container_name is now $container_health_status.${RESET}\n"
@@ -462,7 +455,7 @@ _prepare_hydrofabrics(){
 
     selected_nexus=$(_auto_select_file "$NEXUS_FILE")
     if [[ -n  $selected_nexus ]]; then
-        _execute_command docker cp $selected_nexus $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/nexus.geojson
+        _execute_command docker cp $selected_nexus $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/nexus.geojson > /dev/null 2>&1
     else
         selected_nexus=$(_auto_select_file "$HYDRO_FABRIC")
         if [[ -n  $selected_nexus ]]; then
@@ -550,7 +543,7 @@ _run_tethys(){
     --env MEDIA_ROOT="$TETHYS_PERSIST_PATH/media" \
     --env MEDIA_URL="/media/" \
     --env SKIP_DB_SETUP=$SKIP_DB_SETUP \
-    $TETHYS_IMAGE_NAME 
+    $TETHYS_IMAGE_NAME \
     > /dev/null 2>&1
 }
 
@@ -616,7 +609,6 @@ GEOSERVER_PORT_HOST="8181"
 DOCKER_NETWORK="tethys-network"
 APP_WORKSPACE_PATH="/usr/lib/tethys/apps/ngiab/tethysapp/ngiab/workspaces/app_workspace"
 TETHYS_IMAGE_NAME=awiciroh/tethys-ngiab:troute_addition
-# GEOSERVER_IMAGE_NAME=gioelkin/geoserver:2.25.x
 GEOSERVER_IMAGE_NAME=kartoza/geoserver:2.26.0
 DATA_FOLDER_PATH="$1"
 TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
