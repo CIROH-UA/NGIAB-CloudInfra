@@ -1,12 +1,21 @@
 #!/bin/bash
 # ANSI color codes
-RED='\e[31m'
-GREEN='\e[32m'
-YELLOW='\e[33m'
-BLUE='\e[34m'
-MAGENTA='\e[35m'
-CYAN='\e[36m'
-RESET='\e[0m'
+BRed='\033[1;31m'
+BGreen='\033[1;32m'
+BYellow='\033[1;33m'
+BBlue='\033[1;34m'
+BPurple='\033[1;35m'
+BCyan='\033[1;36m'
+BWhite='\033[1;37m'
+UBlack='\033[4;30m'
+URed='\033[4;31m'
+UGreen='\033[4;32m'
+UYellow='\033[4;33m'
+UBlue='\033[4;34m'
+UPurple='\033[4;35m'
+UCyan='\033[4;36m'
+UWhite='\033[4;37m'
+
 
 
 ################################################
@@ -28,31 +37,31 @@ _run_geoserver(){
 }
 
 _check_for_existing_geoserver_image() {
-    printf "${YELLOW}Select an option (type a number): ${RESET}\n"
+    printf "${BYellow}Select an option (type a number): ${Color_Off}\n"
     options=("Run GeoServer using existing local docker image" "Run GeoServer after updating to latest docker image" "Exit")
     select option in "${options[@]}"; do
         case $option in
             "Run GeoServer using existing local docker image")
-                printf "${GREEN}Using local image of GeoServer${RESET}\n"
+                printf "${BGreen}Using local image of GeoServer${Color_Off}\n"
                 return 0
                 ;;
             "Run GeoServer after updating to latest docker image")
-                printf "${GREEN}Pulling container...${RESET}\n"
+                printf "${BGreen}Pulling container...${Color_Off}\n"
                 if ! docker pull "$GEOSERVER_IMAGE_NAME"; then
-                    printf "${RED}Failed to pull Docker image: $GEOSERVER_IMAGE_NAME${RESET}\n" >&2
+                    printf "${BRed}Failed to pull Docker image: $GEOSERVER_IMAGE_NAME${Color_Off}\n" >&2
                     return 1
                 else
-                    printf "${GREEN}Successfully updated GeoServer image.${RESET}\n"
+                    printf "${BGreen}Successfully updated GeoServer image.${Color_Off}\n"
                 fi
                 return 0
                 ;;
             "Exit")
-                printf "${CYAN}Have a nice day!${RESET}\n"
+                printf "${BCyan}Have a nice day!${Color_Off}\n"
                 _tear_down
                 exit 0
                 ;;
             *)
-                printf "${RED}Invalid option $REPLY. Please type 1 to continue with existing local image, 2 to update and run, or 3 to exit.${RESET}\n"
+                printf "${BRed}Invalid option $REPLY. Please type 1 to continue with existing local image, 2 to update and run, or 3 to exit.${Color_Off}\n"
                 ;;
         esac
     done
@@ -81,7 +90,7 @@ _auto_select_file() {
 _check_if_data_folder_exits(){
     # Check the directory exists
     if [ ! -d "$DATA_FOLDER_PATH" ]; then
-        echo -e "${RED}Directory does not exist. Exiting the program.${Color_Off}"
+        echo -e "${BRed}Directory does not exist. Exiting the program.${Color_Off}"
         exit 0
     fi
 }
@@ -114,7 +123,7 @@ _execute_command() {
   "$@"
   local status=$?
   if [ $status -ne 0 ]; then
-    echo -e "${RED}Error executing command: $1${RESET}"
+    echo -e "${BRed}Error executing command: $1${Color_Off}"
     _tear_down
     exit 1
   fi
@@ -129,7 +138,7 @@ _tear_down(){
 
 _run_containers(){
     _run_tethys
-    echo -e "${GREEN}Setup GeoServer image...${RESET}"
+    echo -e "${BGreen}Setup GeoServer image...${Color_Off}"
     _check_for_existing_geoserver_image
     _run_geoserver
 }
@@ -140,17 +149,17 @@ _wait_container() {
     local container_health_status
     local attempt_counter=0
 
-    printf "${MAGENTA}Waiting for container: $container_name to start, this can take a couple of minutes...${RESET}\n"
+    printf "${UPurple}Waiting for container: $container_name to start, this can take a couple of minutes...${Color_Off}\n"
 
     until [[ "$container_health_status" == "healthy" || "$container_health_status" == "unhealthy" ]]; do
         # Update the health status
         if ! container_health_status=$(docker inspect -f '{{.State.Health.Status}}' "$container_name" 2>/dev/null); then
-            printf "${RED}Failed to get health status for container $container_name. Ensure container exists and has a health check.${RESET}\n" >&2
+            printf "${BRed}Failed to get health status for container $container_name. Ensure container exists and has a health check.${Color_Off}\n" >&2
             return 1
         fi
 
         if [[ -z "$container_health_status" ]]; then
-            printf "${RED}No health status available for container $container_name. Ensure the container has a health check configured.${RESET}\n" >&2
+            printf "${BRed}No health status available for container $container_name. Ensure the container has a health check configured.${Color_Off}\n" >&2
             return 1
         fi
 
@@ -158,7 +167,7 @@ _wait_container() {
         sleep 2  # Adjusted sleep time to 2 seconds to reduce system load
     done
 
-    printf "${CYAN}Container $container_name is now $container_health_status.${RESET}\n"
+    printf "${BCyan}Container $container_name is now $container_health_status.${Color_Off}\n"
     return 0
 }
 
@@ -166,22 +175,22 @@ _wait_container() {
 
 _pause_script_execution() {
     while true; do
-        printf "${YELLOW}Press q to exit the visualization (default: q/Q):${RESET}\n"
+        printf "${BYellow}Press q to exit the visualization (default: q/Q):${Color_Off}\n"
         read -r exit_choice
 
         if [[ "$exit_choice" =~ ^[qQ]$ ]]; then
-            printf "${RED}Cleaning up Tethys ...${RESET}\n"
+            printf "${BRed}Cleaning up Tethys ...${Color_Off}\n"
             _tear_down
             exit 0
         else
-            printf "${RED}Invalid input. Please press 'q' or 'Q' to exit.${RESET}\n"
+            printf "${BRed}Invalid input. Please press 'q' or 'Q' to exit.${Color_Off}\n"
         fi
     done
 }
 
 # Function to handle the SIGINT (Ctrl-C)
 handle_sigint() {
-    echo -e "${RED}Cleaning up . . .${RESET}"
+    echo -e "${BRed}Cleaning up . . .${Color_Off}"
     _tear_down
     exit 1
 }
@@ -303,29 +312,29 @@ _create_geoserver_workspace() {
 
 
 _check_for_existing_tethys_image() {
-    printf "${YELLOW}Select an option (type a number): ${RESET}\n"
+    printf "${BYellow}Select an option (type a number): ${Color_Off}\n"
     options=("Run Tethys using existing local docker image" "Run Tethys after updating to latest docker image" "Exit")
     select option in "${options[@]}"; do
         case $option in
             "Run Tethys using existing local docker image")
-                printf "${GREEN}Using local image of the Tethys platform${RESET}\n"
+                printf "${BGreen}Using local image of the Tethys platform${Color_Off}\n"
                 return 0
                 ;;
             "Run Tethys after updating to latest docker image")
-                printf "${GREEN}Pulling container...${RESET}\n"
+                printf "${BGreen}Pulling container...${Color_Off}\n"
                 if ! docker pull "$TETHYS_IMAGE_NAME"; then
-                    printf "${RED}Failed to pull Docker image: $TETHYS_IMAGE_NAME${RESET}\n" >&2
+                    printf "${BRed}Failed to pull Docker image: $TETHYS_IMAGE_NAME${Color_Off}\n" >&2
                     return 1
                 fi
                 return 0
                 ;;
             "Exit")
-                printf "${CYAN}Have a nice day!${RESET}\n"
+                printf "${BCyan}Have a nice day!${Color_Off}\n"
                 _tear_down
                 exit 0
                 ;;
             *)
-                printf "${RED}Invalid option $REPLY, 1 to continue with existing local image, 2 to update and run, and 3 to exit${RESET}\n"
+                printf "${BRed}Invalid option $REPLY, 1 to continue with existing local image, 2 to update and run, and 3 to exit${Color_Off}\n"
                 ;;
         esac
     done
@@ -353,13 +362,13 @@ _prepare_hydrofabrics(){
     local catchment_store_name="catchments"
     local flowpaths_store_name="flowpaths"
 
-    echo -e "${CYAN}Creating Nextgen workspace. ${RESET}"
+    echo -e "${BCyan}Creating Nextgen workspace. ${Color_Off}"
     _create_geoserver_workspace \
             $python_bin_path \
             $path_script \
 
     # Auto-selecting files if only one is found
-    echo -e "${CYAN}Preparing the catchments...${RESET}"
+    echo -e "${BCyan}Preparing the catchments...${Color_Off}"
     selected_catchment=$(_auto_select_file "$CATCHMENT_FILE")
     if [[ -n $selected_catchment ]]; then
         _publish_geojson_layer_to_geoserver \
@@ -403,7 +412,7 @@ _prepare_hydrofabrics(){
         fi
     fi
 
-    echo -e "${CYAN}Preparing the nexus...${RESET}"
+    echo -e "${BCyan}Preparing the nexus...${Color_Off}"
 
     selected_nexus=$(_auto_select_file "$NEXUS_FILE")
     if [[ -n  $selected_nexus ]]; then
@@ -435,7 +444,7 @@ _prepare_hydrofabrics(){
         fi
     fi
     
-    echo -e "${CYAN}Preparing the flow paths...${RESET}"
+    echo -e "${BCyan}Preparing the flow paths...${Color_Off}"
 
     selected_flowpaths=$(_auto_select_file "$FLOWPATHTS_FILE")
     if [[ -n  $selected_flowpaths ]]; then
@@ -503,7 +512,7 @@ _run_tethys(){
 # Create tethys portal
 create_tethys_portal(){
     while true; do
-        echo -e "${YELLOW}Visualize outputs using the Tethys Platform (https://www.tethysplatform.org/)? (y/N, default: y):${RESET}"
+        echo -e "${BYellow}Visualize outputs using the Tethys Platform (https://www.tethysplatform.org/)? (y/N, default: y):${Color_Off}"
         read -r visualization_choice
         
         # Default to 'y' if input is empty
@@ -515,32 +524,33 @@ create_tethys_portal(){
         if [[ "$visualization_choice" == [YyNn]* ]]; then
             break
         else
-            echo -e "${RED}Invalid choice. Please enter 'y' for yes, 'n' for no, or press Enter for default (yes).${RESET}"
+            echo -e "${BRed}Invalid choice. Please enter 'y' for yes, 'n' for no, or press Enter for default (yes).${Color_Off}"
         fi
     done
     
     # Execute the command
     if [[ "$visualization_choice" == [Yy]* ]]; then
-        echo -e "${GREEN}Setup Tethys Portal image...${RESET}"
+        echo -e "${BGreen}Setup Tethys Portal image...${Color_Off}"
         _create_tethys_docker_network
         if _check_for_existing_tethys_image; then
-            _execute_command _run_containers            
-            echo -e "${CYAN}Link data to the Tethys app workspace.${RESET}"
+            _execute_command _run_containers
+            sleep 60
+            echo -e "${BCyan}Link data to the Tethys app workspace.${Color_Off}"
             _link_data_to_app_workspace         
-            echo -e "${GREEN}Preparing the hydrofabrics for the portal...${RESET}"
+            echo -e "${BGreen}Preparing the hydrofabrics for the portal...${Color_Off}"
             _prepare_hydrofabrics
             _wait_container $TETHYS_CONTAINER_NAME
-            echo -e "${GREEN}Your outputs are ready to be visualized at http://localhost/apps/ngiab ${RESET}"
-            echo -e "${MAGENTA}You can use the following to login: ${RESET}"
-            echo -e "${CYAN}user: admin${RESET}"
-            echo -e "${CYAN}password: pass${RESET}"
-            echo -e "${MAGENTA}Check the App source code: https://github.com/Aquaveo/ngiab-client ${RESET}"
+            echo -e "${BGreen}Your outputs are ready to be visualized at http://localhost/apps/ngiab ${Color_Off}"
+            echo -e "${UPurple}You can use the following to login: ${Color_Off}"
+            echo -e "${BCyan}user: admin${Color_Off}"
+            echo -e "${BCyan}password: pass${Color_Off}"
+            echo -e "${UPurple}Check the App source code: https://github.com/Aquaveo/ngiab-client ${Color_Off}"
             _pause_script_execution
         else
-            echo -e "${RED}Failed to prepare Tethys portal.${RESET}\n"
+            echo -e "${BRed}Failed to prepare Tethys portal.${Color_Off}\n"
         fi
     else
-        echo -e "${CYAN}Skipping Tethys visualization setup.${RESET}\n"
+        echo -e "${BCyan}Skipping Tethys visualization setup.${Color_Off}\n"
     fi
 }
 
