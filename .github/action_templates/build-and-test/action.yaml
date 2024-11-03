@@ -35,7 +35,7 @@ runs:
       shell: bash
       run: |
         echo "TAG_NAME=${{env.TAG_NAME}}-${{inputs.platform}}" >> "$GITHUB_ENV"
-      if: "${{ inputs.platform != 'ARM64' }}"
+      #if: "${{ inputs.platform != 'ARM64' }}"
     - name: Create Cache and Builder for Buildx
       shell: bash
       run: |
