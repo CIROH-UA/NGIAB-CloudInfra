@@ -10,7 +10,7 @@ jobs:
   start-runner:
    runs-on: ubuntu-latest
    steps:
-     - name: start runner
+     - name: start arm runner
        uses: gagoar/invoke-aws-lambda@master
        with:
          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -19,6 +19,15 @@ jobs:
        if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA') || 
            (startsWith(github.ref, 'refs/heads/main') && github.event_name != 'pull_request')
 
+     - name: start x86 runner
+       uses: gagoar/invoke-aws-lambda@master
+       with:
+         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+         FunctionName: StartCirohX86Runner
+       if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA') || 
+           (startsWith(github.ref, 'refs/heads/main') && github.event_name != 'pull_request')
+    
      - name: wait runner up
        shell: bash
        run: |
@@ -27,31 +36,16 @@ jobs:
            (startsWith(github.ref, 'refs/heads/main') && github.event_name != 'pull_request')
   init:
     needs: start-runner
-    runs-on: ARM64
+    runs-on: ${{ matrix.runner}}
+    strategy:
+      matrix:
+        runner: [ARM64, x86]
     steps:
       - name: clear docker cache
         run: |
           docker system prune -af
-  deps:
+  build:
     needs: init
-    uses: ./.github/workflows/docker_deps_image.yml
-    with:
-      runner_label: ARM64
-    secrets: inherit
-  troute:
-    needs: deps
-    uses: ./.github/workflows/docker_troute_image.yml
-    with:
-      runner_label: ARM64
-    secrets: inherit
-  ngen:
-    needs: troute
-    uses: ./.github/workflows/docker_ngen_image.yml
-    with:
-      runner_label: ARM64
-    secrets: inherit
-  final:
-    needs: ngen
     runs-on: ARM64
     steps:
       - name: deploy
@@ -73,7 +67,7 @@ jobs:
           platform: ARM64
         if: startsWith(github.ref, 'refs/heads/main')
   check_result:
-    needs: final
+    needs: build
     runs-on: ARM64
     outputs:
       output1: ${{ steps.step1.outputs.result }}
@@ -85,7 +79,7 @@ jobs:
     runs-on: ARM64
     if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA') || 
         (startsWith(github.ref, 'refs/heads/main') && github.event_name != 'pull_request')
-    needs: [deps, troute, ngen, final, check_result]
+    needs: [build, check_result]
     env:
       OUTPUT: ${{needs.check_result.outputs.output1}}
     steps:
@@ -115,9 +109,15 @@ jobs:
    if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA') || 
        (startsWith(github.ref, 'refs/heads/main') && github.event_name != 'pull_request')
    steps:
-     - name: stop runner
+     - name: stop arm runner
        uses: gagoar/invoke-aws-lambda@master
        with:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         FunctionName: StopCirohRunner
+     - name: stop x86 runner
+       uses: gagoar/invoke-aws-lambda@master
+       with:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        FunctionName: StopCirohX86Runner
