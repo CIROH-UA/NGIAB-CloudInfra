@@ -92,9 +92,9 @@ jobs:
         password: ${{ secrets.DOCKER_AUTH_TOKEN }}
     - name: Create and push manifest
       run: |
-        docker manifest create ${{ secrets.DOCKERHUB_USERNAME }}/ciroh-ngen-image:latest \
-          awiciroh/ciroh-ngen-image:latest-arm64 \
-          awiciroh/ciroh-ngen-image:latest-x86
+        docker manifest create awiciroh/ciroh-ngen-image:${{ env.RAW_TAG}} \
+          awiciroh/ciroh-ngen-image:${{ env.RAW_TAG}}-arm64 \
+          awiciroh/ciroh-ngen-image:${{ env.RAW_TAG}}-x86
         docker manifest push awiciroh/ciroh-ngen-image:latest
 
   slack:

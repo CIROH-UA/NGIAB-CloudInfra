@@ -25,16 +25,17 @@ runs:
       shell: bash
       run: |
         echo "TAG_NAME=latest" >> "$GITHUB_ENV"
-    #  if: startsWith(github.ref, 'refs/heads/main')
-    #- name: Set env vars for other branch
-    #  shell: bash
-    #  run: |
-    #    echo "TAG_NAME=${GITHUB_REF##*/}" >> "$GITHUB_ENV"
-    #  if: ${{ !startsWith(github.ref, 'refs/heads/main') }}
+      if: startsWith(github.ref, 'refs/heads/main')
+    - name: Set env vars for other branch
+      shell: bash
+      run: |
+        echo "TAG_NAME=${GITHUB_REF##*/}" >> "$GITHUB_ENV"
+      if: ${{ !startsWith(github.ref, 'refs/heads/main') }}
     
     - name: Attach platform to tag
       shell: bash
       run: |
+        echo "RAW_TAG=${{env.TAG_NAME}}" >> "$GITHUB_ENV"
         echo "TAG_NAME=${{env.TAG_NAME}}-${{inputs.platform}}" >> "$GITHUB_ENV"
       #if: "${{ inputs.platform != 'ARM64' }}"
 
@@ -53,8 +54,6 @@ runs:
       with:
         context: ./docker
         file: ./docker/${{ inputs.dockerfile-name}}
-        build-args: |
-          TAG_NAME=${{ env.TAG_NAME}}
         push: true
         tags: |
           awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}}
