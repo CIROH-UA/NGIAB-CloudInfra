@@ -46,7 +46,10 @@ jobs:
           docker system prune -af
   build:
     needs: init
-    runs-on: ARM64
+    runs-on: ${{ matrix.runner}}
+    strategy:
+      matrix:
+        runner: [ARM64, x86]
     steps:
       - name: deploy
         uses: actions/checkout@v2
@@ -56,7 +59,7 @@ jobs:
           docker-auth-token: ${{ secrets.DOCKER_AUTH_TOKEN }}
           image-name: "ciroh-ngen-image"
           dockerfile-name: "Dockerfile"
-          platform: ARM64
+          platform: ${{ matrix.runner}}
         if: ${{ !startsWith(github.ref, 'refs/heads/main') }}
       - name: Build and push Docker image
         uses: ./.github/action_templates/build-and-push
@@ -64,11 +67,14 @@ jobs:
           docker-auth-token: ${{ secrets.DOCKER_AUTH_TOKEN }}
           image-name: "ciroh-ngen-image"
           dockerfile-name: "Dockerfile"
-          platform: ARM64
+          platform: ${{ matrix.runner}}
         if: startsWith(github.ref, 'refs/heads/main')
   check_result:
     needs: build
-    runs-on: ARM64
+    runs-on: ${{ matrix.runner}}
+    strategy:
+      matrix:
+        runner: [ARM64, x86]
     outputs:
       output1: ${{ steps.step1.outputs.result }}
     steps:
