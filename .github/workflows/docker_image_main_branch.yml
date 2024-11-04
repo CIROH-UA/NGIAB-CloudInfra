@@ -39,7 +39,7 @@ jobs:
     runs-on: ${{ matrix.runner}}
     strategy:
       matrix:
-        runner: [ARM64, x86]
+        runner: [ARM64, AMD64]
     steps:
       - name: clear docker cache
         run: |
@@ -52,7 +52,7 @@ jobs:
       push-tag-name: ${{ steps.push-build.outputs.tag-name }}
     strategy:
       matrix:
-        runner: [arm64, x86]
+        runner: [ARM64, AMD64]
     steps:
       - name: deploy
         uses: actions/checkout@v2
@@ -79,7 +79,7 @@ jobs:
     runs-on: ${{ matrix.runner}}
     strategy:
       matrix:
-        runner: [ARM64, x86]
+        runner: [ARM64, AMD64]
     outputs:
       output1: ${{ steps.step1.outputs.result }}
     steps:
@@ -125,7 +125,7 @@ jobs:
         
         docker manifest create --amend awiciroh/ciroh-ngen-image:${TAG_NAME} \
           awiciroh/ciroh-ngen-image:${TAG_NAME}-arm64 \
-          awiciroh/ciroh-ngen-image:${TAG_NAME}-x86
+          awiciroh/ciroh-ngen-image:${TAG_NAME}-amd64
         docker manifest push awiciroh/ciroh-ngen-image:${TAG_NAME}
 
   slack:

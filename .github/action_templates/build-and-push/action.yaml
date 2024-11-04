@@ -63,7 +63,7 @@ runs:
           docker buildx create --use --name mybuilder --node mybuilder
 
     - name: Build and Cache Docker Image
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v5
       with:
         context: ./docker
         file: ./docker/${{ inputs.dockerfile-name}}
@@ -72,6 +72,8 @@ runs:
           awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}}
         builder: mybuilder
         no-cache: true
+        platforms: linux/${{ inputs.platform }}
+        provenance: false
       env:
         DOCKER_BUILDKIT: 1
         DOCKER_CLI_EXPERIMENTAL: enabled
