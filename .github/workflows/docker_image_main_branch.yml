@@ -197,21 +197,24 @@ jobs:
           
           echo "Final TAG_NAME: '${TAG_NAME}'"
 
-          # First remove existing manifest if it exists
+          # Inspect current images
+          echo "Inspecting arm64 image:"
+          docker manifest inspect awiciroh/ciroh-ngen-image:${TAG_NAME}-arm64 || true
+          echo "Inspecting x86 image:"
+          docker manifest inspect awiciroh/ciroh-ngen-image:${TAG_NAME}-x86 || true
+          
+          # Pull the actual images first
+          docker pull awiciroh/ciroh-ngen-image:${TAG_NAME}-arm64 --platform linux/arm64
+          docker pull awiciroh/ciroh-ngen-image:${TAG_NAME}-x86 --platform linux/amd64
+          
+          # Remove existing manifest
           docker manifest rm awiciroh/ciroh-ngen-image:${TAG_NAME} || true
           
-          # Create manifest with platform annotations
+          # Create new manifest
           docker manifest create awiciroh/ciroh-ngen-image:${TAG_NAME} \
-            --amend \
-            awiciroh/ciroh-ngen-image:${TAG_NAME}-arm64 \
-            awiciroh/ciroh-ngen-image:${TAG_NAME}-x86
-          
-          # Annotate the manifest with architecture and OS information
-          docker manifest annotate awiciroh/ciroh-ngen-image:${TAG_NAME} \
-            awiciroh/ciroh-ngen-image:${TAG_NAME}-arm64 --arch arm64 --os linux
-          
-          docker manifest annotate awiciroh/ciroh-ngen-image:${TAG_NAME} \
-            awiciroh/ciroh-ngen-image:${TAG_NAME}-x86 --arch amd64 --os linux
+            --insecure \
+            awiciroh/ciroh-ngen-image:${TAG_NAME}-arm64@$(docker inspect --format='{{index .RepoDigests 0}}' awiciroh/ciroh-ngen-image:${TAG_NAME}-arm64) \
+            awiciroh/ciroh-ngen-image:${TAG_NAME}-x86@$(docker inspect --format='{{index .RepoDigests 0}}' awiciroh/ciroh-ngen-image:${TAG_NAME}-x86)
           
           # Push the manifest
-          docker manifest push awiciroh/ciroh-ngen-image:${TAG_NAME}
+          docker manifest push --purge awiciroh/ciroh-ngen-image:${TAG_NAME}
