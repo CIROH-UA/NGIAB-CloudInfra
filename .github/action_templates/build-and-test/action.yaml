@@ -99,7 +99,7 @@ runs:
           awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}}
         builder: mybuilder
         no-cache: true
-        platforms: linux/${{ inputs.platform }}\
+        platforms: linux/${{ inputs.platform }}
         provenance: false
       env:
         DOCKER_BUILDKIT: 1
