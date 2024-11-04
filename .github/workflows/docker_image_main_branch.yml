@@ -87,7 +87,7 @@ jobs:
         run: echo "result=success" >> "$GITHUB_OUTPUT"
 
   create-manifest:
-    needs: check_result
+    needs: [check_result, build]
     runs-on: ARM64
     steps:
     - name: Login to DockerHub
@@ -98,19 +98,22 @@ jobs:
     - name: Print Specific Environment Variables
       shell: bash
       run: |
-        echo "TAG_NAME: ${{ env.TAG_NAME }}"
-        echo "RAW_TAG: ${{ env.RAW_TAG }}"
-        echo "GITHUB_REF: ${GITHUB_REF}"
-        echo "Branch name: ${GITHUB_REF##*/}"
-        echo "Printing all environment variables:"
-        env
+        echo "Debug - Current branch ref: ${{ github.ref }}"
+        echo "Debug - Test tag from outputs: ${{ needs.build.outputs.test-tag-name }}"
+        echo "Debug - Push tag from outputs: ${{ needs.build.outputs.push-tag-name }}"
+      
     - name: Create and push manifest
       run: |
         if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          echo "Using push tag"
           TAG_NAME="${{ needs.build.outputs.push-tag-name }}"
         else
+          echo "Using test tag"
           TAG_NAME="${{ needs.build.outputs.test-tag-name }}"
         fi
+
+        echo "Debug - TAG_NAME: ${TAG_NAME}"
+        
         docker manifest create awiciroh/ciroh-ngen-image:${TAG_NAME} \
           awiciroh/ciroh-ngen-image:${TAG_NAME}-arm64 \
           awiciroh/ciroh-ngen-image:${TAG_NAME}-x86
