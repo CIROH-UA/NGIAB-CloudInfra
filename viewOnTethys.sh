@@ -22,14 +22,54 @@ UWhite='\033[4;37m'
 ############GEOSERVER FUNCTIONS#################
 ################################################
 
+# wait for geoserver
+_check_geoserver_health() {
+  local url="http://localhost:${GEOSERVER_PORT_HOST}/geoserver/rest/about/version.xml"
+  local username="${GEOSERVER_ADMIN_USER}"
+  local password="${GEOSERVER_ADMIN_PASSWORD}"
+  local interval=5          # Interval between retries in seconds (1m30s)
+  local timeout=10           # Timeout for each healthcheck attempt in seconds
+  local retries=3            # Number of retries
+  local start_period=60      # Start period before healthchecks begin in seconds (1m)
+  local attempt=1
+
+  # Wait for the start period before starting health checks
+  sleep "$start_period"
+
+  while [ "$attempt" -le "$retries" ]; do
+    # Perform the health check using curl
+    response=$(curl --fail --silent --write-out '%{http_code}' \
+      --output /dev/null -u "${username}:${password}" \
+      --max-time "$timeout" "$url")
+    exit_status=$?
+
+    if [ "$exit_status" -eq 0 ]; then
+      echo -e "${UBlue}GeoServer is healthy. HTTP CODE: $response ${Color_Off}"
+      return 0
+    else
+      echo -e "${BRed}Health check failed (Attempt $attempt/$retries). HTTP CODE: $response ${Color_Off}"
+      if [ "$attempt" -lt "$retries" ]; then
+        echo -e "${BWhite}Retrying in $interval seconds... ${Color_Off}"
+        sleep "$interval"
+      fi
+    fi
+
+    attempt=$((attempt + 1))
+  done
+
+  echo "GeoServer health check failed after $retries attempts."
+  return 1
+}
+
+
 # run the geoserver docker container
 _run_geoserver(){
     _execute_command docker run -it --rm -d \
     --platform $PLATFORM \
     -p $GEOSERVER_PORT_HOST:$GEOSERVER_PORT_CONTAINER \
     --env SAMPLE_DATA=false \
-    --env GEOSERVER_ADMIN_USER=admin \
-    --env GEOSERVER_ADMIN_PASSWORD=geoserver \
+    --env GEOSERVER_ADMIN_USER=$GEOSERVER_ADMIN_USER \
+    --env GEOSERVER_ADMIN_PASSWORD=$GEOSERVER_ADMIN_PASSWORD \
     --network $DOCKER_NETWORK \
     --name $GEOSERVER_CONTAINER_NAME \
     $GEOSERVER_IMAGE_NAME \
@@ -37,31 +77,31 @@ _run_geoserver(){
 }
 
 _check_for_existing_geoserver_image() {
-    printf "${BYellow}Select an option (type a number): ${Color_Off}\n"
+    echo -e "${BYellow}Select an option (type a number): ${Color_Off}\n"
     options=("Run GeoServer using existing local docker image" "Run GeoServer after updating to latest docker image" "Exit")
     select option in "${options[@]}"; do
         case $option in
             "Run GeoServer using existing local docker image")
-                printf "${BGreen}Using local image of GeoServer${Color_Off}\n"
+                echo -e "${BGreen}Using local image of GeoServer${Color_Off}\n"
                 return 0
                 ;;
             "Run GeoServer after updating to latest docker image")
-                printf "${BGreen}Pulling container...${Color_Off}\n"
+                echo -e "${BGreen}Pulling container...${Color_Off}\n"
                 if ! docker pull "$GEOSERVER_IMAGE_NAME"; then
-                    printf "${BRed}Failed to pull Docker image: $GEOSERVER_IMAGE_NAME${Color_Off}\n" >&2
+                    echo -e "${BRed}Failed to pull Docker image: $GEOSERVER_IMAGE_NAME${Color_Off}\n" >&2
                     return 1
                 else
-                    printf "${BGreen}Successfully updated GeoServer image.${Color_Off}\n"
+                    echo -e "${BGreen}Successfully updated GeoServer image.${Color_Off}\n"
                 fi
                 return 0
                 ;;
             "Exit")
-                printf "${BCyan}Have a nice day!${Color_Off}\n"
+                echo -e "${BCyan}Have a nice day!${Color_Off}\n"
                 _tear_down
                 exit 0
                 ;;
             *)
-                printf "${BRed}Invalid option $REPLY. Please type 1 to continue with existing local image, 2 to update and run, or 3 to exit.${Color_Off}\n"
+                echo -e "${BRed}Invalid option $REPLY. Please type 1 to continue with existing local image, 2 to update and run, or 3 to exit.${Color_Off}\n"
                 ;;
         esac
     done
@@ -100,7 +140,7 @@ _check_and_read_config() {
     local config_file="$1"
     if [ -f "$config_file" ]; then
         local last_path=$(cat "$config_file")
-        printf "Last used data directory path: %s\n" "$last_path"
+        echo -e "Last used data directory path: %s\n" "$last_path"
         read -erp "Do you want to use the same path? (Y/n): " use_last_path
         if [[ "$use_last_path" =~ ^[Yy] ]]; then
             DATA_FOLDER_PATH="$last_path"
@@ -113,7 +153,7 @@ _check_and_read_config() {
             echo "$DATA_FOLDER_PATH" > "$CONFIG_FILE"
             echo -e "The Directory you've given is:\n$DATA_FOLDER_PATH\n"   
         else
-            printf "Invalid input. Exiting.\n" >&2
+            echo -e "Invalid input. Exiting.\n" >&2
             return 1
         fi
     fi
@@ -149,17 +189,17 @@ _wait_container() {
     local container_health_status
     local attempt_counter=0
 
-    printf "${UPurple}Waiting for container: $container_name to start, this can take a couple of minutes...${Color_Off}\n"
+    echo -e "${UPurple}Waiting for container: $container_name to start, this can take a couple of minutes...${Color_Off}\n"
 
     until [[ "$container_health_status" == "healthy" || "$container_health_status" == "unhealthy" ]]; do
         # Update the health status
         if ! container_health_status=$(docker inspect -f '{{.State.Health.Status}}' "$container_name" 2>/dev/null); then
-            printf "${BRed}Failed to get health status for container $container_name. Ensure container exists and has a health check.${Color_Off}\n" >&2
+            echo -e "${BRed}Failed to get health status for container $container_name. Ensure container exists and has a health check.${Color_Off}\n" >&2
             return 1
         fi
 
         if [[ -z "$container_health_status" ]]; then
-            printf "${BRed}No health status available for container $container_name. Ensure the container has a health check configured.${Color_Off}\n" >&2
+            echo -e "${BRed}No health status available for container $container_name. Ensure the container has a health check configured.${Color_Off}\n" >&2
             return 1
         fi
 
@@ -167,7 +207,7 @@ _wait_container() {
         sleep 2  # Adjusted sleep time to 2 seconds to reduce system load
     done
 
-    printf "${BCyan}Container $container_name is now $container_health_status.${Color_Off}\n"
+    echo -e "${BCyan}Container $container_name is now $container_health_status.${Color_Off}\n"
     return 0
 }
 
@@ -175,15 +215,15 @@ _wait_container() {
 
 _pause_script_execution() {
     while true; do
-        printf "${BYellow}Press q to exit the visualization (default: q/Q):${Color_Off}\n"
+        echo -e "${BYellow}Press q to exit the visualization (default: q/Q):${Color_Off}\n"
         read -r exit_choice
 
         if [[ "$exit_choice" =~ ^[qQ]$ ]]; then
-            printf "${BRed}Cleaning up Tethys ...${Color_Off}\n"
+            echo -e "${BRed}Cleaning up Tethys ...${Color_Off}\n"
             _tear_down
             exit 0
         else
-            printf "${BRed}Invalid input. Please press 'q' or 'Q' to exit.${Color_Off}\n"
+            echo -e "${BRed}Invalid input. Please press 'q' or 'Q' to exit.${Color_Off}\n"
         fi
     done
 }
@@ -271,8 +311,8 @@ _publish_gpkg_layer_to_geoserver() {
         --store_name $store_name \
         --geoserver_host $GEOSERVER_CONTAINER_NAME \
         --geoserver_port $geoserver_port \
-        --geoserver_username admin \
-        --geoserver_password geoserver
+        --geoserver_username $GEOSERVER_ADMIN_USER \
+        --geoserver_password $GEOSERVER_ADMIN_PASSWORD
 }
 
 _publish_geojson_layer_to_geoserver() {
@@ -291,8 +331,8 @@ _publish_geojson_layer_to_geoserver() {
         --store_name $store_name \
         --geoserver_host $GEOSERVER_CONTAINER_NAME \
         --geoserver_port $GEOSERVER_PORT_CONTAINER \
-        --geoserver_username admin \
-        --geoserver_password geoserver
+        --geoserver_username $GEOSERVER_ADMIN_USER \
+        --geoserver_password $GEOSERVER_ADMIN_PASSWORD
 }
 
 _create_geoserver_workspace() {
@@ -305,36 +345,36 @@ _create_geoserver_workspace() {
         --create_workspace \
         --geoserver_host $GEOSERVER_CONTAINER_NAME \
         --geoserver_port $GEOSERVER_PORT_CONTAINER \
-        --geoserver_username admin \
-        --geoserver_password geoserver
+        --geoserver_username $GEOSERVER_ADMIN_USER \
+        --geoserver_password $GEOSERVER_ADMIN_PASSWORD
 }
 
 
 
 _check_for_existing_tethys_image() {
-    printf "${BYellow}Select an option (type a number): ${Color_Off}\n"
+    echo -e "${BYellow}Select an option (type a number): ${Color_Off}\n"
     options=("Run Tethys using existing local docker image" "Run Tethys after updating to latest docker image" "Exit")
     select option in "${options[@]}"; do
         case $option in
             "Run Tethys using existing local docker image")
-                printf "${BGreen}Using local image of the Tethys platform${Color_Off}\n"
+                echo -e "${BGreen}Using local image of the Tethys platform${Color_Off}\n"
                 return 0
                 ;;
             "Run Tethys after updating to latest docker image")
-                printf "${BGreen}Pulling container...${Color_Off}\n"
+                echo -e "${BGreen}Pulling container...${Color_Off}\n"
                 if ! docker pull "$TETHYS_IMAGE_NAME"; then
-                    printf "${BRed}Failed to pull Docker image: $TETHYS_IMAGE_NAME${Color_Off}\n" >&2
+                    echo -e "${BRed}Failed to pull Docker image: $TETHYS_IMAGE_NAME${Color_Off}\n" >&2
                     return 1
                 fi
                 return 0
                 ;;
             "Exit")
-                printf "${BCyan}Have a nice day!${Color_Off}\n"
+                echo -e "${BCyan}Have a nice day!${Color_Off}\n"
                 _tear_down
                 exit 0
                 ;;
             *)
-                printf "${BRed}Invalid option $REPLY, 1 to continue with existing local image, 2 to update and run, and 3 to exit${Color_Off}\n"
+                echo -e "${BRed}Invalid option $REPLY, 1 to continue with existing local image, 2 to update and run, and 3 to exit${Color_Off}\n"
                 ;;
         esac
     done
@@ -534,7 +574,7 @@ create_tethys_portal(){
         _create_tethys_docker_network
         if _check_for_existing_tethys_image; then
             _execute_command _run_containers
-            sleep 60
+            _check_geoserver_health
             echo -e "${BCyan}Link data to the Tethys app workspace.${Color_Off}"
             _link_data_to_app_workspace         
             echo -e "${BGreen}Preparing the hydrofabrics for the portal...${Color_Off}"
@@ -570,12 +610,14 @@ GEOSERVER_PORT_CONTAINER="8080"
 GEOSERVER_PORT_HOST="8181"
 DOCKER_NETWORK="tethys-network"
 APP_WORKSPACE_PATH="/usr/lib/tethys/apps/ngiab/tethysapp/ngiab/workspaces/app_workspace"
-TETHYS_IMAGE_NAME=awiciroh/tethys-ngiab:troute_addition
+TETHYS_IMAGE_NAME=awiciroh/tethys-ngiab:main
 GEOSERVER_IMAGE_NAME=kartoza/geoserver:2.26.0
 DATA_FOLDER_PATH="$1"
 TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
 CONFIG_FILE="$HOME/.host_data_path.conf"
 SKIP_DB_SETUP=false
+GEOSERVER_ADMIN_USER=admin
+GEOSERVER_ADMIN_PASSWORD=geoserver
 
 # check for architecture
 if uname -a | grep arm64 || uname -a | grep aarch64 ; then
