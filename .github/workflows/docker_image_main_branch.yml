@@ -197,7 +197,21 @@ jobs:
           
           echo "Final TAG_NAME: '${TAG_NAME}'"
 
+          # First remove existing manifest if it exists
+          docker manifest rm awiciroh/ciroh-ngen-image:${TAG_NAME} || true
+          
+          # Create manifest with platform annotations
           docker manifest create awiciroh/ciroh-ngen-image:${TAG_NAME} \
-           awiciroh/ciroh-ngen-image:${TAG_NAME}-arm64 \
-           awiciroh/ciroh-ngen-image:${TAG_NAME}-x86 --amend
+            --amend \
+            awiciroh/ciroh-ngen-image:${TAG_NAME}-arm64 \
+            awiciroh/ciroh-ngen-image:${TAG_NAME}-x86
+          
+          # Annotate the manifest with architecture and OS information
+          docker manifest annotate awiciroh/ciroh-ngen-image:${TAG_NAME} \
+            awiciroh/ciroh-ngen-image:${TAG_NAME}-arm64 --arch arm64 --os linux
+          
+          docker manifest annotate awiciroh/ciroh-ngen-image:${TAG_NAME} \
+            awiciroh/ciroh-ngen-image:${TAG_NAME}-x86 --arch amd64 --os linux
+          
+          # Push the manifest
           docker manifest push awiciroh/ciroh-ngen-image:${TAG_NAME}
