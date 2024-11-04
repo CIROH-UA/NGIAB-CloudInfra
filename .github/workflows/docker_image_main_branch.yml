@@ -105,14 +105,18 @@ jobs:
     - name: Create and push manifest
       run: |
         if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-          echo "Using push tag"
+          echo "Using push tag (main branch)"
           TAG_NAME="${{ needs.build.outputs.push-tag-name }}"
         else
-          echo "Using test tag"
+          echo "Using test tag (non-main branch)"
           TAG_NAME="${{ needs.build.outputs.test-tag-name }}"
+          if [[ -z "${TAG_NAME}" ]]; then
+            echo "Error: test tag is empty"
+            exit 1
+          fi
         fi
-
-        echo "Debug - TAG_NAME: ${TAG_NAME}"
+    
+        echo "Creating manifest with TAG_NAME: ${TAG_NAME}"
         
         docker manifest create awiciroh/ciroh-ngen-image:${TAG_NAME} \
           awiciroh/ciroh-ngen-image:${TAG_NAME}-arm64 \
