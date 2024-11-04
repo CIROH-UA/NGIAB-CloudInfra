@@ -41,12 +41,39 @@ runs:
     - name: Login to Docker Hub
       shell: bash
       run: |
-          echo "${{ inputs.docker-auth-token }}" | docker login --username awiciroh --password-stdin
-          
+          echo "Logging in to Docker Hub..."
+          if ! echo "${{ inputs.docker-auth-token }}" | docker login --username awiciroh --password-stdin; then
+            echo "Failed to login to Docker Hub"
+            exit 1
+          fi
+          echo "Successfully logged in to Docker Hub"
+          docker info
+
     - name: Create Cache and Builder for Buildx
       shell: bash
       run: |
           docker buildx create --use --name mybuilder --node mybuilder
+
+    - name: Check Docker Hub Repository
+      shell: bash
+      run: |
+        REPO="awiciroh/${{ inputs.image-name}}"
+        echo "Checking repository: $REPO"
+        if ! curl -s "https://hub.docker.com/v2/repositories/${REPO}/" > /dev/null; then
+          echo "$REPO does not exist"
+        fi
+
+    - name: Debug Info
+      shell: bash
+      run: |
+        echo "Image name: awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}}"
+        echo "Platform: ${{ inputs.platform }}"
+        echo "Docker version:"
+        docker version
+        echo "Docker info:"
+        docker info
+        echo "Buildx version:"
+        docker buildx version
 
     - name: Build and Cache Docker Image
       uses: docker/build-push-action@v5
