@@ -37,6 +37,12 @@ runs:
         echo "RAW_TAG=${{env.TAG_NAME}}" >> "$GITHUB_ENV"
         echo "TAG_NAME=${{env.TAG_NAME}}-${{inputs.platform}}" >> "$GITHUB_ENV"
       #if: "${{ inputs.platform != 'ARM64' }}"
+
+    - name: Login to Docker Hub
+      shell: bash
+      run: |
+          echo "${{ inputs.docker-auth-token }}" | docker login --username awiciroh --password-stdin
+          
     - name: Create Cache and Builder for Buildx
       shell: bash
       run: |
