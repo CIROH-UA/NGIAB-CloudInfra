@@ -196,3 +196,8 @@ jobs:
           fi
           
           echo "Final TAG_NAME: '${TAG_NAME}'"
+
+          docker manifest create awiciroh/ciroh-ngen-image:${TAG_NAME} \
+           awiciroh/ciroh-ngen-image:${TAG_NAME}-arm64 \
+           awiciroh/ciroh-ngen-image:${TAG_NAME}-x86 --amend
+          docker manifest push awiciroh/ciroh-ngen-image:${TAG_NAME}
