@@ -197,24 +197,28 @@ jobs:
           
           echo "Final TAG_NAME: '${TAG_NAME}'"
 
-          # Inspect current images
-          echo "Inspecting arm64 image:"
-          docker manifest inspect awiciroh/ciroh-ngen-image:${TAG_NAME}-arm64 || true
-          echo "Inspecting x86 image:"
-          docker manifest inspect awiciroh/ciroh-ngen-image:${TAG_NAME}-x86 || true
+          # First verify images exist
+          echo "Checking available images:"
+          docker images | grep awiciroh/ciroh-ngen-image
           
-          # Pull the actual images first
-          docker pull awiciroh/ciroh-ngen-image:${TAG_NAME}-arm64 --platform linux/arm64
-          docker pull awiciroh/ciroh-ngen-image:${TAG_NAME}-x86 --platform linux/amd64
+          # List remote tags
+          echo "Checking remote tags:"
+          curl -s https://registry.hub.docker.com/v2/repositories/awiciroh/ciroh-ngen-image/tags | jq '.results[].name'
           
-          # Remove existing manifest
-          docker manifest rm awiciroh/ciroh-ngen-image:${TAG_NAME} || true
+          # Check if both architecture images exist
+          if ! docker pull awiciroh/ciroh-ngen-image:${TAG_NAME}-arm64; then
+            echo "ARM64 image not found"
+            exit 1
+          fi
           
-          # Create new manifest
+          if ! docker pull awiciroh/ciroh-ngen-image:${TAG_NAME}-x86; then
+            echo "X86 image not found"
+            exit 1
+          fi
+          
+          # If both images exist, create manifest
           docker manifest create awiciroh/ciroh-ngen-image:${TAG_NAME} \
-            --insecure \
-            awiciroh/ciroh-ngen-image:${TAG_NAME}-arm64@$(docker inspect --format='{{index .RepoDigests 0}}' awiciroh/ciroh-ngen-image:${TAG_NAME}-arm64) \
-            awiciroh/ciroh-ngen-image:${TAG_NAME}-x86@$(docker inspect --format='{{index .RepoDigests 0}}' awiciroh/ciroh-ngen-image:${TAG_NAME}-x86)
+            awiciroh/ciroh-ngen-image:${TAG_NAME}-arm64 \
+            awiciroh/ciroh-ngen-image:${TAG_NAME}-x86
           
-          # Push the manifest
-          docker manifest push --purge awiciroh/ciroh-ngen-image:${TAG_NAME}
+          docker manifest push awiciroh/ciroh-ngen-image:${TAG_NAME}
