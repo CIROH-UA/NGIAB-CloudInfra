@@ -187,7 +187,7 @@ jobs:
             echo "After assignment - TAG_NAME: '${TAG_NAME}'"
           else
             echo "Using test tag (non-main branch)"
-            TAG_NAME="$${{ github.ref }}"
+            TAG_NAME="${GITHUB_REF##*/}"
             echo "After assignment - TAG_NAME: '${TAG_NAME}'"
             if [[ -z "${TAG_NAME}" ]]; then
               echo "Error: test tag is empty"
