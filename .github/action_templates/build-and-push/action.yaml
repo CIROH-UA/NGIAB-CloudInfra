@@ -16,9 +16,9 @@ inputs:
     required: false
   
   outputs:
-  tag-name:
-    description: "The tag name used for the image"
-    value: ${{ steps.set-outputs.outputs.tag-name }}
+    tag-name:
+      description: "The tag name used for the image"
+      value: ${{ steps.set-outputs.outputs.tag-name }}
 
 runs:
   using: "composite"
