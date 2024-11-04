@@ -41,7 +41,10 @@ runs:
       id: set-outputs
       shell: bash
       run: |
-        echo "tag-name=${TAG_NAME}" >> $GITHUB_OUTPUT
+        echo "Current TAG_NAME from env: ${{ env.TAG_NAME }}"
+        echo "tag-name=${{ env.TAG_NAME }}" >> $GITHUB_OUTPUT
+        echo "Debug - content of GITHUB_OUTPUT:"
+        cat $GITHUB_OUTPUT
     
     - name: Attach platform to tag
       shell: bash
