@@ -202,8 +202,8 @@ jobs:
           docker images | grep awiciroh/ciroh-ngen-image
           
           # List remote tags
-          echo "Checking remote tags:"
-          curl -s https://registry.hub.docker.com/v2/repositories/awiciroh/ciroh-ngen-image/tags | jq '.results[].name'
+          #echo "Checking remote tags:"
+          #curl -s https://registry.hub.docker.com/v2/repositories/awiciroh/ciroh-ngen-image/tags | jq '.results[].name'
           
           # Check if both architecture images exist
           if ! docker pull awiciroh/ciroh-ngen-image:${TAG_NAME}-arm64; then
