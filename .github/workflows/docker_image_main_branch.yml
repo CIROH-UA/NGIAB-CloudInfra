@@ -52,7 +52,7 @@ jobs:
       push-tag-name: ${{ steps.push-build.outputs.tag-name }}
     strategy:
       matrix:
-        runner: [ARM64, AMD64]
+        runner: [arm64, amd64]
     steps:
       - name: deploy
         uses: actions/checkout@v2
