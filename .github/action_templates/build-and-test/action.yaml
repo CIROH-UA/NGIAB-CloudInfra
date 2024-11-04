@@ -31,10 +31,16 @@ runs:
       run: |
         echo "TAG_NAME=${GITHUB_REF##*/}" >> "$GITHUB_ENV"
       if: ${{ !startsWith(github.ref, 'refs/heads/main') }}
+    
+    - name: Set outputs
+      id: set-outputs
+      shell: bash
+      run: |
+        echo "tag-name=${TAG_NAME}" >> $GITHUB_OUTPUT
+
     - name: Attach platform to tag
       shell: bash
       run: |
-        echo "RAW_TAG=${{env.TAG_NAME}}" >> "$GITHUB_ENV"
         echo "TAG_NAME=${{env.TAG_NAME}}-${{inputs.platform}}" >> "$GITHUB_ENV"
       #if: "${{ inputs.platform != 'ARM64' }}"
 

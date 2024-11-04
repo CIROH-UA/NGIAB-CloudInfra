@@ -47,6 +47,9 @@ jobs:
   build:
     needs: init
     runs-on: ${{ matrix.runner}}
+    outputs:  # Define job outputs
+      test-tag-name: ${{ steps.test-build.outputs.tag-name }}
+      push-tag-name: ${{ steps.push-build.outputs.tag-name }}
     strategy:
       matrix:
         runner: [arm64, x86]
@@ -54,6 +57,7 @@ jobs:
       - name: deploy
         uses: actions/checkout@v2
       - name: Build and test Docker image
+        id: test-build
         uses: ./.github/action_templates/build-and-test
         with:
           docker-auth-token: ${{ secrets.DOCKER_AUTH_TOKEN }}
@@ -62,6 +66,7 @@ jobs:
           platform: ${{ matrix.runner}}
         if: ${{ !startsWith(github.ref, 'refs/heads/main') }}
       - name: Build and push Docker image
+        id: push-build
         uses: ./.github/action_templates/build-and-push
         with:
           docker-auth-token: ${{ secrets.DOCKER_AUTH_TOKEN }}
@@ -101,10 +106,15 @@ jobs:
         env
     - name: Create and push manifest
       run: |
-        docker manifest create awiciroh/ciroh-ngen-image:${{ env.RAW_TAG}} \
-          awiciroh/ciroh-ngen-image:${{ env.RAW_TAG}}-arm64 \
-          awiciroh/ciroh-ngen-image:${{ env.RAW_TAG}}-x86
-        docker manifest push awiciroh/ciroh-ngen-image:latest
+        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          TAG_NAME="${{ needs.build.outputs.push-tag-name }}"
+        else
+          TAG_NAME="${{ needs.build.outputs.test-tag-name }}"
+        fi
+        docker manifest create awiciroh/ciroh-ngen-image:${TAG_NAME} \
+          awiciroh/ciroh-ngen-image:${TAG_NAME}-arm64 \
+          awiciroh/ciroh-ngen-image:${TAG_NAME}-x86
+        docker manifest push awiciroh/ciroh-ngen-image:${TAG_NAME}
 
   slack:
     runs-on: ARM64
