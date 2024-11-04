@@ -90,6 +90,15 @@ jobs:
       with:
         username: awiciroh
         password: ${{ secrets.DOCKER_AUTH_TOKEN }}
+    - name: Print Specific Environment Variables
+      shell: bash
+      run: |
+        echo "TAG_NAME: ${{ env.TAG_NAME }}"
+        echo "RAW_TAG: ${{ env.RAW_TAG }}"
+        echo "GITHUB_REF: ${GITHUB_REF}"
+        echo "Branch name: ${GITHUB_REF##*/}"
+        echo "Printing all environment variables:"
+        env
     - name: Create and push manifest
       run: |
         docker manifest create awiciroh/ciroh-ngen-image:${{ env.RAW_TAG}} \
