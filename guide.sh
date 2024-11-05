@@ -159,11 +159,7 @@ else
     echo "Docker not found"
 fi 
 
-if uname -a | grep arm64 || uname -a | grep aarch64 ; then
-    IMAGE_NAME=awiciroh/ciroh-ngen-image:latest
-else
-    IMAGE_NAME=awiciroh/ciroh-ngen-image:latest-x86
-fi
+IMAGE_NAME=awiciroh/ciroh-ngen-image:latest
 
 # Model run options
 echo -e "${UYellow}Select an option (type a number): ${Color_Off}"
