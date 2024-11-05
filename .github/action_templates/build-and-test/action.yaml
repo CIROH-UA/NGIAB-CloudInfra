@@ -43,14 +43,11 @@ runs:
       run: |
         echo "Current TAG_NAME from env: ${{ env.TAG_NAME }}"
         echo "tag-name=${{ env.TAG_NAME }}" >> $GITHUB_OUTPUT
-        echo "Debug - content of GITHUB_OUTPUT:"
-        cat $GITHUB_OUTPUT
 
     - name: Attach platform to tag
       shell: bash
       run: |
         echo "TAG_NAME=${{env.TAG_NAME}}-${{inputs.platform}}" >> "$GITHUB_ENV"
-      #if: "${{ inputs.platform != 'ARM64' }}"
 
     - name: Login to Docker Hub
       shell: bash
@@ -67,27 +64,6 @@ runs:
       shell: bash
       run: |
           docker buildx create --use --name mybuilder --node mybuilder
-
-    - name: Check Docker Hub Repository
-      shell: bash
-      run: |
-        REPO="awiciroh/${{ inputs.image-name}}"
-        echo "Checking repository: $REPO"
-        if ! curl -s "https://hub.docker.com/v2/repositories/${REPO}/" > /dev/null; then
-          echo "$REPO does not exist"
-        fi
-
-    - name: Debug Info
-      shell: bash
-      run: |
-        echo "Image name: awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}}"
-        echo "Platform: ${{ inputs.platform }}"
-        echo "Docker version:"
-        docker version
-        echo "Docker info:"
-        docker info
-        echo "Buildx version:"
-        docker buildx version
 
     - name: Build and Cache Docker Image
       uses: docker/build-push-action@v5
