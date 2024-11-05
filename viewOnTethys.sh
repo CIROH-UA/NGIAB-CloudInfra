@@ -27,9 +27,9 @@ _check_geoserver_health() {
   local url="http://localhost:${GEOSERVER_PORT_HOST}/geoserver/rest/about/version.xml"
   local username="${GEOSERVER_ADMIN_USER}"
   local password="${GEOSERVER_ADMIN_PASSWORD}"
-  local interval=5          # Interval between retries in seconds (1m30s)
-  local timeout=10           # Timeout for each healthcheck attempt in seconds
-  local retries=3            # Number of retries
+  local interval=10          # Interval between retries in seconds (1m30s)
+  local timeout=10          # Timeout for each healthcheck attempt in seconds
+  local retries=8            # Number of retries
   local start_period=60      # Start period before healthchecks begin in seconds (1m)
   local attempt=1
 
@@ -72,8 +72,7 @@ _run_geoserver(){
     --env GEOSERVER_ADMIN_PASSWORD=$GEOSERVER_ADMIN_PASSWORD \
     --network $DOCKER_NETWORK \
     --name $GEOSERVER_CONTAINER_NAME \
-    $GEOSERVER_IMAGE_NAME \
-    > /dev/null 2>&1
+    $GEOSERVER_IMAGE_NAME
 }
 
 _check_for_existing_geoserver_image() {
@@ -574,6 +573,7 @@ create_tethys_portal(){
         _create_tethys_docker_network
         if _check_for_existing_tethys_image; then
             _execute_command _run_containers
+            echo -e "${BCyan}Waiting for GeoServer to start ...${Color_Off}"
             _check_geoserver_health
             echo -e "${BCyan}Link data to the Tethys app workspace.${Color_Off}"
             _link_data_to_app_workspace         
