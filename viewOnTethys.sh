@@ -502,12 +502,12 @@ _run_tethys(){
 # Create tethys portal
 create_tethys_portal(){
     while true; do
-        echo -e "${YELLOW}Visualize outputs using the Tethys Platform (https://www.tethysplatform.org/)? (y/N, default: y):${RESET}"
+        echo -e "${YELLOW}Visualize outputs using the Tethys Platform (https://www.tethysplatform.org/)? (y/N, default: n):${RESET}"
         read -r visualization_choice
         
-        # Default to 'y' if input is empty
+        # Default to 'N' if input is empty
         if [[ -z "$visualization_choice" ]]; then
-            visualization_choice="y"
+            visualization_choice="n"
         fi
 
         # Check for valid input
