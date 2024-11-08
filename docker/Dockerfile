@@ -165,6 +165,7 @@ COPY --from=troute_build /ngen/t-route/src/troute-*/dist/*.whl /tmp/
 
 RUN ln -s /dmod/bin/ngen /usr/local/bin/ngen
 
+ENV UV_INSTALL_DIR=/root/.cargo/bin
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.cargo/bin:${PATH}"
 RUN uv self update && uv venv && \
