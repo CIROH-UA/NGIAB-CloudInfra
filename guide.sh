@@ -155,15 +155,11 @@ find_files "$HOST_DATA_PATH" "realization" "realization.json" "$UGreen"
 echo -e "\nDetected ISA = $(uname -a)"
 if docker --version ; then
     echo "Docker found"
-else 
-    echo "Docker not found"
-fi 
-
-if uname -a | grep arm64 || uname -a | grep aarch64 ; then
-    IMAGE_NAME=awiciroh/ciroh-ngen-image:latest
 else
-    IMAGE_NAME=awiciroh/ciroh-ngen-image:latest-x86
+    echo "Docker not found"
 fi
+
+IMAGE_NAME=awiciroh/ciroh-ngen-image:latest
 
 # Model run options
 echo -e "${UYellow}Select an option (type a number): ${Color_Off}"
@@ -198,6 +194,66 @@ Final_Outputs_Count=$(find "$HOST_DATA_PATH/outputs/" -type f | wc -l)
 echo -e "$Final_Outputs_Count new outputs created."
 echo -e "Any copied files can be found here: $HOST_DATA_PATH/outputs"
 
+# ============ Run TEEHR ============
+# TODO: Support for ARM64
+# if uname -a | grep arm64 || uname -a | grep aarch64 ; then
+#     IMAGE_NAME=a935462133478.dkr.ecr.us-east-2.amazonaws.com/teehr:latest
+# else
+#     IMAGE_NAME=a935462133478.dkr.ecr.us-east-2.amazonaws.com/teehr:latest
+# fi
+IMAGE_NAME=awiciroh/ngiab-teehr
+while true; do
+    echo -e "${YELLOW}Run a TEEHR Evaluation on the output (https://rtiinternational.github.io/ngiab-teehr/)? (y/N, default: y):${RESET}"
+    read -r run_teehr_choice
+    # Default to 'y' if input is empty
+    if [[ -z "$run_teehr_choice" ]]; then
+        run_teehr_choice="y"
+    fi
+    # Check for valid input
+    if [[ "$run_teehr_choice" == [YyNn]* ]]; then
+        break
+    else
+        echo -e "${RED}Invalid choice. Please enter 'y' for yes, 'n' for no, or press Enter for default (yes).${RESET}"
+    fi
+done
+
+# Execute the command
+if [[ "$run_teehr_choice" == [Yy]* ]]; then
+    # TEEHR run options
+    echo -e "${UYellow}Specify the TEEHR image tag to use: ${Color_Off}"
+    read -erp "Image tag (ex. v0.1.4, default: 'latest'): " teehr_image_tag
+    if [[ -z "$teehr_image_tag" ]]; then
+        teehr_image_tag="latest"
+    fi
+    echo -e "${UYellow}Select an option (type a number): ${Color_Off}"
+    options=("Run TEEHR using existing local docker image" "Run TEEHR after updating to latest docker image" "Exit")
+    select option in "${options[@]}"; do
+        case $option in
+            "Run TEEHR using existing local docker image")
+                echo "running the TEEHR evaluation"
+                break
+                ;;
+            "Run TEEHR after updating to latest docker image")
+                echo "pulling container and running the TEEHR evaluation"
+                docker pull $IMAGE_NAME:$teehr_image_tag
+                break
+                ;;
+            Exit)
+                echo "Have a nice day!"
+                exit 0
+                ;;
+            *) echo "Invalid option $REPLY, 1 to continue with existing local image, 2 to update and run, and 3 to exit"
+                ;;
+        esac
+    done
+
+    docker run -v "$HOST_DATA_PATH:/app/data" "$IMAGE_NAME:$teehr_image_tag"
+    echo -e "${GREEN}TEEHR evaluation complete.${RESET}\n"
+else
+    echo -e "${CYAN}Skipping TEEHR evaluation step.${RESET}\n"
+fi
+# ================================
+
 # visualize with Tethys
 if [ $Final_Outputs_Count -gt 0 ]; then
     ARG1="$HOST_DATA_PATH"
@@ -205,7 +261,7 @@ if [ $Final_Outputs_Count -gt 0 ]; then
         printf "Failed to visualize outputs in Tethys:"
     fi
 else
-    echo -e "No outputs to visualize."    
+    echo -e "No outputs to visualize."
 fi
 
 echo -e "Thank you for running NextGen In A Box: National Water Model! Have a nice day!"

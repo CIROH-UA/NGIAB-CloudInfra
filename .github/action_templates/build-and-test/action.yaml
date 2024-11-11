@@ -14,6 +14,11 @@ inputs:
   platform:
     description: 'The platform to build'
     required: false
+  
+outputs:
+  tag-name:
+    description: "The tag name used for the image"
+    value: ${{ steps.set-outputs.outputs.tag-name }}
 
 runs:
   using: "composite"
@@ -31,11 +36,30 @@ runs:
       run: |
         echo "TAG_NAME=${GITHUB_REF##*/}" >> "$GITHUB_ENV"
       if: ${{ !startsWith(github.ref, 'refs/heads/main') }}
+    
+    - name: Set outputs
+      id: set-outputs
+      shell: bash
+      run: |
+        echo "Current TAG_NAME from env: ${{ env.TAG_NAME }}"
+        echo "tag-name=${{ env.TAG_NAME }}" >> $GITHUB_OUTPUT
+
     - name: Attach platform to tag
       shell: bash
       run: |
         echo "TAG_NAME=${{env.TAG_NAME}}-${{inputs.platform}}" >> "$GITHUB_ENV"
-      if: "${{ inputs.platform != 'ARM64' }}"
+
+    - name: Login to Docker Hub
+      shell: bash
+      run: |
+          echo "Logging in to Docker Hub..."
+          if ! echo "${{ inputs.docker-auth-token }}" | docker login --username awiciroh --password-stdin; then
+            echo "Failed to login to Docker Hub"
+            exit 1
+          fi
+          echo "Successfully logged in to Docker Hub"
+          docker info
+
     - name: Create Cache and Builder for Buildx
       shell: bash
       run: |
@@ -46,13 +70,13 @@ runs:
       with:
         context: ./docker
         file: ./docker/${{ inputs.dockerfile-name}}
-        build-args: |
-          TAG_NAME=${{ env.TAG_NAME}}
         push: true
         tags: |
           awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}}
         builder: mybuilder
         no-cache: true
+        platforms: linux/${{ inputs.platform }}
+        provenance: false
       env:
         DOCKER_BUILDKIT: 1
         DOCKER_CLI_EXPERIMENTAL: enabled
