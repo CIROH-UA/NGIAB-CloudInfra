@@ -203,17 +203,12 @@ Here is the commands that build ngiab image locally using docker build.
 
 ```
 cd docker
-docker build -f Dockerfile.ngen-deps -t awiciroh/ngen-deps . --no-cache
-docker build -f Dockerfile.t-route -t awiciroh/t-route . --no-cache --build-arg TAG_NAME=latest
-docker build -f Dockerfile.ngen -t awiciroh/ngen . --no-cache --build-arg TAG_NAME=latest
-docker build -f Dockerfile -t awiciroh/ciroh-ngen-image:latest . --no-cache --build-arg TAG_NAME=latest
+docker build -f Dockerfile -t awiciroh/ciroh-ngen-image:latest . --no-cache
 ```
 
 This image will not be pushed to Docker hub, and will stay in local machine.
-If you need to run guide.sh with the image built, image tag must match with your machine platform.
+If you need to run guide.sh with the image built, image tag must match with the tag in guide.sh.
 
-For Arm64 architecture, use latest tag.\
-For X86 architecture, use latest-x86 tag.\
 For windows user, the build should be run as administrator.
 
 Note: buildx command cannot be used in local build.
