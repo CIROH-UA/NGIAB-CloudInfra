@@ -228,9 +228,9 @@ create_tethys_portal(){
         echo -e "${BYellow}Visualize outputs using the Tethys Platform (https://www.tethysplatform.org/)? (y/N, default: y):${Color_Off}"
         read -r visualization_choice
         
-        # Default to 'y' if input is empty
+        # Default to 'N' if input is empty
         if [[ -z "$visualization_choice" ]]; then
-            visualization_choice="y"
+            visualization_choice="n"
         fi
 
         # Check for valid input

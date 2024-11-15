@@ -35,11 +35,19 @@ NGIAB provides a containerized and user-friendly solution for running the NextGe
 **Prerequisites**
 
 **Windows:**
-1. **Install WSL:** Head over to Microsoft's official documentation and follow their comprehensive guide on installing WSL: https://learn.microsoft.com/en-us/windows/wsl/install
-2. **Install Docker Desktop:** Begin by downloading and installing Docker Desktop from the official website: https://docs.docker.com/desktop/install/windows-install/#install-docker-desktop-on-windows
-3. **Start Docker Desktop:** After installation, launch the Docker Desktop application.
-4. **Open WSL as Admin:** Right-click on the WSL icon and select "Run as Administrator".
-5. **Verify Installation:** In the WSL window, type the command docker ps -a to check if Docker is running correctly. This command should display a list of Docker containers.
+1. **Install WSL:** Head over to Microsoft's official documentation and follow their comprehensive guide on installing WSL: https://learn.microsoft.com/en-us/windows/wsl/install.
+You can Open PowerShell or Windows Command Prompt in administrator mode and enter run the follwing command:
+```bash
+wsl --install
+```
+If wsl --install does not work (for instance, if WSL is already partially installed), you can try manually installing a Linux distribution by running:
+```bash
+sudo apt install wsl
+```
+3. **Install Docker Desktop:** Begin by downloading and installing Docker Desktop from the official website: https://docs.docker.com/desktop/install/windows-install/#install-docker-desktop-on-windows
+4. **Start Docker Desktop:** After installation, launch the Docker Desktop application.
+5. **Open WSL as Admin:** Right-click on the WSL icon and select "Run as Administrator".
+6. **Verify Installation:** In the WSL window, type the command docker ps -a to check if Docker is running correctly. This command should display a list of Docker containers.
 
 **Mac:**
 1. **Install Docker Desktop:** Download and install Docker Desktop for Mac from: https://docs.docker.com/desktop/install/mac-install/
@@ -68,9 +76,11 @@ mkdir -p NextGen/ngen-data
 ```bash
 cd NextGen/ngen-data
 ```
-- **WSL (Right click and run as Admin):** Open WSL with administrator privileges and execute:
+- **Windows WSL (Right click and run as Admin):** Open WSL with administrator privileges and execute:
 ```bash
-cd /mnt/c/Users/<Folder>
+cd /mnt/c/Users/
+ls
+cd <User Folder>
 ```
 
 ```bash
@@ -110,17 +120,22 @@ Go to the folder created earlier during step #1 above
 
 ```bash
 cd NextGen
+```
+```bash
 git clone https://github.com/CIROH-UA/NGIAB-CloudInfra.git
 ```
 ```bash
 cd NGIAB-CloudInfra
 ```
 
-2. **Run the Guide Script:**
+2. **Run the Guide :**
 ```bash
 ./guide.sh
 ```
-
+If you encounter a 401 Unauthorized error, re-run the script:
+```bash
+sudo ./guide.sh
+```
 3. **Follow the prompts:**
     - **Input Data Path:** Enter the path to your downloaded or generated input data directory. (e.g NextGen/ngen-data/my_data)
     - **Run Mode:** Choose between parallel or serial execution based on your preferences.
@@ -203,14 +218,11 @@ Here is the commands that build ngiab image locally using docker build.
 
 ```
 cd docker
-docker build -f Dockerfile.ngen-deps -t awiciroh/ngen-deps . --no-cache
-docker build -f Dockerfile.t-route -t awiciroh/t-route . --no-cache --build-arg TAG_NAME=latest
-docker build -f Dockerfile.ngen -t awiciroh/ngen . --no-cache --build-arg TAG_NAME=latest
-docker build -f Dockerfile -t awiciroh/ciroh-ngen-image:latest . --no-cache --build-arg TAG_NAME=latest
+docker build -f Dockerfile -t awiciroh/ciroh-ngen-image:latest . --no-cache
 ```
 
 This image will not be pushed to Docker hub, and will stay in local machine.
-If you need to run guide.sh with the image built, image tag must match with your machine platform.
+If you need to run guide.sh with the image built, image tag must match with the tag in guide.sh.
 
 For Arm64 architecture, use latest tag.\
 For X86 architecture, use latest-x86 tag.\
