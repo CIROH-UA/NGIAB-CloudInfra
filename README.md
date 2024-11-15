@@ -128,11 +128,14 @@ git clone https://github.com/CIROH-UA/NGIAB-CloudInfra.git
 cd NGIAB-CloudInfra
 ```
 
-2. **Run the Guide Script:**
+2. **Run the Guide :**
+```bash
+./guide.sh
+```
+If you encounter a 401 Unauthorized error, re-run the script:
 ```bash
 sudo ./guide.sh
 ```
-
 3. **Follow the prompts:**
     - **Input Data Path:** Enter the path to your downloaded or generated input data directory. (e.g NextGen/ngen-data/my_data)
     - **Run Mode:** Choose between parallel or serial execution based on your preferences.
