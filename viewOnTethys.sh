@@ -17,102 +17,6 @@ UCyan='\033[4;36m'
 UWhite='\033[4;37m'
 
 
-
-################################################
-############GEOSERVER FUNCTIONS#################
-################################################
-
-# wait for geoserver
-_check_geoserver_health() {
-  local url="http://localhost:${GEOSERVER_PORT_HOST}/geoserver/rest/about/version.xml"
-  local username="${GEOSERVER_ADMIN_USER}"
-  local password="${GEOSERVER_ADMIN_PASSWORD}"
-  local interval=10          # Interval between retries in seconds (1m30s)
-  local timeout=10          # Timeout for each healthcheck attempt in seconds
-  local retries=8            # Number of retries
-  local start_period=60      # Start period before healthchecks begin in seconds (1m)
-  local attempt=1
-
-  # Wait for the start period before starting health checks
-  sleep "$start_period"
-
-  while [ "$attempt" -le "$retries" ]; do
-    # Perform the health check using curl
-    response=$(curl --fail --silent --write-out '%{http_code}' \
-      --output /dev/null -u "${username}:${password}" \
-      --max-time "$timeout" "$url")
-    exit_status=$?
-
-    if [ "$exit_status" -eq 0 ]; then
-      echo -e "${UBlue}GeoServer is healthy. HTTP CODE: $response ${Color_Off}"
-      return 0
-    else
-      echo -e "${BRed}Health check failed (Attempt $attempt/$retries). HTTP CODE: $response ${Color_Off}"
-      if [ "$attempt" -lt "$retries" ]; then
-        echo -e "${BWhite}Retrying in $interval seconds... ${Color_Off}"
-        sleep "$interval"
-      fi
-    fi
-
-    attempt=$((attempt + 1))
-  done
-
-  echo "GeoServer health check failed after $retries attempts."
-  return 1
-}
-
-
-# run the geoserver docker container
-_run_geoserver(){
-    _execute_command docker run -it --rm -d \
-    --platform $PLATFORM \
-    -p $GEOSERVER_PORT_HOST:$GEOSERVER_PORT_CONTAINER \
-    --env SAMPLE_DATA=false \
-    --env GEOSERVER_ADMIN_USER=$GEOSERVER_ADMIN_USER \
-    --env GEOSERVER_ADMIN_PASSWORD=$GEOSERVER_ADMIN_PASSWORD \
-    --network $DOCKER_NETWORK \
-    --name $GEOSERVER_CONTAINER_NAME \
-    $GEOSERVER_IMAGE_NAME
-}
-
-_check_for_existing_geoserver_image() {
-    echo -e "${BYellow}Select an option (type a number): ${Color_Off}\n"
-    options=("Run GeoServer using existing local docker image" "Run GeoServer after updating to latest docker image" "Exit")
-    select option in "${options[@]}"; do
-        case $option in
-            "Run GeoServer using existing local docker image")
-                echo -e "${BGreen}Using local image of GeoServer${Color_Off}\n"
-                return 0
-                ;;
-            "Run GeoServer after updating to latest docker image")
-                echo -e "${BGreen}Pulling container...${Color_Off}\n"
-                if ! docker pull "$GEOSERVER_IMAGE_NAME"; then
-                    echo -e "${BRed}Failed to pull Docker image: $GEOSERVER_IMAGE_NAME${Color_Off}\n" >&2
-                    return 1
-                else
-                    echo -e "${BGreen}Successfully updated GeoServer image.${Color_Off}\n"
-                fi
-                return 0
-                ;;
-            "Exit")
-                echo -e "${BCyan}Have a nice day!${Color_Off}\n"
-                _tear_down
-                exit 0
-                ;;
-            *)
-                echo -e "${BRed}Invalid option $REPLY. Please type 1 to continue with existing local image, 2 to update and run, or 3 to exit.${Color_Off}\n"
-                ;;
-        esac
-    done
-}
-
-_tear_down_geoserver(){
-    if [ "$(docker ps -aq -f name=$GEOSERVER_CONTAINER_NAME)" ]; then
-        docker stop $GEOSERVER_CONTAINER_NAME > /dev/null 2>&1 
-        rm -rf $DATA_FOLDER_PATH/tethys/geoserver_data
-    fi
-}
-
 ################################################
 ###############HELPER FUNCTIONS#################
 ################################################
@@ -171,15 +75,11 @@ _execute_command() {
 
 _tear_down(){
     _tear_down_tethys
-    _tear_down_geoserver
     docker network rm $DOCKER_NETWORK > /dev/null 2>&1
 }
 
 _run_containers(){
     _run_tethys
-    echo -e "${BGreen}Setup GeoServer image...${Color_Off}"
-    _check_for_existing_geoserver_image
-    _run_geoserver
 }
 
 # Wait for a Docker container to become healthy or unhealthy
@@ -209,8 +109,6 @@ _wait_container() {
     echo -e "${BCyan}Container $container_name is now $container_health_status.${Color_Off}\n"
     return 0
 }
-
-
 
 _pause_script_execution() {
     while true; do
@@ -271,84 +169,6 @@ _link_data_to_app_workspace(){
         ln -s $TETHYS_PERSIST_PATH/ngen-data $APP_WORKSPACE_PATH/ngen-data"
 }
 
-_convert_gpkg_to_geojson() {
-    local python_bin_path="$1"
-    local path_script="$2"
-    local gpkg_name="$3"
-    local layer_name="$4"
-    local geojson_file="$5"
-    local gpkg_file="$APP_WORKSPACE_PATH/ngen-data/config/$gpkg_name"
-    echo "$gpkg_file"
-    _execute_command docker exec -it \
-        $TETHYS_CONTAINER_NAME \
-        $python_bin_path \
-        $path_script \
-        --convert_to_geojson \
-        --gpkg_path $gpkg_file \
-        --layer_name $layer_name \
-        --output_path $geojson_file
-}
-
-_publish_gpkg_layer_to_geoserver() {
-    local python_bin_path="$1"
-    local path_script="$2"
-    local gpkg_file="$3"
-    local catchment_gpkg_layer="$4"
-    local shapefile_path="$5"
-    local store_name="$6"
-    local geoserver_port="$GEOSERVER_PORT_CONTAINER"
-    local gpkg_file_path="$APP_WORKSPACE_PATH/ngen-data/config/$gpkg_file"
-
-    _execute_command docker exec -it \
-        $TETHYS_CONTAINER_NAME \
-        $python_bin_path \
-        $path_script \
-        --publish \
-        --gpkg_path $gpkg_file_path \
-        --layer_name $catchment_gpkg_layer \
-        --shp_path "$shapefile_path" \
-        --store_name $store_name \
-        --geoserver_host $GEOSERVER_CONTAINER_NAME \
-        --geoserver_port $geoserver_port \
-        --geoserver_username $GEOSERVER_ADMIN_USER \
-        --geoserver_password $GEOSERVER_ADMIN_PASSWORD
-}
-
-_publish_geojson_layer_to_geoserver() {
-    local python_bin_path="$1"
-    local path_script="$2"
-    local geojson_path="$3"
-    local shapefile_path="$4"
-    local store_name="$5"
-    _execute_command docker exec -it \
-        $TETHYS_CONTAINER_NAME \
-        $python_bin_path \
-        $path_script \
-        --publish_geojson \
-        --geojson_path $geojson_path \
-        --shp_path "$shapefile_path" \
-        --store_name $store_name \
-        --geoserver_host $GEOSERVER_CONTAINER_NAME \
-        --geoserver_port $GEOSERVER_PORT_CONTAINER \
-        --geoserver_username $GEOSERVER_ADMIN_USER \
-        --geoserver_password $GEOSERVER_ADMIN_PASSWORD
-}
-
-_create_geoserver_workspace() {
-    local python_bin_path="$1"
-    local path_script="$2"
-    _execute_command docker exec -it \
-        $TETHYS_CONTAINER_NAME \
-        $python_bin_path \
-        $path_script \
-        --create_workspace \
-        --geoserver_host $GEOSERVER_CONTAINER_NAME \
-        --geoserver_port $GEOSERVER_PORT_CONTAINER \
-        --geoserver_username $GEOSERVER_ADMIN_USER \
-        --geoserver_password $GEOSERVER_ADMIN_PASSWORD
-}
-
-
 
 _check_for_existing_tethys_image() {
     echo -e "${BYellow}Select an option (type a number): ${Color_Off}\n"
@@ -387,152 +207,6 @@ _tear_down_tethys(){
 }
 
 
-_prepare_hydrofabrics(){
-    local python_bin_path="/opt/conda/envs/tethys/bin/python"
-    local path_script="/usr/lib/tethys/apps/ngiab/cli/convert_geom.py"
-    local catchment_gpkg_layer="divides"
-    local nexus_gpkg_layer="nexus"
-    local flowpaths_gpkg_layer="flowpaths"
-    local catchment_geojson_path="$APP_WORKSPACE_PATH/ngen-data/config/catchments.geojson"
-    local nexus_geojson_path="$APP_WORKSPACE_PATH/ngen-data/config/nexus.geojson"
-    local flowpaths_geojson_path="$APP_WORKSPACE_PATH/ngen-data/config/flowpaths.geojson"
-    local shapefile_path="$APP_WORKSPACE_PATH/ngen-data/config/catchments"
-    local flowpaths_shapefile_path="$APP_WORKSPACE_PATH/ngen-data/config/flowpaths"
-    local catchment_store_name="catchments"
-    local flowpaths_store_name="flowpaths"
-
-    echo -e "${BCyan}Creating Nextgen workspace. ${Color_Off}"
-    _create_geoserver_workspace \
-            $python_bin_path \
-            $path_script \
-
-    # Auto-selecting files if only one is found
-    echo -e "${BCyan}Preparing the catchments...${Color_Off}"
-    selected_catchment=$(_auto_select_file "$CATCHMENT_FILE")
-    if [[ -n $selected_catchment ]]; then
-        _publish_geojson_layer_to_geoserver \
-            $python_bin_path \
-            $path_script \
-            $catchment_geojson_path \
-            $shapefile_path \
-            $catchment_store_name \
-            > /dev/null 2>&1
-    else
-        selected_catchment=$(_auto_select_file "$HYDRO_FABRIC")
-        if [[ -n  $selected_catchment ]]; then
-            catchment_gpkg_filename=$(_get_filename "$selected_catchment")                
-            _publish_gpkg_layer_to_geoserver \
-                $python_bin_path \
-                $path_script \
-                $catchment_gpkg_filename \
-                $catchment_gpkg_layer \
-                $shapefile_path \
-                $catchment_store_name \
-                > /dev/null 2>&1
-        else
-            n1=${selected_catchment:-$(read -p "Enter the hydrofabric catchment geojson file path: " n1; echo "$n1")}
-            local catchmentfilename=$(basename "$n1")
-            local catchment_path_check="$DATA_FOLDER_PATH/config/$catchmentfilename"
-            if [[ -e "$catchment_path_check" ]]; then
-                if [[ "$catchmentfilename" != "catchments.geojson" ]]; then
-                    _execute_command docker cp $n1 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/catchments.geojson > /dev/null 2>&1
-                fi
-            else
-                    _execute_command docker cp $n1 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/catchments.geojson > /dev/null 2>&1
-            fi
-            _publish_geojson_layer_to_geoserver \
-                $python_bin_path \
-                $path_script \
-                $catchment_geojson_path \
-                $shapefile_path \
-                $catchment_store_name \
-                > /dev/null 2>&1
-
-        fi
-    fi
-
-    echo -e "${BCyan}Preparing the nexus...${Color_Off}"
-
-    selected_nexus=$(_auto_select_file "$NEXUS_FILE")
-    if [[ -n  $selected_nexus ]]; then
-        _execute_command docker cp $selected_nexus $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/nexus.geojson > /dev/null 2>&1
-    else
-        selected_nexus=$(_auto_select_file "$HYDRO_FABRIC")
-        if [[ -n  $selected_nexus ]]; then
-            nexus_gpkg_filename=$(_get_filename "$selected_nexus")
-            _convert_gpkg_to_geojson \
-                $python_bin_path \
-                $path_script \
-                $nexus_gpkg_filename \
-                $nexus_gpkg_layer \
-                $nexus_geojson_path \
-                > /dev/null 2>&1
-        else
-            n2=${selected_nexus:-$(read -p "Enter the hydrofabric nexus geojson file path: " n2; echo "$n2")} 
-            local nexusfilename=$(basename "$n2")
-            local nexus_path_check="$DATA_FOLDER_PATH/config/$nexusfilename"
-
-            if [[ -e "$nexus_path_check" ]]; then
-                if [[ "$nexusfilename" != "nexus.geojson" ]]; then
-                    _execute_command docker cp $n2 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/nexus.geojson > /dev/null 2>&1
-                fi
-            else
-                _execute_command docker cp $n2 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/nexus.geojson > /dev/null 2>&1
-            fi
-
-        fi
-    fi
-    
-    echo -e "${BCyan}Preparing the flow paths...${Color_Off}"
-
-    selected_flowpaths=$(_auto_select_file "$FLOWPATHTS_FILE")
-    if [[ -n  $selected_flowpaths ]]; then
-        _publish_geojson_layer_to_geoserver \
-            $python_bin_path \
-            $path_script \
-            $flowpaths_geojson_path \
-            $flowpaths_shapefile_path \
-            $flowpaths_store_name \
-            > /dev/null 2>&1
-
-    else
-        selected_flowpaths=$(_auto_select_file "$HYDRO_FABRIC")
-        if [[ -n  $selected_flowpaths ]]; then
-            flowpaths_gpkg_filename=$(_get_filename "$selected_flowpaths")
-            _publish_gpkg_layer_to_geoserver \
-                $python_bin_path \
-                $path_script \
-                $flowpaths_gpkg_filename \
-                $flowpaths_gpkg_layer \
-                $flowpaths_geojson_path \
-                $flowpaths_store_name \
-                > /dev/null 2>&1
-
-        else
-            n2=${selected_flowpaths:-$(read -p "Enter the flow paths  geojson file path: " n2; echo "$n2")} 
-            local flowpathfilename=$(basename "$n2")
-            local flowpath_path_check="$DATA_FOLDER_PATH/config/$flowpathfilename"
-
-            if [[ -e "$flowpath_path_check" ]]; then
-                if [[ "$flowpathfilename" != "flowpaths.geojson" ]]; then
-                    _execute_command docker cp $n2 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/flowpaths.geojson
-                fi
-            else
-                _execute_command docker cp $n2 $TETHYS_CONTAINER_NAME:$TETHYS_PERSIST_PATH/ngen-data/config/flowpaths.geojson
-            fi
-            _publish_geojson_layer_to_geoserver \
-                $python_bin_path \
-                $path_script \
-                $flowpaths_geojson_path \
-                $flowpaths_shapefile_path \
-                $flowpaths_store_name \
-                > /dev/null 2>&1
-
-        fi
-    fi
-
-
-}
 _run_tethys(){
     _execute_command docker run --rm -it -d \
     -v "$DATA_FOLDER_PATH:$TETHYS_PERSIST_PATH/ngen-data" \
@@ -573,12 +247,8 @@ create_tethys_portal(){
         _create_tethys_docker_network
         if _check_for_existing_tethys_image; then
             _execute_command _run_containers
-            echo -e "${BCyan}Waiting for GeoServer to start ...${Color_Off}"
-            _check_geoserver_health
             echo -e "${BCyan}Link data to the Tethys app workspace.${Color_Off}"
-            _link_data_to_app_workspace         
-            echo -e "${BGreen}Preparing the hydrofabrics for the portal...${Color_Off}"
-            _prepare_hydrofabrics
+            _link_data_to_app_workspace
             _wait_container $TETHYS_CONTAINER_NAME
             echo -e "${BGreen}Your outputs are ready to be visualized at http://localhost/apps/ngiab ${Color_Off}"
             echo -e "${UPurple}You can use the following to login: ${Color_Off}"
@@ -605,19 +275,13 @@ trap handle_sigint SIGINT
 # Constanst
 PLATFORM='linux/amd64'
 TETHYS_CONTAINER_NAME="tethys-ngen-portal"
-GEOSERVER_CONTAINER_NAME="tethys-geoserver"
-GEOSERVER_PORT_CONTAINER="8080"
-GEOSERVER_PORT_HOST="8181"
 DOCKER_NETWORK="tethys-network"
 APP_WORKSPACE_PATH="/usr/lib/tethys/apps/ngiab/tethysapp/ngiab/workspaces/app_workspace"
 TETHYS_IMAGE_NAME=awiciroh/tethys-ngiab:main
-GEOSERVER_IMAGE_NAME=kartoza/geoserver:2.26.0
 DATA_FOLDER_PATH="$1"
 TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
 CONFIG_FILE="$HOME/.host_data_path.conf"
 SKIP_DB_SETUP=false
-GEOSERVER_ADMIN_USER=admin
-GEOSERVER_ADMIN_PASSWORD=geoserver
 
 # check for architecture
 if uname -a | grep arm64 || uname -a | grep aarch64 ; then
