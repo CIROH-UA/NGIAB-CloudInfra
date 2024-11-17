@@ -248,8 +248,8 @@ create_tethys_portal(){
         if _check_for_existing_tethys_image; then
             _execute_command _run_containers
             echo -e "${BCyan}Link data to the Tethys app workspace.${Color_Off}"
-            _link_data_to_app_workspace
             _wait_container $TETHYS_CONTAINER_NAME
+            _link_data_to_app_workspace
             echo -e "${BGreen}Your outputs are ready to be visualized at http://localhost/apps/ngiab ${Color_Off}"
             echo -e "${UPurple}You can use the following to login: ${Color_Off}"
             echo -e "${BCyan}user: admin${Color_Off}"
@@ -276,8 +276,8 @@ trap handle_sigint SIGINT
 PLATFORM='linux/amd64'
 TETHYS_CONTAINER_NAME="tethys-ngen-portal"
 DOCKER_NETWORK="tethys-network"
-APP_WORKSPACE_PATH="/usr/lib/tethys/apps/ngiab/tethysapp/ngiab/workspaces/app_workspace"
-TETHYS_IMAGE_NAME=awiciroh/tethys-ngiab:main
+APP_WORKSPACE_PATH="/opt/conda/envs/tethys/lib/python3.12/site-packages/tethysapp/ngiab/workspaces/app_workspace/"
+TETHYS_IMAGE_NAME=awiciroh/tethys-ngiab:migrate-pyproject
 DATA_FOLDER_PATH="$1"
 TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
 CONFIG_FILE="$HOME/.host_data_path.conf"
