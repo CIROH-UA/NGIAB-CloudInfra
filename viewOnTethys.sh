@@ -82,32 +82,37 @@ _run_containers(){
     _run_tethys
 }
 
-# Wait for a Docker container to become healthy or unhealthy
+# Wait for a Docker container to become healthy
 _wait_container() {
     local container_name=$1
-    local container_health_status
+    local container_health_status=""
     local attempt_counter=0
 
-    echo -e "${UPurple}Waiting for container: $container_name to start, this can take a couple of minutes...${Color_Off}\n"
+    echo -e "${UPurple}Waiting for container: $container_name to become healthy. This can take a couple of minutes...${Color_Off}\n"
 
-    until [[ "$container_health_status" == "healthy" || "$container_health_status" == "unhealthy" ]]; do
+    while true; do
         # Update the health status
-        if ! container_health_status=$(docker inspect -f '{{.State.Health.Status}}' "$container_name" 2>/dev/null); then
-            echo -e "${BRed}Failed to get health status for container $container_name. Ensure container exists and has a health check.${Color_Off}\n" >&2
+        container_health_status=$(docker inspect -f '{{.State.Health.Status}}' "$container_name" 2>/dev/null)
+
+        if [ $? -ne 0 ]; then
+            echo -e "${BRed}Failed to get health status for container $container_name. Ensure the container exists and has a health check.${Color_Off}\n" >&2
             return 1
         fi
 
-        if [[ -z "$container_health_status" ]]; then
+        if [[ "$container_health_status" == "healthy" ]]; then
+            echo -e "${BCyan}Container $container_name is now healthy.${Color_Off}\n"
+            return 0
+        elif [[ "$container_health_status" == "unhealthy" ]]; then
+            echo -e "${BRed}Container $container_name is unhealthy.${Color_Off}\n" >&2
+            return 1
+        elif [[ -z "$container_health_status" ]]; then
             echo -e "${BRed}No health status available for container $container_name. Ensure the container has a health check configured.${Color_Off}\n" >&2
             return 1
         fi
 
         ((attempt_counter++))
-        sleep 2  # Adjusted sleep time to 2 seconds to reduce system load
+        sleep 2  # Adjust the sleep time as needed
     done
-
-    echo -e "${BCyan}Container $container_name is now $container_health_status.${Color_Off}\n"
-    return 0
 }
 
 _pause_script_execution() {
@@ -222,32 +227,31 @@ _run_tethys(){
 }
 
 
-# Create tethys portal
 create_tethys_portal(){
     while true; do
-        echo -e "${BYellow}Visualize outputs using the Tethys Platform (https://www.tethysplatform.org/)? (y/N, default: y):${Color_Off}"
+        echo -e "${BYellow}Visualize outputs using the Tethys Platform (https://www.tethysplatform.org/)? (Y/n, default: n):${Color_Off}"
         read -r visualization_choice
         
-        # Default to 'N' if input is empty
+        # Default to 'n' if input is empty
         if [[ -z "$visualization_choice" ]]; then
             visualization_choice="n"
         fi
 
         # Check for valid input
-        if [[ "$visualization_choice" == [YyNn]* ]]; then
+        if [[ "$visualization_choice" =~ ^[YyNn]$ ]]; then
             break
         else
-            echo -e "${BRed}Invalid choice. Please enter 'y' for yes, 'n' for no, or press Enter for default (yes).${Color_Off}"
+            echo -e "${BRed}Invalid choice. Please enter 'y' for yes, 'n' for no, or press Enter for default (no).${Color_Off}"
         fi
     done
     
     # Execute the command
-    if [[ "$visualization_choice" == [Yy]* ]]; then
-        echo -e "${BGreen}Setup Tethys Portal image...${Color_Off}"
+    if [[ "$visualization_choice" =~ ^[Yy]$ ]]; then
+        echo -e "${BGreen}Setting up Tethys Portal image...${Color_Off}"
         _create_tethys_docker_network
         if _check_for_existing_tethys_image; then
             _execute_command _run_containers
-            echo -e "${BCyan}Link data to the Tethys app workspace.${Color_Off}"
+            echo -e "${BCyan}Linking data to the Tethys app workspace.${Color_Off}"
             _wait_container $TETHYS_CONTAINER_NAME
             _link_data_to_app_workspace
             echo -e "${BGreen}Your outputs are ready to be visualized at http://localhost/apps/ngiab ${Color_Off}"
