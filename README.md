@@ -139,10 +139,9 @@ sudo ./guide.sh
 3. **Follow the prompts:**
     - **Input Data Path:** Enter the path to your downloaded or generated input data directory. (e.g NextGen/ngen-data/my_data)
     - **Run Mode:** Choose between parallel or serial execution based on your preferences.
-      The script pulls the related image from the awiciroh DockerHub, based on the local machine's architecture:
+      The script pulls the image from the awiciroh DockerHub:
       ```
-      For Mac with apple silicon (arm architecture), it pulls awiciroh/ciroh-ngen-image:latest.
-      For x86 machines, it pulls awiciroh/ciroh-ngen-image:latest-x86.
+      For both Mac with apple silicon (arm architecture) and x86 machine, it pulls awiciroh/ciroh-ngen-image:latest.
       ```
       Example NGEN run command for parallel mode: 
       ```bash
