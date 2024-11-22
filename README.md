@@ -13,7 +13,7 @@ NGIAB provides a containerized and user-friendly solution for running the NextGe
 | ![alt text](https://ciroh.ua.edu/wp-content/uploads/2022/08/CIROHLogo_200x200.png) | Funding for this project was provided by the National Oceanic & Atmospheric Administration (NOAA), awarded to the Cooperative Institute for Research to Operations in Hydrology (CIROH) through the NOAA Cooperative Agreement with The University of Alabama (NA22NWS4320003). |
 
 [![ARM Build and push final image](https://github.com/CIROH-UA/NGIAB-CloudInfra/actions/workflows/docker_image_main_branch.yml/badge.svg)](https://github.com/CIROH-UA/NGIAB-CloudInfra/actions/workflows/docker_image_main_branch.yml)
-[![X86 Build and push final image](https://github.com/CIROH-UA/NGIAB-CloudInfra/actions/workflows/docker_image_main_x86.yml/badge.svg)](https://github.com/CIROH-UA/NGIAB-CloudInfra/actions/workflows/docker_image_main_x86.yml)
+
 
 **Why NextGen In A Box?**
 
@@ -94,24 +94,24 @@ cd NextGen/ngen-data
 
 - **Linux/Mac/Windows WSL:** Use wget to download the compressed data file:
 ```bash
-wget --no-parent https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-006/AWI_16_2853886_006.tar.gz
+wget --no-parent https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-007/AWI_16_2863657_007.tar.gz
 ```
 
 **Step 3: Extract and Rename**
 
 - **All Platforms:** Extract the downloaded file and optionally rename the folder:
 ```bash
-tar -xf AWI_16_2853886_006.tar.gz
+tar -xf AWI_16_2863657_007.tar.gz
 ```
 ### Below is Optional: Rename the folder
 ```bash
-mv AWI_16_2853886_006 my_data
+mv AWI_16_2863657_007 my_data
 ```
 Now you have successfully downloaded and prepared the sample input data in the NextGen/ngen-data directory. Remember to replace "my_data" with your preferred folder name if you choose to rename it.
 
 ### Case Study Map for the Provo River Basin, UT 
 
-![AWI_16_2853886_006](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/VPU16.png)
+![AWI_16_2863657_007](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/VPU16.png)
 
 **Running NGIAB**
 
