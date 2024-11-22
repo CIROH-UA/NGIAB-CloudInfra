@@ -111,7 +111,7 @@ Now you have successfully downloaded and prepared the sample input data in the N
 
 ### Case Study Map for the Provo River Basin, UT 
 
-![AWI_16_2863657_007](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/VPU16.png)
+![AWI_16_2863657_007](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/VPU16_007.png)
 
 **Running NGIAB**
 
