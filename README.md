@@ -163,7 +163,7 @@ sudo ./guide.sh
 After the `guide.sh` is finished, the user can decide to use the [Teehr Evalution]() for evaluation of outputs and the [Tethys Platform]() for visualization of the outputs (nexus and catchments). The script will ask to choose each option to proceed. The Teehr evaluatoion option will pull the latest image of and run the evaluation. The next option will pull the latest image of the [Ngiab visualizer tethys app](https://github.com/CIROH-UA/ngiab-client). It will also spin a GeoServer container in order to visualize the catchments layers (due to the size of the layer, this layer is visualized as with WMS service)
 
 ```bash
-Your NGEN run command is mpirun -n 0 /dmod/bin/ngen-parallel ./config/cat-502716_subset.gpkg all ./config/cat-502716_subset.gpkg all ./config/realization.json /ngen/ngen/data/partitions_0.json
+Your NGEN run command is mpirun -n 0 /dmod/bin/ngen-parallel ./config/cat-2863657_subset.gpkg all ./config/cat-2863657_subset.gpkg all ./config/realization.json /ngen/ngen/data/partitions_0.json
 If your model didn't run, or encountered an error, try checking the Forcings paths in the Realizations file you selected.
 Do you want to redirect command output to /dev/null? (y/N, default: n):
 
