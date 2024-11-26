@@ -88,10 +88,6 @@ select option in "${options[@]}"; do
 
       if [ "$option" == "Run NextGen model framework in parallel mode" ]; then
         procs=$(nproc)
-        num_catchments=$(find forcings -name *.csv | wc -l)
-        if [ $num_catchments -lt $procs ]; then
-                procs=$num_catchments
-        fi
         generate_partition "$n1" "$n2" "$procs"
         run_command="mpirun -n $procs /dmod/bin/ngen-parallel $n1 all $n2 all $n3 $(pwd)/partitions_$procs.json"
       else
