@@ -73,6 +73,66 @@ cd NGIAB-CloudInfra
 ./guide.sh
 ```
 
+### 4. NextGen Run Directory Structure (`ngen-run/`)
+
+Running NextGen requires building a standard run directory complete with only the necessary files. Below is an explanation of the standard. Reference for discussion of the standard [here](https://github.com/CIROH-UA/NGIAB-CloudInfra/pull/17).
+
+A NextGen run directory `ngen-run` is composed of three necessary subfolders `config, forcings, outputs` and an optional fourth subfolder `metadata`.
+
+```
+ngen-run/
+│
+├── config/
+│
+├── forcings/
+│
+├── lakeout/
+|
+├── metadata/
+│
+├── outputs/
+│
+├── restart/
+```
+
+The `ngen-run` directory contains the following subfolders:
+
+- `config`:  model configuration files and hydrofabric configuration files. A deeper explanation [here](#configuration-directory-ngen-runconfig)
+- `forcings`: catchment-level forcing timeseries files. These can be generated with the [forcingprocessor](https://github.com/CIROH-UA/ngen-datastream/tree/main/forcingprocessor). Forcing files contain variables like wind speed, temperature, precipitation, and solar radiation.
+- `lakeout`: for t-route 
+- `metadata` is an optional subfolder. This is programmatically generated and it used within to ngen. Do not edit this folder.
+- `outputs`: This is where ngen will place the output files.
+- `restart`: For restart files
+ 
+#### Configuration directory `ngen-run/config/`
+This folder contains the NextGen realization file, which serves as the primary model configuration for the ngen framework. This file specifies which models to run and with which parameters, run parameters like date and time, and hydrofabric specifications.
+
+Based on the models defined in the realization file, BMI configuration files may be required. For those models that require per-catchment configuration files, a folder will hold these files for each model in `ngen-run/config/cat-config`. See [here](https://github.com/CIROH-UA/ngen-datastream/blob/main/docs/NGEN_MODULES.md) for which models ngen-datastream supports automated BMI configuration file generation. See the directory structure convention below.
+
+```
+ngen-run/
+|
+├── config/
+|   │
+|   ├── nextgen_09.gpkg
+|   |
+|   ├── realization.json
+|   |
+|   ├── ngen.yaml
+|   |
+|   ├── cat-config/
+|   │   |
+|   |   ├──PET/
+|   │   |
+|   |   ├──CFE/
+|   │   |
+|   |   ├──NOAH-OWP-M/
+...
+```
+
+Hydrofabric Example files: `conus_nextgen.gpkg`
+NextGen requires a single geopackage file. This file is the [hydrofabric](https://mikejohnson51.github.io/hyAggregate/) (spatial data). An example geopackage can be found on Lynker-Spatial [here](https://www.lynker-spatial.com/data?path=hydrofabric%2Fv2.2%2F). Tools to subset a geopackage into a smaller domain can be found at [Lynker's hfsubset](https://github.com/LynkerIntel/hfsubset). 
+
 ## Case Study: Provo River Basin, UT
 
 ![Provo River Basin Map](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/VPU16_007.png)
