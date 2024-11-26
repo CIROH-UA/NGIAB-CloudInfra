@@ -160,14 +160,12 @@ sudo ./guide.sh
 **Output:**
 - Model outputs will be saved in the outputs folder within your input data directory. (e.g '.../NextGen/ngen-data/my_data/')
 
-After the `guide.sh` is finished, the user can decide to use the [Tethys Platform]() for visualization of the outputs (nexus and catchments). The script will pull the latest image of the [Ngiab visualizer tethys app](https://github.com/CIROH-UA/ngiab-client). It will also spin a GeoServer container in order to visualize the catchments layers (due to the size of the layer, this layer is visualized as with WMS service)
+After the `guide.sh` is finished, the user can decide to use the [Teehr Evalution]() for evaluation of outputs and the [Tethys Platform]() for visualization of the outputs (nexus and catchments). The script will ask to choose each option to proceed. The Teehr evaluatoion option will pull the latest image of and run the evaluation. The next option will pull the latest image of the [Ngiab visualizer tethys app](https://github.com/CIROH-UA/ngiab-client). It will also spin a GeoServer container in order to visualize the catchments layers (due to the size of the layer, this layer is visualized as with WMS service)
 
 ```bash
-Your NGEN run command is mpirun -n 8 /dmod/bin/ngen-parallel ./config/wb-2853886_subset.gpkg all ./config/wb-2853886_subset.gpkg all ./config/realization.json /ngen/ngen/data/partitions_8.json
+Your NGEN run command is mpirun -n 0 /dmod/bin/ngen-parallel ./config/cat-502716_subset.gpkg all ./config/cat-502716_subset.gpkg all ./config/realization.json /ngen/ngen/data/partitions_0.json
 If your model didn't run, or encountered an error, try checking the Forcings paths in the Realizations file you selected.
 Do you want to redirect command output to /dev/null? (y/N, default: n):
-y
-Redirecting output to /dev/null.
 
 real    0m44.057s
 user    3m59.398s
@@ -179,9 +177,14 @@ Select an option (type a number):
 2) Exit
 #? 2
 Have a nice day.
-3 new outputs created.
-Any copied files can be found here: /home/ubuntu/AWI_16_2853886_006/outputs
-Visualize outputs using the Tethys Platform (https://www.tethysplatform.org/)? (y/N, default: y):
+364 new outputs created.
+Any copied files can be found here: /Users/benjaminlee/workspace/awi/input/AWI_16_2863657_007/outputs
+Run a TEEHR Evaluation on the output (https://rtiinternational.github.io/ngiab-teehr/)? (y/N, default: y):
+...
+TEEHR evaluation complete.
+
+Darwin UA-QG4YJKY 22.4.0 Darwin Kernel Version 22.4.0: Mon Mar  6 20:59:58 PST 2023; root:xnu-8796.101.5~3/RELEASE_ARM64_T6020 arm64
+Visualize outputs using the Tethys Platform (https://www.tethysplatform.org/)? (Y/n, default: n):
 ```
 
 ### How to run NGIAB Visualizer?
