@@ -15,6 +15,7 @@ UBlue='\033[4;34m'
 UPurple='\033[4;35m'
 UCyan='\033[4;36m'
 UWhite='\033[4;37m'
+Color_Off='\033[0m'
 
 
 ################################################
@@ -43,7 +44,7 @@ _check_and_read_config() {
     local config_file="$1"
     if [ -f "$config_file" ]; then
         local last_path=$(cat "$config_file")
-        echo -e "Last used data directory path: %s\n" "$last_path"
+        echo -e "Last used data directory path: %s\n" "$last_path${Color_Off}"
         read -erp "Do you want to use the same path? (Y/n): " use_last_path
         if [[ "$use_last_path" =~ ^[Yy] ]]; then
             DATA_FOLDER_PATH="$last_path"
@@ -54,9 +55,9 @@ _check_and_read_config() {
             _check_if_data_folder_exits
             # Save the new path to the config file
             echo "$DATA_FOLDER_PATH" > "$CONFIG_FILE"
-            echo -e "The Directory you've given is:\n$DATA_FOLDER_PATH\n"   
+            echo -e "The Directory you've given is:\n$DATA_FOLDER_PATH\n${Color_Off}"   
         else
-            echo -e "Invalid input. Exiting.\n" >&2
+            echo -e "Invalid input. Exiting.\n${Color_Off}" >&2
             return 1
         fi
     fi
@@ -88,25 +89,25 @@ _wait_container() {
     local container_health_status=""
     local attempt_counter=0
 
-    echo -e "${UPurple}Waiting for container: $container_name to become healthy. This can take a couple of minutes...${Color_Off}\n"
+    echo -e "${UPurple}Waiting for container: $container_name to become healthy. This can take a couple of minutes...\n${Color_Off}"
 
     while true; do
         # Update the health status
         container_health_status=$(docker inspect -f '{{.State.Health.Status}}' "$container_name" 2>/dev/null)
 
         if [ $? -ne 0 ]; then
-            echo -e "${BRed}Failed to get health status for container $container_name. Ensure the container exists and has a health check.${Color_Off}\n" >&2
+            echo -e "${BRed}Failed to get health status for container $container_name. Ensure the container exists and has a health check.\n${Color_Off}" >&2
             return 1
         fi
 
         if [[ "$container_health_status" == "healthy" ]]; then
-            echo -e "${BCyan}Container $container_name is now healthy.${Color_Off}\n"
+            echo -e "${BCyan}Container $container_name is now healthy.\n${Color_Off}"
             return 0
         elif [[ "$container_health_status" == "unhealthy" ]]; then
-            echo -e "${BRed}Container $container_name is unhealthy.${Color_Off}\n" >&2
+            echo -e "${BRed}Container $container_name is unhealthy.\n${Color_Off}" >&2
             return 1
         elif [[ -z "$container_health_status" ]]; then
-            echo -e "${BRed}No health status available for container $container_name. Ensure the container has a health check configured.${Color_Off}\n" >&2
+            echo -e "${BRed}No health status available for container $container_name. Ensure the container has a health check configured.\n${Color_Off}" >&2
             return 1
         fi
 
@@ -117,15 +118,15 @@ _wait_container() {
 
 _pause_script_execution() {
     while true; do
-        echo -e "${BYellow}Press q to exit the visualization (default: q/Q):${Color_Off}\n"
+        echo -e "${BYellow}Press q to exit the visualization (default: q/Q):\n${Color_Off}"
         read -r exit_choice
 
         if [[ "$exit_choice" =~ ^[qQ]$ ]]; then
-            echo -e "${BRed}Cleaning up Tethys ...${Color_Off}\n"
+            echo -e "${BRed}Cleaning up Tethys ...\n${Color_Off}"
             _tear_down
             exit 0
         else
-            echo -e "${BRed}Invalid input. Please press 'q' or 'Q' to exit.${Color_Off}\n"
+            echo -e "${BRed}Invalid input. Please press 'q' or 'Q' to exit.\n${Color_Off}"
         fi
     done
 }
@@ -181,13 +182,13 @@ _check_for_existing_tethys_image() {
     select option in "${options[@]}"; do
         case $option in
             "Run Tethys using existing local docker image")
-                echo -e "${BGreen}Using local image of the Tethys platform${Color_Off}\n"
+                echo -e "${BGreen}Using local image of the Tethys platform\n${Color_Off}"
                 return 0
                 ;;
             "Run Tethys after updating to latest docker image")
                 echo -e "${BGreen}Pulling container...${Color_Off}\n"
                 if ! docker pull "$TETHYS_IMAGE_NAME"; then
-                    echo -e "${BRed}Failed to pull Docker image: $TETHYS_IMAGE_NAME${Color_Off}\n" >&2
+                    echo -e "${BRed}Failed to pull Docker image: $TETHYS_IMAGE_NAME\n${Color_Off}" >&2
                     return 1
                 fi
                 return 0
@@ -198,7 +199,7 @@ _check_for_existing_tethys_image() {
                 exit 0
                 ;;
             *)
-                echo -e "${BRed}Invalid option $REPLY, 1 to continue with existing local image, 2 to update and run, and 3 to exit${Color_Off}\n"
+                echo -e "${BRed}Invalid option $REPLY, 1 to continue with existing local image, 2 to update and run, and 3 to exit\n${Color_Off}"
                 ;;
         esac
     done
@@ -258,13 +259,13 @@ create_tethys_portal(){
             echo -e "${UPurple}You can use the following to login: ${Color_Off}"
             echo -e "${BCyan}user: admin${Color_Off}"
             echo -e "${BCyan}password: pass${Color_Off}"
-            echo -e "${UPurple}Check the App source code: https://github.com/Aquaveo/ngiab-client ${Color_Off}"
+            echo -e "${UPurple}Check the App source code: https://github.com/CIROH-UA/ngiab-client ${Color_Off}"
             _pause_script_execution
         else
-            echo -e "${BRed}Failed to prepare Tethys portal.${Color_Off}\n"
+            echo -e "${BRed}Failed to prepare Tethys portal.\n${Color_Off}"
         fi
     else
-        echo -e "${BCyan}Skipping Tethys visualization setup.${Color_Off}\n"
+        echo -e "${BCyan}Skipping Tethys visualization setup.\n${Color_Off}"
     fi
 }
 
@@ -298,4 +299,3 @@ fi
 check_last_path "$@"
 
 create_tethys_portal
-
