@@ -208,12 +208,18 @@ The output files are copied to the `outputs` folder in the '/NextGen/ngen-data/m
 If the [Tethys Platform](https://www.tethysplatform.org/) is used to visualize the outputs after the `guide.sh`, or if the `viewOnTethys.sh` script is used, you can expect to see geospatial and time series visualization of the catchments and nexus points:
 
 **Geopatial Visualization**
-![1715704416415](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/1715704416415.png)
+Nexus points are associated on clusters while catchments are represented by red polygons. Red points with transparent fill represent the location where TEERH data is available.
+![client_geospatial_viz](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/client_geospatial_viz.png)
 **Nexus Time Series**
-![1715704437369](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/1715704437369.png)
+![client_nexus_viz](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/client_nexus_viz.png)
 **Catchments Time Series**
-![1715704450639](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/1715704450639.png)
-
+![client_catchments_viz.png](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/client_catchments_viz.png)
+**Troute Visualization**
+troute data can be visualize when clickcling on nexus points and catchments as well.
+![client_troute_viz.png](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/client_troute_viz.png)
+**TEEHR Outout Visualization**
+Time Series and metrics visualization are available.
+![client_teerh_viz.png](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/client_teerh_viz.png)
 ### Build NGIAB locally
 
 Here is the commands that build ngiab image locally using docker build.
