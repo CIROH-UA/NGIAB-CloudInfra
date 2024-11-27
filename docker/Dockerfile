@@ -37,6 +37,8 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 WORKDIR /ngen/
 RUN pip3 install uv && uv venv
 ENV PATH="/ngen/.venv/bin:$PATH"
+## make sure clone isn't cached if repo is updated
+ADD https://api.github.com/repos/${TROUTE_REPO}/git/refs/heads/${TROUTE_BRANCH} /tmp/version.json
 # install requirements like this so the troute clone can run in parallel with ngen download and build
 RUN uv pip install -r https://raw.githubusercontent.com/$TROUTE_REPO/refs/heads/$TROUTE_BRANCH/requirements.txt
 # this installs numpy 1.26.4 but the produced wheels install a non pinned version
@@ -67,6 +69,8 @@ RUN uv build --wheel --no-build-isolation src/troute-nwm/
 
 FROM troute_prebuild AS ngen_clone
 WORKDIR /ngen
+## make sure clone isn't cached if repo is updated
+ADD https://api.github.com/repos/${NGEN_REPO}/git/refs/heads/${NGEN_BRANCH} /tmp/version.json
 RUN git clone --single-branch --branch $NGEN_BRANCH https://github.com/$NGEN_REPO.git && \
     cd ngen && \
     git submodule update --init --recursive --depth 1
