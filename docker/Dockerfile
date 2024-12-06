@@ -197,4 +197,6 @@ ENV PATH="/ngen/.venv/bin:${PATH}"
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url
 COPY --from=ngen_build /tmp/ngen_url /ngen/ngen_url
 
+RUN echo "export PS1='\u\[\033[01;32m\]@ngiab_dev\[\033[00m\]:\[\033[01;35m\]\W\[\033[00m\]\$ '" >> ~/.bashrc
+
 ENTRYPOINT ["./HelloNGEN.sh"]
