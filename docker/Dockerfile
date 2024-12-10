@@ -94,7 +94,7 @@ ARG COMMON_BUILD_ARGS="-DNGEN_WITH_EXTERN_ALL=ON \
     -DNGEN_WITH_UDUNITS:BOOL=ON \
     -DUDUNITS_QUIET:BOOL=ON \
     -DNGEN_WITH_TESTS:BOOL=OFF \
-    -DCMAKE_BUILD_TYPE=Debug \
+    -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=. \
     -DCMAKE_CXX_FLAGS='-fuse-ld=lld'"
     # lld is the linker, it's faster than the default
