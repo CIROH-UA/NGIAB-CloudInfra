@@ -80,9 +80,9 @@ select option in "${options[@]}"; do
   case $option in
     "Run NextGen model framework in serial mode"|"Run NextGen model framework in parallel mode")
       echo -e "\n"
-      n1=${selected_catchment:-$(read -p "Enter the hydrofabric catchment file path: " n1; echo "$n1")}
-      n2=${selected_nexus:-$(read -p "Enter the hydrofabric nexus file path: " n2; echo "$n2")}
-      n3=${selected_realization:-$(read -p "Enter the Realization file path: " n3; echo "$n3")}
+      n1=${selected_catchment:-$(read -erp "Enter the hydrofabric catchment file path: " n1; echo "$n1")}
+      n2=${selected_nexus:-$(read -erp "Enter the hydrofabric nexus file path: " n2; echo "$n2")}
+      n3=${selected_realization:-$(read -erp "Enter the Realization file path: " n3; echo "$n3")}
 
       echo -e "${GREEN}Selected files:\nCatchment: $n1\nNexus: $n2\nRealization: $n3${RESET}\n"
 
