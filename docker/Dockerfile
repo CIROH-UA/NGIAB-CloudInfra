@@ -194,7 +194,7 @@ RUN uv pip install numpy==$(/dmod/bin/ngen --info | grep -e 'NumPy Version: ' | 
 # we can add the venv to the path so ngen can find it
 ENV PATH="/ngen/.venv/bin:${PATH}"
 
-# Install lstm
+# Install lstm - the extra index url installs cpu-only pytorch which is ~6gb smaller
 COPY --from=ngen_clone /ngen/ngen/extern/lstm/lstm /ngen/ngen/extern/lstm
 RUN uv pip install --no-cache-dir /ngen/ngen/extern/lstm --extra-index-url https://download.pytorch.org/whl/cpu
 
