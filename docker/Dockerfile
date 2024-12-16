@@ -2,7 +2,7 @@ FROM rockylinux:9.1 AS base
 ENV TROUTE_REPO=CIROH-UA/t-route
 ENV TROUTE_BRANCH=datastream
 ENV NGEN_REPO=CIROH-UA/ngen
-ENV NGEN_BRANCH=main
+ENV NGEN_BRANCH=ngiab
 
 # Install system dependencies
 RUN echo "max_parallel_downloads=10" >> /etc/dnf/dnf.conf
@@ -193,6 +193,10 @@ RUN uv pip install numpy==$(/dmod/bin/ngen --info | grep -e 'NumPy Version: ' | 
 # now that the only version of numpy is the one that NGen expects, 
 # we can add the venv to the path so ngen can find it
 ENV PATH="/ngen/.venv/bin:${PATH}"
+
+# Install lstm
+COPY --from=ngen_clone /ngen/ngen/extern/lstm/lstm /ngen/ngen/extern/lstm
+RUN uv pip install --no-cache-dir /ngen/ngen/extern/lstm --extra-index-url https://download.pytorch.org/whl/cpu
 
 ## add some metadata to the image
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url
