@@ -4,21 +4,32 @@ ENV TROUTE_BRANCH=datastream
 ENV NGEN_REPO=CIROH-UA/ngen
 ENV NGEN_BRANCH=ngiab
 
-# Install system dependencies
+# Install final dependencies to make sure ngen is build and deployed with matching versions
+# Needed here for build caching
 RUN echo "max_parallel_downloads=10" >> /etc/dnf/dnf.conf
 RUN dnf update -y && \
     dnf install -y epel-release && \
     dnf config-manager --set-enabled crb && \
     dnf install -y \
-    sudo vim gcc gcc-c++ make cmake ninja-build tar git gcc-gfortran libgfortran sqlite sqlite-devel \
+    vim libgfortran sqlite \
+    bzip2 expat udunits2 zlib \
+    mpich hdf5 netcdf netcdf-fortran netcdf-cxx netcdf-cxx4-mpich
+
+FROM base AS build_base
+# no dnf update to keep devel packages consistent with versions installed in base
+RUN echo "max_parallel_downloads=10" >> /etc/dnf/dnf.conf
+RUN dnf install -y epel-release && \
+    dnf config-manager --set-enabled crb && \
+    dnf install -y \
+    sudo gcc gcc-c++ make cmake ninja-build tar git gcc-gfortran libgfortran sqlite sqlite-devel \
     python3 python3-devel python3-pip gdal gdal-devel \
-    bzip2 expat expat-devel flex bison udunits2 udunits2-devel zlib-devel \
-    wget mpich mpich-devel hdf5 hdf5-devel netcdf netcdf-devel \
-    netcdf-fortran netcdf-fortran-devel netcdf-cxx netcdf-cxx-devel lld
+    expat-devel flex bison udunits2-devel zlib-devel \
+    wget mpich-devel hdf5-devel netcdf-devel \
+    netcdf-fortran-devel netcdf-cxx-devel lld
 
 
 
-FROM base AS boost_build
+FROM build_base AS boost_build
 RUN wget https://archives.boost.io/release/1.79.0/source/boost_1_79_0.tar.gz
 RUN tar -xzf boost_1_79_0.tar.gz
 WORKDIR /boost_1_79_0
@@ -61,7 +72,7 @@ RUN ./compiler.sh no-e
 # install / build using UV because it's so much faster
 # no build isolation needed because of cython namespace issues
 RUN uv pip install --config-setting='--build-option=--use-cython' src/troute-network/
-RUN uv build --wheel --config-setting='--build-option=--use-cython' src/troute-network/ 
+RUN uv build --wheel --config-setting='--build-option=--use-cython' src/troute-network/
 RUN uv pip install --no-build-isolation --config-setting='--build-option=--use-cython' src/troute-routing/
 RUN uv build --wheel --no-build-isolation --config-setting='--build-option=--use-cython' src/troute-routing/
 RUN uv build --wheel --no-build-isolation src/troute-config/
@@ -97,7 +108,7 @@ ARG COMMON_BUILD_ARGS="-DNGEN_WITH_EXTERN_ALL=ON \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=. \
     -DCMAKE_CXX_FLAGS='-fuse-ld=lld'"
-    # lld is the linker, it's faster than the default
+# lld is the linker, it's faster than the default
 
 
 # Build Ngen serial
@@ -108,8 +119,8 @@ ARG MPI_BUILD_ARGS="-DNGEN_WITH_MPI:BOOL=ON \
     -DNetCDF_ROOT=/usr/lib64/mpich \
     -DCMAKE_PREFIX_PATH=/usr/lib64/mpich \
     -DCMAKE_LIBRARY_PATH=/usr/lib64/mpich/lib"
-    # the two in the command below can't be here because the $() isn't evaulated properly
-    
+# the two in the command below can't be here because the $() isn't evaulated properly
+
 
 # Install the mpi enabled netcdf library and build Ngen parallel with it
 RUN dnf install -y netcdf-cxx4-mpich-devel
@@ -149,17 +160,7 @@ ENTRYPOINT ["./HelloNGEN.sh"]
 
 
 
-FROM rockylinux:9.1 AS final
-# Install only necessary runtime dependencies
-RUN echo "max_parallel_downloads=10" >> /etc/dnf/dnf.conf
-RUN dnf update -y && \
-    dnf install -y epel-release && \
-    dnf config-manager --set-enabled crb && \
-    dnf install -y \
-    vim libgfortran sqlite gdal \
-    bzip2 expat udunits2 zlib \
-    mpich hdf5 netcdf netcdf-fortran netcdf-cxx netcdf-cxx4-mpich && \
-    dnf clean all
+FROM base AS final
 
 WORKDIR /ngen
 
@@ -190,7 +191,7 @@ RUN chmod a+x /dmod/bin/* /ngen/HelloNGEN.sh
 #                                                             This mess is parsing the version number
 RUN uv pip install numpy==$(/dmod/bin/ngen --info | grep -e 'NumPy Version: ' | cut -d ':' -f 2 | uniq | xargs)
 
-# now that the only version of numpy is the one that NGen expects, 
+# now that the only version of numpy is the one that NGen expects,
 # we can add the venv to the path so ngen can find it
 ENV PATH="/ngen/.venv/bin:${PATH}"
 
