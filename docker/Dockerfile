@@ -22,7 +22,7 @@ RUN dnf install -y epel-release && \
     dnf config-manager --set-enabled crb && \
     dnf install -y \
     sudo gcc gcc-c++ make cmake ninja-build tar git gcc-gfortran libgfortran sqlite sqlite-devel \
-    python3 python3-devel python3-pip gdal gdal-devel \
+    python3 python3-devel python3-pip \
     expat-devel flex bison udunits2-devel zlib-devel \
     wget mpich-devel hdf5-devel netcdf-devel \
     netcdf-fortran-devel netcdf-cxx-devel lld
