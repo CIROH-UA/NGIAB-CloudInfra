@@ -60,15 +60,15 @@ cd NextGen/ngen-data
 ```
 
 ### 2. Download Sample Data
-#### Option 1: AWI-007 input data (realization file includes - SLOTH, NoahOWP, CFE)
+#### Option 1: AWI-009 input data (Muddy River Below Clear Creek Near Cougar, WA)
 ```bash
-wget https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-007/AWI_16_2863657_007.tar.gz
-tar -xf AWI_16_2863657_007.tar.gz
+wget https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-009/AWI-gage-06192500_009.tar.gz
+tar -xf AWI-gage-06192500_009.tar.gz
 ```
-#### Option 2: AWI-008 input data (realization file includes - SLOTH, Demostration LSTM)
+#### Option 2: AWI-010 input data (Yellowstone River near Livingston, MT)
 ```bash
-wget --no-parent https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-008/AWI_16_2863806_008.tar.gz
-tar -xf AWI_16_2863806_008.tar.gz
+wget https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-010/AWI-gage-14216500_010.tar.gz
+tar -xf AWI-gage-14216500_010.tar.gz
 ```
 ### 3. Clone and Run
 ```bash
