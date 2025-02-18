@@ -138,7 +138,7 @@ ngen-run/
 Hydrofabric Example files: `conus_nextgen.gpkg`
 NextGen requires a single geopackage file. This file is the [hydrofabric](https://mikejohnson51.github.io/hyAggregate/) (spatial data). An example geopackage can be found on Lynker-Spatial [here](https://www.lynker-spatial.com/data?path=hydrofabric%2Fv2.2%2F). Tools to subset a geopackage into a smaller domain can be found at [Lynker's hfsubset](https://github.com/LynkerIntel/hfsubset). 
 
-## Case Study: Provo River Basin, UT
+## Case Study1: Provo River Basin, UT
 
 ![Provo River Basin Map](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/VPU16_007.png)
 
@@ -156,6 +156,18 @@ NGIAB provides comprehensive visualization options through the Tethys Platform:
      ![Catchment Time Series](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/outputcat.png)
    - Nexus Points
      ![Nexus Time Series](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/outputnexusteehr.png)
+
+## Case Study2: Yellowstone River near Livingston, MT
+![Provo River Basin Map](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/MuddyRiver.png)
+
+1. **Geospatial Visualization**
+   ![Nexus Output](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/MuddyRiver_Geo_Vis.png)
+
+2. **Time Series Analysis**
+   - Catchments
+     ![Catchment Time Series](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/MuddyRiver_Catchment.png)
+   - Nexus Points
+     ![Nexus Time Series](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/MuddyRiver_Nexus.png) 
 
 ## Advanced Usage
 
