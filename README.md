@@ -60,16 +60,18 @@ cd NextGen/ngen-data
 ```
 
 ### 2. Download Sample Data
-#### Option 1: AWI-009 input data (Muddy River Below Clear Creek Near Cougar, WA)
+#### Option 1: AWI-008 input data (realization file includes - SLOTH, Demostration LSTM)
+```bash
+wget --no-parent https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-008/AWI_16_2863806_008.tar.gz
+tar -xf AWI_16_2863806_008.tar.gz
+```
+
+#### Option 2: AWI-009 input data (Muddy River Below Clear Creek Near Cougar, WA)
 ```bash
 wget https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-009/AWI-gage-06192500_009.tar.gz
 tar -xf AWI-gage-06192500_009.tar.gz
 ```
-#### Option 2: AWI-010 input data (Yellowstone River near Livingston, MT)
-```bash
-wget https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-010/AWI-gage-14216500_010.tar.gz
-tar -xf AWI-gage-14216500_010.tar.gz
-```
+
 ### 3. Clone and Run
 ```bash
 cd NextGen
@@ -138,26 +140,7 @@ ngen-run/
 Hydrofabric Example files: `conus_nextgen.gpkg`
 NextGen requires a single geopackage file. This file is the [hydrofabric](https://mikejohnson51.github.io/hyAggregate/) (spatial data). An example geopackage can be found on Lynker-Spatial [here](https://www.lynker-spatial.com/data?path=hydrofabric%2Fv2.2%2F). Tools to subset a geopackage into a smaller domain can be found at [Lynker's hfsubset](https://github.com/LynkerIntel/hfsubset). 
 
-## Case Study1: Provo River Basin, UT
-
-![Provo River Basin Map](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/VPU16_007.png)
-
-This repository includes a complete case study of the Provo River Basin, demonstrating NGIAB's capabilities in a real-world scenario.
-
-## Output Visualization
-
-NGIAB provides comprehensive visualization options through the Tethys Platform:
-
-1. **Geospatial Visualization**
-   ![Nexus Output](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/outputnexus.png)
-
-2. **Time Series Analysis**
-   - Catchments
-     ![Catchment Time Series](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/outputcat.png)
-   - Nexus Points
-     ![Nexus Time Series](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/outputnexusteehr.png)
-
-## Case Study2: Yellowstone River near Livingston, MT
+## Case Study: Yellowstone River near Livingston, MT
 ![Provo River Basin Map](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/MuddyRiver.png)
 
 1. **Geospatial Visualization**
