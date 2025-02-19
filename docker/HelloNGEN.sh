@@ -50,7 +50,6 @@ generate_partition() {
 }
 
 generate_local_partition() {
-  # pipe to log file and stdout
   python /dmod/utils/partitioning/local_only_partitions.py "$1" "$2" "."
   # the last line printed by the script is the number of partitions actually generated
   }
