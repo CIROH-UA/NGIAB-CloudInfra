@@ -141,16 +141,16 @@ Hydrofabric Example files: `conus_nextgen.gpkg`
 NextGen requires a single geopackage file. This file is the [hydrofabric](https://mikejohnson51.github.io/hyAggregate/) (spatial data). An example geopackage can be found on Lynker-Spatial [here](https://www.lynker-spatial.com/data?path=hydrofabric%2Fv2.2%2F). Tools to subset a geopackage into a smaller domain can be found at [Lynker's hfsubset](https://github.com/LynkerIntel/hfsubset). 
 
 ## Case Study: Muddy River Below Clear Creek Near Cougar, WA
-![Muddy River Below Clear Creek Near Cougar Map](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/MuddyRiver.png)
+![Muddy River Below Clear Creek Near Cougar Map](image/README/MuddyRiver.png)
 
 1. **Geospatial Visualization**
-   ![Nexus Output](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/MuddyRiver_Geo_Vis.png)
+   ![Nexus Output](image/README/MuddyRiver_Geo_Vis.png)
 
 2. **Time Series Analysis**
    - Catchments
-     ![Catchment Time Series](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/MuddyRiver_Catchment.png)
+     ![Catchment Time Series](image/README/MuddyRiver_Catchment.png)
    - Nexus Points
-     ![Nexus Time Series](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/MuddyRiver_Nexus.png) 
+     ![Nexus Time Series](image/README/MuddyRiver_Nexus.png) 
 
 ## Advanced Usage
 
