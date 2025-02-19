@@ -60,16 +60,18 @@ cd NextGen/ngen-data
 ```
 
 ### 2. Download Sample Data
-#### Option 1: AWI-007 input data (realization file includes - SLOTH, NoahOWP, CFE)
-```bash
-wget https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-007/AWI_16_2863657_007.tar.gz
-tar -xf AWI_16_2863657_007.tar.gz
-```
-#### Option 2: AWI-008 input data (realization file includes - SLOTH, Demostration LSTM)
+#### Option 1: AWI_16_2863806_008 input data (Provo River, UT) (realization file includes - SLOTH, Demostration LSTM)
 ```bash
 wget --no-parent https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-008/AWI_16_2863806_008.tar.gz
 tar -xf AWI_16_2863806_008.tar.gz
 ```
+
+#### Option 2: AWI-gage-14216500_010 input data (Muddy River Below Clear Creek Near Cougar, WA) (realization file includes - SLOTH, NoahOWP, CFE)
+```bash
+wget https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-010/AWI-gage-14216500_010.tar.gz
+tar -xf AWI-gage-14216500_010.tar.gz
+```
+
 ### 3. Clone and Run
 ```bash
 cd NextGen
@@ -138,24 +140,17 @@ ngen-run/
 Hydrofabric Example files: `conus_nextgen.gpkg`
 NextGen requires a single geopackage file. This file is the [hydrofabric](https://mikejohnson51.github.io/hyAggregate/) (spatial data). An example geopackage can be found on Lynker-Spatial [here](https://www.lynker-spatial.com/data?path=hydrofabric%2Fv2.2%2F). Tools to subset a geopackage into a smaller domain can be found at [Lynker's hfsubset](https://github.com/LynkerIntel/hfsubset). 
 
-## Case Study: Provo River Basin, UT
-
-![Provo River Basin Map](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/VPU16_007.png)
-
-This repository includes a complete case study of the Provo River Basin, demonstrating NGIAB's capabilities in a real-world scenario.
-
-## Output Visualization
-
-NGIAB provides comprehensive visualization options through the Tethys Platform:
+## Case Study: Muddy River Below Clear Creek Near Cougar, WA
+![Muddy River Below Clear Creek Near Cougar Map](image/README/MuddyRiver.png)
 
 1. **Geospatial Visualization**
-   ![Nexus Output](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/outputnexus.png)
+   ![Nexus Output](image/README/MuddyRiver_Geo_Vis.png)
 
 2. **Time Series Analysis**
    - Catchments
-     ![Catchment Time Series](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/outputcat.png)
+     ![Catchment Time Series](image/README/MuddyRiver_Catchment.png)
    - Nexus Points
-     ![Nexus Time Series](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/outputnexusteehr.png)
+     ![Nexus Time Series](image/README/MuddyRiver_Nexus.png) 
 
 ## Advanced Usage
 
@@ -170,8 +165,6 @@ cd docker
 docker build -f Dockerfile -t awiciroh/ciroh-ngen-image:latest . --no-cache
 ```
 
-Note: For ARM64 architecture, use `latest` tag; for X86 architecture, use `latest-x86` tag.
-
 ## Additional Resources
 
 - [End-to-End Setup Guide](https://docs.ciroh.org/docs/products/Community%20Hydrologic%20Modeling%20Framework/nextgeninaboxDocker/workflow)
@@ -180,3 +173,6 @@ Note: For ARM64 architecture, use `latest` tag; for X86 architecture, use `lates
 - [Community troute Repository](https://github.com/CIROH-UA/t-route)
 - [NGIAB Data Preprocessor](https://github.com/AlabamaWaterInstitute/NGIAB_data_preprocess)
 - [ngen-datastream Repository](https://github.com/CIROH-UA/ngen-datastream/tree/main)
+- [NGIAB TEEHR Integration](https://github.com/CIROH-UA/ngiab-teehr)
+- [Data Visualizer](https://github.com/CIROH-UA/ngiab-client)
+   
