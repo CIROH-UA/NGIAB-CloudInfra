@@ -49,6 +49,12 @@ generate_partition() {
   /dmod/bin/partitionGenerator "$1" "$2" "partitions_$3.json" "$3" '' ''
 }
 
+generate_local_partition() {
+  # pipe to log file and stdout
+  python /dmod/utils/partitioning/local_only_partitions.py "$1" "$2" "."
+  # the last line printed by the script is the number of partitions actually generated
+  }
+
 if [ "$2" == "auto" ]
   then
     echo "AUTO MODE ENGAGED"
@@ -62,7 +68,12 @@ if [ "$2" == "auto" ]
     partitions=$(find . -name "*partitions_$procs.json")
     if [[ -z $partitions ]]; then
       echo "No partitions file found, generating..."
-      generate_partition "$selected_catchment" "$selected_nexus" "$procs"
+      if [ "$4" == "local" -o "$3" == "local" ]
+      then 
+        procs=$(generate_local_partition "$selected_catchment" "$procs"|tail -n 1)
+      else
+        generate_partition "$selected_catchment" "$selected_nexus" "$procs"
+      fi
     else
       echo "Found paritions file! "$partitions
     fi
@@ -88,8 +99,10 @@ select option in "${options[@]}"; do
 
       if [ "$option" == "Run NextGen model framework in parallel mode" ]; then
         procs=$(nproc)
-        generate_partition "$n1" "$n2" "$procs"
-        run_command="mpirun -n $procs /dmod/bin/ngen-parallel $n1 all $n2 all $n3 $(pwd)/partitions_$procs.json"
+        # The last line printed by the script is the number of partitions actually generated
+        num_partitions=$(generate_local_partition "$n1" "$procs"|tail -n 1)
+        echo "Generated $num_partitions partitions"
+        run_command="mpirun -n $num_partitions /dmod/bin/ngen-parallel $n1 all $n2 all $n3 $(pwd)/partitions_$num_partitions.json"
       else
         run_command="/dmod/bin/ngen-serial $n1 all $n2 all $n3"
       fi
