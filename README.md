@@ -150,7 +150,7 @@ NextGen requires a single geopackage file. This file is the [hydrofabric](https:
 
 This repository includes a complete case study of the Provo River Basin, demonstrating NGIAB's capabilities in a real-world scenario.
 1. **Geospatial Visualization**
-   ![Nexus Output](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/outputnexus.png)
+   ![Nexus Output](image/README/Provo_GeoSpatial.png)
 
 2. **Time Series Analysis**
    - Catchments
