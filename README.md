@@ -60,16 +60,20 @@ cd NextGen/ngen-data
 ```
 
 ### 2. Download Sample Data
-#### Option 1: AWI_16_2863806_008 input data (Provo River, UT) (realization file includes - SLOTH, Demostration LSTM)
+#### Option 1: AWI-009 input data (realization file includes - SLOTH, NoahOWP, CFE) - calibrated realization file for Provo River near Woodland, UT
+```bash
+wget https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-009/AWI_16_10154200_009.tar.gz
+tar -xf AWI_16_2863657_007.tar.gz
+```
+#### Option 2: AWI-007 input data (realization file includes - SLOTH, NoahOWP, CFE)
+```bash
+wget https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-007/AWI_16_2863657_007.tar.gz
+tar -xf AWI_16_2863657_007.tar.gz
+```
+#### Option 3: AWI-008 input data (realization file includes - SLOTH, Demostration LSTM)
 ```bash
 wget --no-parent https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-008/AWI_16_2863806_008.tar.gz
 tar -xf AWI_16_2863806_008.tar.gz
-```
-
-#### Option 2: AWI-gage-14216500_010 input data (Muddy River Below Clear Creek Near Cougar, WA) (realization file includes - SLOTH, NoahOWP, CFE)
-```bash
-wget https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-010/AWI-gage-14216500_010.tar.gz
-tar -xf AWI-gage-14216500_010.tar.gz
 ```
 
 ### 3. Clone and Run
@@ -140,17 +144,19 @@ ngen-run/
 Hydrofabric Example files: `conus_nextgen.gpkg`
 NextGen requires a single geopackage file. This file is the [hydrofabric](https://mikejohnson51.github.io/hyAggregate/) (spatial data). An example geopackage can be found on Lynker-Spatial [here](https://www.lynker-spatial.com/data?path=hydrofabric%2Fv2.2%2F). Tools to subset a geopackage into a smaller domain can be found at [Lynker's hfsubset](https://github.com/LynkerIntel/hfsubset). 
 
-## Case Study: Muddy River Below Clear Creek Near Cougar, WA
-![Muddy River Below Clear Creek Near Cougar Map](image/README/MuddyRiver.png)
+## Case Study: Provo River Basin, UT
 
+![Provo River Basin Map](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/VPU16_007.png)
+
+This repository includes a complete case study of the Provo River Basin, demonstrating NGIAB's capabilities in a real-world scenario.
 1. **Geospatial Visualization**
-   ![Nexus Output](image/README/MuddyRiver_Geo_Vis.png)
+   ![Nexus Output](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/image/README/outputnexus.png)
 
 2. **Time Series Analysis**
    - Catchments
-     ![Catchment Time Series](image/README/MuddyRiver_Catchment.png)
+     ![Catchment Time Series](image/README/Provo_catchments.png)
    - Nexus Points
-     ![Nexus Time Series](image/README/MuddyRiver_Nexus.png) 
+     ![Nexus Time Series](image/README/Provo_nexus_point.png) 
 
 ## Advanced Usage
 
