@@ -49,12 +49,16 @@ _check_and_read_config() {
         if [[ "$use_last_path" =~ ^[Yy] ]]; then
             DATA_FOLDER_PATH="$last_path"
             _check_if_data_folder_exits
+            _create_models_symlink "$DATA_FOLDER_PATH"
+            _add_model_run "$DATA_FOLDER_PATH"
             return 0
         elif [[ "$use_last_path" =~ ^[Nn] ]]; then
             read -erp "Enter your input data directory path (use absolute path): " DATA_FOLDER_PATH
             _check_if_data_folder_exits
             # Save the new path to the config file
             echo "$DATA_FOLDER_PATH" > "$CONFIG_FILE"
+            _create_models_symlink "$DATA_FOLDER_PATH"
+            _add_model_run "$DATA_FOLDER_PATH"
             echo -e "The Directory you've given is:\n$DATA_FOLDER_PATH\n${Color_Off}"   
         else
             echo -e "Invalid input. Exiting.\n${Color_Off}" >&2
@@ -168,14 +172,6 @@ _create_tethys_docker_network(){
     _execute_command docker network create -d bridge tethys-network > /dev/null 2>&1
 }
 
-# Link the data to the app workspace
-_link_data_to_app_workspace(){
-    _execute_command docker exec -it $TETHYS_CONTAINER_NAME sh -c \
-        "mkdir -p $APP_WORKSPACE_PATH && \
-        ln -s $TETHYS_PERSIST_PATH/ngen-data $APP_WORKSPACE_PATH/ngen-data"
-}
-
-
 _check_for_existing_tethys_image() {
     echo -e "${BYellow}Select an option (type a number): ${Color_Off}\n"
     options=("Run Tethys using existing local docker image" "Run Tethys after updating to latest docker image" "Exit")
@@ -215,7 +211,8 @@ _tear_down_tethys(){
 
 _run_tethys(){
     _execute_command docker run --rm -it -d \
-    -v "$DATA_FOLDER_PATH:$TETHYS_PERSIST_PATH/ngen-data" \
+    -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer" \
+    -v "$VISUALIZER_CONF:$TETHYS_PERSIST_PATH/ngiab_visualizer.json" \
     -p 80:80 \
     --platform $PLATFORM \
     --network $DOCKER_NETWORK \
@@ -227,6 +224,83 @@ _run_tethys(){
     > /dev/null 2>&1
 }
 
+_create_models_symlink() {
+  local input_path="$1"
+  local link_dir="$HOME/ngiab_visualizer"
+
+  # 1) Ensure the directory exists
+  if [ ! -d "$link_dir" ]; then
+    mkdir -p "$link_dir"
+  fi
+
+  # 2) Construct what the symlink path would be (by basename)
+  local base_name
+  base_name=$(basename "$input_path")
+  local link_path="$link_dir/$base_name"
+
+  # 3) If a symlink with that name doesn't exist or doesn't point to the given path, create one
+  #    - If you only want to skip creation if the *exact* symlink already exists (even if it points somewhere else),
+  #      you can simplify the condition to [ ! -L "$link_path" ].
+  #    - If you need to handle collisions (e.g. if a file with that name exists), add extra checks.
+  if [ ! -L "$link_path" ]; then
+    ln -s "$input_path" "$link_path"
+    echo "Created symlink: $link_path -> $input_path"    
+  else
+    # Optional: Check if the existing symlink points exactly to $input_path
+    local existing_target
+    existing_target=$(readlink "$link_path")
+    if [ "$existing_target" = "$input_path" ]; then
+      echo "Symlink already exists and points correctly to $input_path."
+    else
+      echo "Warning: A different symlink already exists at $link_path (-> $existing_target)."
+      # Optionally remove and recreate:
+      # rm "$link_path"
+      # ln -s "$input_path" "$link_path"
+    fi
+  fi
+}
+
+
+_add_model_run() {
+  local input_path="$1"
+  local json_file="$HOME/ngiab_visualizer.json"
+
+  # 1) Ensure $json_file exists
+  if [ ! -f "$json_file" ]; then
+    echo '{"model_runs":[]}' > "$json_file"
+  fi
+
+  # 2) Extract the basename for label
+  local base_name
+  base_name=$(basename "$input_path")
+
+  # Generate a new UUID for the id field
+  local new_uuid
+  new_uuid=$(uuidgen)
+
+  # Current date/time (adjust format as needed)
+  local current_time
+  current_time=$(date +"%Y-%m-%d:%H:%M:%S")
+
+  # Always use /var/lib/tethys_persist/ngiab_visualizer as the base directory
+  local final_path="/var/lib/tethys_persist/ngiab_visualizer/$base_name"
+
+  jq --arg label "$base_name" \
+     --arg path  "$final_path" \
+     --arg date  "$current_time" \
+     --arg id    "$new_uuid" \
+     '.model_runs += [ 
+       { 
+         "label": $label, 
+         "path": $path, 
+         "date": $date, 
+         "id": $id, 
+         "subset": "", 
+         "tags": [] 
+       }
+     ]' \
+     "$json_file" > "${json_file}.tmp" && mv "${json_file}.tmp" "$json_file"
+}
 
 create_tethys_portal(){
     while true; do
@@ -254,7 +328,6 @@ create_tethys_portal(){
             _execute_command _run_containers
             echo -e "${BCyan}Linking data to the Tethys app workspace.${Color_Off}"
             _wait_container $TETHYS_CONTAINER_NAME
-            _link_data_to_app_workspace
             echo -e "${BGreen}Your outputs are ready to be visualized at http://localhost/apps/ngiab ${Color_Off}"
             echo -e "${UPurple}You can use the following to login: ${Color_Off}"
             echo -e "${BCyan}user: admin${Color_Off}"
@@ -279,9 +352,10 @@ trap handle_sigint SIGINT
 
 # Constanst
 PLATFORM='linux/amd64'
+VISUALIZER_CONF="$HOME/ngiab_visualizer.json"
+MODELS_RUNS_DIRECTORY="$HOME/ngiab_visualizer"
 TETHYS_CONTAINER_NAME="tethys-ngen-portal"
 DOCKER_NETWORK="tethys-network"
-APP_WORKSPACE_PATH="/opt/conda/envs/tethys/lib/python3.12/site-packages/tethysapp/ngiab/workspaces/app_workspace/"
 TETHYS_IMAGE_NAME=awiciroh/tethys-ngiab:main
 DATA_FOLDER_PATH="$1"
 TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
