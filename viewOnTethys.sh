@@ -234,7 +234,6 @@ _copy_models_run() {
   # Ensure the parent directory exists
   if [ ! -d "$models_dir" ]; then
     mkdir -p "$models_dir"
-    # chmod -R 777 "$models_dir"
   fi
 
   # Derive the target path from the basename
@@ -310,7 +309,6 @@ _add_model_run() {
   # 1) Ensure $json_file exists
   if [ ! -f "$json_file" ]; then
     echo '{"model_runs":[]}' > "$json_file"
-    # chmod 777 "$json_file"
   fi
 
   # 2) Extract the basename for label
