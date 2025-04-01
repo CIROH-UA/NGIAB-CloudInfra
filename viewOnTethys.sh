@@ -262,14 +262,12 @@ _copy_models_run() {
         [Oo]* )
           rm -rf "$model_run_path"
           cp -r "$input_path" "$models_dir"
-        #   echo >&2 "Overwritten existing directory: $input_path -> $model_run_path"
           echo -e "${BCyan}Overwritten existing directory: $input_path -> $model_run_path.\n${Color_Off}" >&2
           final_copied_path="$model_run_path"
           break
           ;;
         [Dd]* )
           echo -e "${BBlue}Enter a new directory name:\n${Color_Off}" >&2
-        #   echo >&2 "Enter a new directory name:"
           read -r new_name < /dev/tty
 
           if [ -z "$new_name" ]; then
@@ -281,8 +279,6 @@ _copy_models_run() {
           if [ -e "$new_path" ]; then
             echo -e "${BBlue}A directory/file named '$new_name' already exists in $models_dir.\n${Color_Off}" >&2
             echo -e "${BBlue}Please choose another name.\n${Color_Off}" >&2
-            # echo >&2 "A directory/file named '$new_name' already exists in $models_dir."
-            # echo >&2 "Please choose another name."
             continue
           fi
 
