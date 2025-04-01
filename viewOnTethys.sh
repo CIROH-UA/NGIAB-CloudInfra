@@ -46,19 +46,20 @@ _check_and_read_config() {
         local last_path=$(cat "$config_file")
         echo -e "Last used data directory path: %s\n" "$last_path${Color_Off}"
         read -erp "Do you want to use the same path? (Y/n): " use_last_path
+        
         if [[ "$use_last_path" =~ ^[Yy] ]]; then
             DATA_FOLDER_PATH="$last_path"
             _check_if_data_folder_exits
-            _create_models_symlink "$DATA_FOLDER_PATH"
-            _add_model_run "$DATA_FOLDER_PATH"
+            final_dir=$(_copy_models_run "$DATA_FOLDER_PATH")
+            _add_model_run "$final_dir"
             return 0
         elif [[ "$use_last_path" =~ ^[Nn] ]]; then
             read -erp "Enter your input data directory path (use absolute path): " DATA_FOLDER_PATH
             _check_if_data_folder_exits
             # Save the new path to the config file
             echo "$DATA_FOLDER_PATH" > "$CONFIG_FILE"
-            _create_models_symlink "$DATA_FOLDER_PATH"
-            _add_model_run "$DATA_FOLDER_PATH"
+            final_dir=$(_copy_models_run "$DATA_FOLDER_PATH")
+            _add_model_run "$final_dir"
             echo -e "The Directory you've given is:\n$DATA_FOLDER_PATH\n${Color_Off}"   
         else
             echo -e "Invalid input. Exiting.\n${Color_Off}" >&2
@@ -211,8 +212,8 @@ _tear_down_tethys(){
 
 _run_tethys(){
     _execute_command docker run --rm -it -d \
-    -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer" \
-    -v "$VISUALIZER_CONF:$TETHYS_PERSIST_PATH/ngiab_visualizer.json" \
+    -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer:ro" \
+    -v "$VISUALIZER_CONF:$TETHYS_PERSIST_PATH/ngiab_visualizer.json:ro" \
     -p 80:80 \
     --platform $PLATFORM \
     --network $DOCKER_NETWORK \
@@ -224,41 +225,86 @@ _run_tethys(){
     > /dev/null 2>&1
 }
 
-_create_models_symlink() {
+
+
+_copy_models_run() {
   local input_path="$1"
-  local link_dir="$HOME/ngiab_visualizer"
+  local models_dir="$HOME/ngiab_visualizer"
 
-  # 1) Ensure the directory exists
-  if [ ! -d "$link_dir" ]; then
-    mkdir -p "$link_dir"
+  # Ensure the parent directory exists
+  if [ ! -d "$models_dir" ]; then
+    mkdir -p "$models_dir"
+    # chmod -R 777 "$models_dir"
   fi
 
-  # 2) Construct what the symlink path would be (by basename)
+  # Derive the target path from the basename
   local base_name
-  base_name=$(basename "$input_path")
-  local link_path="$link_dir/$base_name"
+  base_name="$(basename "$input_path")"
+  local model_run_path="$models_dir/$base_name"
 
-  # 3) If a symlink with that name doesn't exist or doesn't point to the given path, create one
-  #    - If you only want to skip creation if the *exact* symlink already exists (even if it points somewhere else),
-  #      you can simplify the condition to [ ! -L "$link_path" ].
-  #    - If you need to handle collisions (e.g. if a file with that name exists), add extra checks.
-  if [ ! -L "$link_path" ]; then
-    ln -s "$input_path" "$link_path"
-    echo "Created symlink: $link_path -> $input_path"    
+  # We'll store the path we finally used in this variable.
+  local final_copied_path="$model_run_path"
+
+  if [ ! -e "$model_run_path" ]; then
+    cp -r "$input_path" "$models_dir"
+    echo >&2 "Copying directory: $input_path -> $models_dir"
+    final_copied_path="$model_run_path"
   else
-    # Optional: Check if the existing symlink points exactly to $input_path
-    local existing_target
-    existing_target=$(readlink "$link_path")
-    if [ "$existing_target" = "$input_path" ]; then
-      echo "Symlink already exists and points correctly to $input_path."
-    else
-      echo "Warning: A different symlink already exists at $link_path (-> $existing_target)."
-      # Optionally remove and recreate:
-      # rm "$link_path"
-      # ln -s "$input_path" "$link_path"
-    fi
+    echo -e "${BYellow}Directory '$model_run_path' already exists.\n${Color_Off}" >&2
+
+    while true; do
+      echo -e "${BYellow}Overwrite (O) or copy with different name (D)? [O/D]\n${Color_Off}" >&2
+
+      # Read from /dev/tty, so we can still get user input
+      read -r choice < /dev/tty
+
+      case "$choice" in
+        [Oo]* )
+          rm -rf "$model_run_path"
+          cp -r "$input_path" "$models_dir"
+        #   echo >&2 "Overwritten existing directory: $input_path -> $model_run_path"
+          echo -e "${BCyan}Overwritten existing directory: $input_path -> $model_run_path.\n${Color_Off}" >&2
+          final_copied_path="$model_run_path"
+          break
+          ;;
+        [Dd]* )
+          echo -e "${BBlue}Enter a new directory name:\n${Color_Off}" >&2
+        #   echo >&2 "Enter a new directory name:"
+          read -r new_name < /dev/tty
+
+          if [ -z "$new_name" ]; then
+            echo >&2 "No new name entered, please try again."
+            continue
+          fi
+
+          local new_path="$models_dir/$new_name"
+          if [ -e "$new_path" ]; then
+            echo -e "${BBlue}A directory/file named '$new_name' already exists in $models_dir.\n${Color_Off}" >&2
+            echo -e "${BBlue}Please choose another name.\n${Color_Off}" >&2
+            # echo >&2 "A directory/file named '$new_name' already exists in $models_dir."
+            # echo >&2 "Please choose another name."
+            continue
+          fi
+
+          cp -r "$input_path" "$new_path"
+
+          echo -e "${BPurple}Copied to: $new_path \n${Color_Off}" >&2
+        #   echo >&2 "Copied to: $new_path"
+          final_copied_path="$new_path"
+          break
+          ;;
+        * )
+          echo -e "${BRed}Invalid choice. Please enter 'O' or 'D' (or press Ctrl-C to abort). \n${Color_Off}" >&2
+        #   echo >&2 "Invalid choice. Please enter 'O' or 'D' (or press Ctrl-C to abort)."
+          ;;
+      esac
+    done
   fi
+
+  # Echo the final path on STDOUT so the caller can capture it
+  echo "$final_copied_path"
 }
+
 
 
 _add_model_run() {
@@ -268,6 +314,7 @@ _add_model_run() {
   # 1) Ensure $json_file exists
   if [ ! -f "$json_file" ]; then
     echo '{"model_runs":[]}' > "$json_file"
+    # chmod 777 "$json_file"
   fi
 
   # 2) Extract the basename for label
@@ -299,7 +346,7 @@ _add_model_run() {
          "tags": [] 
        }
      ]' \
-     "$json_file" > "${json_file}.tmp" && mv "${json_file}.tmp" "$json_file"
+     "$json_file" > "${json_file}.tmp" && mv -f "${json_file}.tmp" "$json_file"
 }
 
 create_tethys_portal(){
@@ -326,7 +373,6 @@ create_tethys_portal(){
         _create_tethys_docker_network
         if _check_for_existing_tethys_image; then
             _execute_command _run_containers
-            echo -e "${BCyan}Linking data to the Tethys app workspace.${Color_Off}"
             _wait_container $TETHYS_CONTAINER_NAME
             echo -e "${BGreen}Your outputs are ready to be visualized at http://localhost/apps/ngiab ${Color_Off}"
             echo -e "${UPurple}You can use the following to login: ${Color_Off}"
@@ -356,7 +402,7 @@ VISUALIZER_CONF="$HOME/ngiab_visualizer.json"
 MODELS_RUNS_DIRECTORY="$HOME/ngiab_visualizer"
 TETHYS_CONTAINER_NAME="tethys-ngen-portal"
 DOCKER_NETWORK="tethys-network"
-TETHYS_IMAGE_NAME=awiciroh/tethys-ngiab:main
+TETHYS_IMAGE_NAME=awiciroh/tethys-ngiab:multiple-runs
 DATA_FOLDER_PATH="$1"
 TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
 CONFIG_FILE="$HOME/.host_data_path.conf"
