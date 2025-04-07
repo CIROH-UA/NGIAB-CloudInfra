@@ -46,15 +46,20 @@ _check_and_read_config() {
         local last_path=$(cat "$config_file")
         echo -e "Last used data directory path: %s\n" "$last_path${Color_Off}"
         read -erp "Do you want to use the same path? (Y/n): " use_last_path
+        
         if [[ "$use_last_path" =~ ^[Yy] ]]; then
             DATA_FOLDER_PATH="$last_path"
             _check_if_data_folder_exits
+            final_dir=$(_copy_models_run "$DATA_FOLDER_PATH")
+            _add_model_run "$final_dir"
             return 0
         elif [[ "$use_last_path" =~ ^[Nn] ]]; then
             read -erp "Enter your input data directory path (use absolute path): " DATA_FOLDER_PATH
             _check_if_data_folder_exits
             # Save the new path to the config file
             echo "$DATA_FOLDER_PATH" > "$CONFIG_FILE"
+            final_dir=$(_copy_models_run "$DATA_FOLDER_PATH")
+            _add_model_run "$final_dir"
             echo -e "The Directory you've given is:\n$DATA_FOLDER_PATH\n${Color_Off}"   
         else
             echo -e "Invalid input. Exiting.\n${Color_Off}" >&2
@@ -168,14 +173,6 @@ _create_tethys_docker_network(){
     _execute_command docker network create -d bridge tethys-network > /dev/null 2>&1
 }
 
-# Link the data to the app workspace
-_link_data_to_app_workspace(){
-    _execute_command docker exec -it $TETHYS_CONTAINER_NAME sh -c \
-        "mkdir -p $APP_WORKSPACE_PATH && \
-        ln -s $TETHYS_PERSIST_PATH/ngen-data $APP_WORKSPACE_PATH/ngen-data"
-}
-
-
 _check_for_existing_tethys_image() {
     echo -e "${BYellow}Select an option (type a number): ${Color_Off}\n"
     options=("Run Tethys using existing local docker image" "Run Tethys after updating to latest docker image" "Exit")
@@ -215,7 +212,8 @@ _tear_down_tethys(){
 
 _run_tethys(){
     _execute_command docker run --rm -it -d \
-    -v "$DATA_FOLDER_PATH:$TETHYS_PERSIST_PATH/ngen-data" \
+    -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer:ro" \
+    -v "$VISUALIZER_CONF:$TETHYS_PERSIST_PATH/ngiab_visualizer.json:ro" \
     -p 80:80 \
     --platform $PLATFORM \
     --network $DOCKER_NETWORK \
@@ -227,6 +225,123 @@ _run_tethys(){
     > /dev/null 2>&1
 }
 
+
+
+_copy_models_run() {
+  local input_path="$1"
+  local models_dir="$HOME/ngiab_visualizer"
+
+  # Ensure the parent directory exists
+  if [ ! -d "$models_dir" ]; then
+    mkdir -p "$models_dir"
+  fi
+
+  # Derive the target path from the basename
+  local base_name
+  base_name="$(basename "$input_path")"
+  local model_run_path="$models_dir/$base_name"
+
+  # We'll store the path we finally used in this variable.
+  local final_copied_path="$model_run_path"
+
+  if [ ! -e "$model_run_path" ]; then
+    cp -r "$input_path" "$models_dir"
+    echo >&2 "Copying directory: $input_path -> $models_dir"
+    final_copied_path="$model_run_path"
+  else
+    echo -e "${BYellow}Directory '$model_run_path' already exists.\n${Color_Off}" >&2
+
+    while true; do
+      echo -e "${BYellow}Overwrite (O) or copy with different name (D)? [O/D]\n${Color_Off}" >&2
+
+      # Read from /dev/tty, so we can still get user input
+      read -r choice < /dev/tty
+
+      case "$choice" in
+        [Oo]* )
+          rm -rf "$model_run_path"
+          cp -r "$input_path" "$models_dir"
+          echo -e "${BCyan}Overwritten existing directory: $input_path -> $model_run_path.\n${Color_Off}" >&2
+          final_copied_path="$model_run_path"
+          break
+          ;;
+        [Dd]* )
+          echo -e "${BBlue}Enter a new directory name:\n${Color_Off}" >&2
+          read -r new_name < /dev/tty
+
+          if [ -z "$new_name" ]; then
+            echo >&2 "No new name entered, please try again."
+            continue
+          fi
+
+          local new_path="$models_dir/$new_name"
+          if [ -e "$new_path" ]; then
+            echo -e "${BBlue}A directory/file named '$new_name' already exists in $models_dir.\n${Color_Off}" >&2
+            echo -e "${BBlue}Please choose another name.\n${Color_Off}" >&2
+            continue
+          fi
+
+          cp -r "$input_path" "$new_path"
+
+          echo -e "${BPurple}Copied to: $new_path \n${Color_Off}" >&2
+        #   echo >&2 "Copied to: $new_path"
+          final_copied_path="$new_path"
+          break
+          ;;
+        * )
+          echo -e "${BRed}Invalid choice. Please enter 'O' or 'D' (or press Ctrl-C to abort). \n${Color_Off}" >&2
+        #   echo >&2 "Invalid choice. Please enter 'O' or 'D' (or press Ctrl-C to abort)."
+          ;;
+      esac
+    done
+  fi
+
+  # Echo the final path on STDOUT so the caller can capture it
+  echo "$final_copied_path"
+}
+
+
+
+_add_model_run() {
+  local input_path="$1"
+  local json_file="$HOME/ngiab_visualizer.json"
+
+  # 1) Ensure $json_file exists
+  if [ ! -f "$json_file" ]; then
+    echo '{"model_runs":[]}' > "$json_file"
+  fi
+
+  # 2) Extract the basename for label
+  local base_name
+  base_name=$(basename "$input_path")
+
+  # Generate a new UUID for the id field
+  local new_uuid
+  new_uuid=$(uuidgen)
+
+  # Current date/time (adjust format as needed)
+  local current_time
+  current_time=$(date +"%Y-%m-%d:%H:%M:%S")
+
+  # Always use /var/lib/tethys_persist/ngiab_visualizer as the base directory
+  local final_path="/var/lib/tethys_persist/ngiab_visualizer/$base_name"
+
+  jq --arg label "$base_name" \
+     --arg path  "$final_path" \
+     --arg date  "$current_time" \
+     --arg id    "$new_uuid" \
+     '.model_runs += [ 
+       { 
+         "label": $label, 
+         "path": $path, 
+         "date": $date, 
+         "id": $id, 
+         "subset": "", 
+         "tags": [] 
+       }
+     ]' \
+     "$json_file" > "${json_file}.tmp" && mv -f "${json_file}.tmp" "$json_file"
+}
 
 create_tethys_portal(){
     while true; do
@@ -252,9 +367,7 @@ create_tethys_portal(){
         _create_tethys_docker_network
         if _check_for_existing_tethys_image; then
             _execute_command _run_containers
-            echo -e "${BCyan}Linking data to the Tethys app workspace.${Color_Off}"
             _wait_container $TETHYS_CONTAINER_NAME
-            _link_data_to_app_workspace
             echo -e "${BGreen}Your outputs are ready to be visualized at http://localhost/apps/ngiab ${Color_Off}"
             echo -e "${UPurple}You can use the following to login: ${Color_Off}"
             echo -e "${BCyan}user: admin${Color_Off}"
@@ -279,9 +392,10 @@ trap handle_sigint SIGINT
 
 # Constanst
 PLATFORM='linux/amd64'
+VISUALIZER_CONF="$HOME/ngiab_visualizer.json"
+MODELS_RUNS_DIRECTORY="$HOME/ngiab_visualizer"
 TETHYS_CONTAINER_NAME="tethys-ngen-portal"
 DOCKER_NETWORK="tethys-network"
-APP_WORKSPACE_PATH="/opt/conda/envs/tethys/lib/python3.12/site-packages/tethysapp/ngiab/workspaces/app_workspace/"
 TETHYS_IMAGE_NAME=awiciroh/tethys-ngiab:main
 DATA_FOLDER_PATH="$1"
 TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
