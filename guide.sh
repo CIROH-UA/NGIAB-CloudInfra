@@ -223,7 +223,11 @@ if [[ "$run_teehr_choice" == [Yy]* ]]; then
     echo -e "${UYellow}Specify the TEEHR image tag to use: ${Color_Off}"
     read -erp "Image tag (ex. v0.1.4, default: 'latest'): " teehr_image_tag
     if [[ -z "$teehr_image_tag" ]]; then
-        teehr_image_tag="latest"
+        if uname -a | grep arm64 || uname -a | grep aarch64 ; then
+            teehr_image_tag=latest
+        else
+            teehr_image_tag=x86
+        fi
     fi
     echo -e "${UYellow}Select an option (type a number): ${Color_Off}"
     options=("Run TEEHR using existing local docker image" "Run TEEHR after updating to latest docker image" "Exit")
