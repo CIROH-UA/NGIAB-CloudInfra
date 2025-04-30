@@ -30,7 +30,7 @@ auto_select_file() {
 # Finding files
 HYDRO_FABRIC_CATCHMENTS=$(find . -name "*.gpkg")
 HYDRO_FABRIC_NEXUS=$(find . -name "*.gpkg")
-NGEN_REALIZATIONS=$(find . -name "*realization*.json")
+NGEN_REALIZATIONS=$(find config/ -name "*realization*.json")
 
 # Auto-selecting files if only one is found
 selected_catchment=$(auto_select_file "$HYDRO_FABRIC_CATCHMENTS")
