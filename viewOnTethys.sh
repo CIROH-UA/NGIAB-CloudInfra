@@ -150,12 +150,6 @@ check_last_path() {
     else
         DATA_FOLDER_PATH="$1"
     fi
-    # Finding files
-    
-    HYDRO_FABRIC=$(find "$DATA_FOLDER_PATH/config" -iname "*.gpkg")
-    CATCHMENT_FILE=$(find "$DATA_FOLDER_PATH/config" -iname "catchments.geojson")
-    NEXUS_FILE=$(find "$DATA_FOLDER_PATH/config" -iname "nexus.geojson")
-    FLOWPATHTS_FILE=$(find "$DATA_FOLDER_PATH/config" -iname "flowpaths.geojson")
 }
 _get_filename() {
   local full_path="$1"
@@ -217,8 +211,9 @@ _tear_down_tethys(){
 
 _run_tethys(){
     _execute_command docker run --rm -it -d \
-    -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer:ro" \
-    -v "$VISUALIZER_CONF:$TETHYS_PERSIST_PATH/ngiab_visualizer.json:ro" \
+    -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer" \
+    -v "$VISUALIZER_CONF:$TETHYS_PERSIST_PATH/ngiab_visualizer.json" \
+    -v "$DATASTREAM_DIRECTORY:$TETHYS_PERSIST_PATH/.datastream_ngiab" \
     -p 80:80 \
     --platform $PLATFORM \
     --network $DOCKER_NETWORK \
@@ -226,6 +221,7 @@ _run_tethys(){
     --env MEDIA_ROOT="$TETHYS_PERSIST_PATH/media" \
     --env MEDIA_URL="/media/" \
     --env SKIP_DB_SETUP=$SKIP_DB_SETUP \
+    --env DATASTREAM_CONF="$TETHYS_PERSIST_PATH/.datastream_ngiab" \
     $TETHYS_IMAGE_NAME \
     > /dev/null 2>&1
 }
@@ -399,6 +395,7 @@ trap handle_sigint SIGINT
 PLATFORM='linux/amd64'
 VISUALIZER_CONF="$HOME/ngiab_visualizer.json"
 MODELS_RUNS_DIRECTORY="$HOME/ngiab_visualizer"
+DATASTREAM_DIRECTORY="$HOME/.datastream_ngiab"
 TETHYS_CONTAINER_NAME="tethys-ngen-portal"
 DOCKER_NETWORK="tethys-network"
 TETHYS_IMAGE_NAME=awiciroh/tethys-ngiab:main
