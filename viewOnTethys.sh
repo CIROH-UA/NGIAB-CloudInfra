@@ -229,7 +229,6 @@ _ensure_host_dir() {
     # 3) if we could read the UID and it's different, try to chown
     if [[ -n "$owner_uid" && "$owner_uid" != "$(id -u)" ]]; then
         if command -v chown >/dev/null; then
-            echo -e "${BYellow}Changing ownership of $dir${Color_Off}"
             sudo chown -R "$(id -u):$(id -g)" "$dir"
         fi
     fi
@@ -239,7 +238,7 @@ _ensure_host_dir() {
 }
 
 # Ensure a *regular file* exists (and is writable) without touching siblings
-_ensure_host_file() {
+_ensure_visualizer_conf_host_file() {
     local file="$1"
     local dir
     dir=$(dirname "$file")
@@ -248,7 +247,11 @@ _ensure_host_file() {
     _ensure_host_dir "$dir"
 
     # Create file if missing, then chmod only that file
-    [ -f "$file" ] || touch "$file"
+    # [ -f "$file" ] || touch "$file"
+
+    if [ ! -f "$file" ]; then
+        echo '{"model_runs":[]}' > "$json_file"
+    fi
     chmod u+rw "$file"
 }
 
@@ -257,7 +260,7 @@ _run_tethys() {
 
     _ensure_host_dir  "$MODELS_RUNS_DIRECTORY"
     _ensure_host_dir  "$DATASTREAM_DIRECTORY"
-    _ensure_host_file "$VISUALIZER_CONF"
+    _ensure_visualizer_conf_host_file "$VISUALIZER_CONF"
 
     _execute_command docker run --rm -it -d \
         -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer" \
@@ -346,9 +349,10 @@ _copy_models_run() {
 
 _add_model_run() {
   local input_path="$1"
-  local json_file="$HOME/ngiab_visualizer.json"
+  local json_file="$VISUALIZER_CONF"
 
   # 1) Ensure $json_file exists
+  echo -e "${BGreen}Checking for $json_file...${Color_Off}"
   if [ ! -f "$json_file" ]; then
     echo '{"model_runs":[]}' > "$json_file"
   fi
