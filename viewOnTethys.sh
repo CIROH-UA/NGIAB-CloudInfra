@@ -149,6 +149,10 @@ check_last_path() {
      
     else
         DATA_FOLDER_PATH="$1"
+        _check_if_data_folder_exits
+        final_dir=$(_copy_models_run "$DATA_FOLDER_PATH")
+        _add_model_run "$final_dir"
+        return 0
     fi
 }
 _get_filename() {
@@ -209,99 +213,137 @@ _tear_down_tethys(){
 }
 
 
-_run_tethys(){
-    _execute_command docker run --rm -it -d \
-    -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer" \
-    -v "$VISUALIZER_CONF:$TETHYS_PERSIST_PATH/ngiab_visualizer.json" \
-    -v "$DATASTREAM_DIRECTORY:$TETHYS_PERSIST_PATH/.datastream_ngiab" \
-    -p 80:80 \
-    --platform $PLATFORM \
-    --network $DOCKER_NETWORK \
-    --name "$TETHYS_CONTAINER_NAME" \
-    --env MEDIA_ROOT="$TETHYS_PERSIST_PATH/media" \
-    --env MEDIA_URL="/media/" \
-    --env SKIP_DB_SETUP=$SKIP_DB_SETUP \
-    --env DATASTREAM_CONF="$TETHYS_PERSIST_PATH/.datastream_ngiab" \
-    $TETHYS_IMAGE_NAME \
-    > /dev/null 2>&1
+_ensure_host_dir() {
+    local dir="$1"
+
+    # 1) create if missing
+    if [ ! -d "$dir" ]; then
+        mkdir -p "$dir"
+    fi
+
+    # 2) fix ownership if directory is owned by a different UID
+    local owner_uid
+    owner_uid=$(stat -c '%u' "$dir")
+    if [ "$owner_uid" != "$(id -u)" ]; then
+        # Need sudo only if you don't already own the dir
+        sudo chown -R "$(id -u):$(id -g)" "$dir"
+    fi
+
+    # 3) make sure we can write
+    chmod u+rwx "$dir"
 }
 
+# Ensure a *regular file* exists (used for ngiab_visualizer.json)
+#      _ensure_host_file /abs/file.json
+_ensure_host_file() {
+    local file="$1"
+    local dir
+    dir=$(dirname "$file")
+
+    _ensure_host_dir "$dir"
+    if [ ! -f "$file" ]; then
+        touch "$file"
+    fi
+    chmod u+rw "$file"
+}
+
+
+_run_tethys() {
+    # ------------------------------------------------------------------ #
+    # 0. Make sure the host‑side paths exist and are writable by *you*.   #
+    #    This prevents “Permission denied” and root‑owned leftovers.      #
+    # ------------------------------------------------------------------ #
+    _ensure_host_dir  "$MODELS_RUNS_DIRECTORY"       # ~/ngiab_visualizer
+    _ensure_host_dir  "$DATASTREAM_DIRECTORY"        # ~/.datastream_ngiab
+    _ensure_host_file "$VISUALIZER_CONF"             # ~/ngiab_visualizer.json
+
+    # ------------------------------------------------------------------ #
+    # 1. Run the container                                               #
+    # ------------------------------------------------------------------ #
+    _execute_command docker run --rm -it -d \
+        -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer" \
+        -v "$VISUALIZER_CONF:$TETHYS_PERSIST_PATH/ngiab_visualizer.json" \
+        -v "$DATASTREAM_DIRECTORY:$TETHYS_PERSIST_PATH/.datastream_ngiab" \
+        -p 80:80 \
+        --platform "$PLATFORM" \
+        --network "$DOCKER_NETWORK" \
+        --name "$TETHYS_CONTAINER_NAME" \
+        --env MEDIA_ROOT="$TETHYS_PERSIST_PATH/media" \
+        --env MEDIA_URL="/media/" \
+        --env SKIP_DB_SETUP="$SKIP_DB_SETUP" \
+        --env DATASTREAM_CONF="$TETHYS_PERSIST_PATH/.datastream_ngiab" \
+        "$TETHYS_IMAGE_NAME" \
+        > /dev/null 2>&1
+}
 
 
 _copy_models_run() {
-  local input_path="$1"
-  local models_dir="$HOME/ngiab_visualizer"
+    local input_path="$1"
+    local models_dir="$HOME/ngiab_visualizer"
+    # 1) make sure ~/ngiab_visualizer exists and you own it
+    _ensure_host_dir "$models_dir" || {
+        echo -e "${BRed}Failed to create or fix permissions on $models_dir${Color_Off}" >&2
+        return 1
+    }
 
-  # Ensure the parent directory exists
-  if [ ! -d "$models_dir" ]; then
-    mkdir -p "$models_dir"
-  fi
+    # 2) derive the target path
+    local base_name
+    base_name="$(basename "$input_path")"
+    local model_run_path="$models_dir/$base_name"
+    local final_copied_path="$model_run_path"
 
-  # Derive the target path from the basename
-  local base_name
-  base_name="$(basename "$input_path")"
-  local model_run_path="$models_dir/$base_name"
+    # 3) copy logic
+    if [ ! -e "$model_run_path" ]; then
+        cp -r "$input_path" "$models_dir" || {
+            echo -e "${BRed}Error: Could not copy $input_path → $models_dir${Color_Off}" >&2
+            return 1
+        }
+        echo -e "${BCyan}Copied: $input_path → $model_run_path${Color_Off}" >&2
+    else
+        echo -e "${BYellow}Directory '$model_run_path' already exists.${Color_Off}" >&2
+        while true; do
+            echo -e "${BYellow}Overwrite (O) or copy with different name (D)? [O/D]${Color_Off}" >&2
+            read -r choice < /dev/tty
+            case "$choice" in
+                [Oo]* )
+                    rm -rf "$model_run_path"
+                    cp -r "$input_path" "$models_dir" || {
+                        echo -e "${BRed}Error: Could not overwrite $model_run_path${Color_Off}" >&2
+                        return 1
+                    }
+                    echo -e "${BCyan}Overwritten with: $input_path → $model_run_path${Color_Off}" >&2
+                    break
+                    ;;
+                [Dd]* )
+                    echo -e "${BBlue}Enter a new directory name:${Color_Off}" >&2
+                    read -r new_name < /dev/tty
+                    if [ -z "$new_name" ]; then
+                        echo -e "${BRed}No name entered. Try again.${Color_Off}" >&2
+                        continue
+                    fi
+                    local new_path="$models_dir/$new_name"
+                    if [ -e "$new_path" ]; then
+                        echo -e "${BRed}'$new_name' already exists. Choose another name.${Color_Off}" >&2
+                        continue
+                    fi
+                    cp -r "$input_path" "$new_path" || {
+                        echo -e "${BRed}Error: Could not copy to $new_path${Color_Off}" >&2
+                        return 1
+                    }
+                    echo -e "${BPurple}Copied to: $new_path${Color_Off}" >&2
+                    final_copied_path="$new_path"
+                    break
+                    ;;
+                * )
+                    echo -e "${BRed}Invalid choice. Enter 'O' or 'D'.${Color_Off}" >&2
+                    ;;
+            esac
+        done
+    fi
 
-  # We'll store the path we finally used in this variable.
-  local final_copied_path="$model_run_path"
-
-  if [ ! -e "$model_run_path" ]; then
-    cp -r "$input_path" "$models_dir"
-    echo >&2 "Copying directory: $input_path -> $models_dir"
-    final_copied_path="$model_run_path"
-  else
-    echo -e "${BYellow}Directory '$model_run_path' already exists.\n${Color_Off}" >&2
-
-    while true; do
-      echo -e "${BYellow}Overwrite (O) or copy with different name (D)? [O/D]\n${Color_Off}" >&2
-
-      # Read from /dev/tty, so we can still get user input
-      read -r choice < /dev/tty
-
-      case "$choice" in
-        [Oo]* )
-          rm -rf "$model_run_path"
-          cp -r "$input_path" "$models_dir"
-          echo -e "${BCyan}Overwritten existing directory: $input_path -> $model_run_path.\n${Color_Off}" >&2
-          final_copied_path="$model_run_path"
-          break
-          ;;
-        [Dd]* )
-          echo -e "${BBlue}Enter a new directory name:\n${Color_Off}" >&2
-          read -r new_name < /dev/tty
-
-          if [ -z "$new_name" ]; then
-            echo >&2 "No new name entered, please try again."
-            continue
-          fi
-
-          local new_path="$models_dir/$new_name"
-          if [ -e "$new_path" ]; then
-            echo -e "${BBlue}A directory/file named '$new_name' already exists in $models_dir.\n${Color_Off}" >&2
-            echo -e "${BBlue}Please choose another name.\n${Color_Off}" >&2
-            continue
-          fi
-
-          cp -r "$input_path" "$new_path"
-
-          echo -e "${BPurple}Copied to: $new_path \n${Color_Off}" >&2
-        #   echo >&2 "Copied to: $new_path"
-          final_copied_path="$new_path"
-          break
-          ;;
-        * )
-          echo -e "${BRed}Invalid choice. Please enter 'O' or 'D' (or press Ctrl-C to abort). \n${Color_Off}" >&2
-        #   echo >&2 "Invalid choice. Please enter 'O' or 'D' (or press Ctrl-C to abort)."
-          ;;
-      esac
-    done
-  fi
-
-  # Echo the final path on STDOUT so the caller can capture it
-  echo "$final_copied_path"
+    # 4) output the directory the caller should register
+    echo "$final_copied_path"
 }
-
-
 
 _add_model_run() {
   local input_path="$1"
