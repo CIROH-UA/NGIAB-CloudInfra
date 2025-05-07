@@ -215,34 +215,40 @@ _tear_down_tethys(){
 _ensure_host_dir() {
     local dir="$1"
 
-    # Create missing directory
-    if [ ! -d "$dir" ]; then
-        mkdir -p "$dir"
+    # 1) create the directory (and parents) if missing
+    [ -d "$dir" ] || mkdir -p "$dir"
+
+    # 2) get current owner UID in a portable way
+    local owner_uid=""
+    if owner_uid=$(stat -c '%u' "$dir" 2>/dev/null); then       # GNU (Linux)
+        :
+    elif owner_uid=$(stat -f '%u' "$dir" 2>/dev/null); then     # BSD (macOS)
+        :
     fi
 
-    # Fix ownership if needed
-    local owner_uid
-    owner_uid=$(stat -c '%u' "$dir")
-    if [ "$owner_uid" != "$(id -u)" ]; then
-        echo -e "${BYellow}Changing ownership ownership of $dir.${Color_Off}"
-        sudo chown -R "$(id -u):$(id -g)" "$dir"
+    # 3) if we could read the UID and it's different, try to chown
+    if [[ -n "$owner_uid" && "$owner_uid" != "$(id -u)" ]]; then
+        if command -v chown >/dev/null; then
+            echo -e "${BYellow}Changing ownership of $dir${Color_Off}"
+            sudo chown -R "$(id -u):$(id -g)" "$dir"
+        fi
     fi
 
-    # Ensure you can write
+    # 4) make sure *you* can write to the directory
     chmod u+rwx "$dir"
 }
 
-# Ensure a *regular file* exists (used for ngiab_visualizer.json)
-#      _ensure_host_file /abs/file.json
+# Ensure a *regular file* exists (and is writable) without touching siblings
 _ensure_host_file() {
     local file="$1"
     local dir
     dir=$(dirname "$file")
 
+    # Make sure parent dir is OK (permissions only on that dir)
     _ensure_host_dir "$dir"
-    if [ ! -f "$file" ]; then
-        touch "$file"
-    fi
+
+    # Create file if missing, then chmod only that file
+    [ -f "$file" ] || touch "$file"
     chmod u+rw "$file"
 }
 
@@ -255,7 +261,6 @@ _run_tethys() {
 
     _execute_command docker run --rm -it -d \
         -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer" \
-        -v "$VISUALIZER_CONF:$TETHYS_PERSIST_PATH/ngiab_visualizer.json" \
         -v "$DATASTREAM_DIRECTORY:$TETHYS_PERSIST_PATH/.datastream_ngiab" \
         -p 80:80 \
         --platform "$PLATFORM" \
@@ -265,6 +270,7 @@ _run_tethys() {
         --env MEDIA_URL="/media/" \
         --env SKIP_DB_SETUP="$SKIP_DB_SETUP" \
         --env DATASTREAM_CONF="$TETHYS_PERSIST_PATH/.datastream_ngiab" \
+        --env VISUALIZER_CONF="$TETHYS_PERSIST_PATH/ngiab_visualizer/ngiab_visualizer.json" \
         "$TETHYS_IMAGE_NAME" \
         > /dev/null 2>&1
 }
@@ -438,8 +444,8 @@ trap handle_sigint SIGINT
 
 # Constanst
 PLATFORM='linux/amd64'
-VISUALIZER_CONF="$HOME/ngiab_visualizer.json"
 MODELS_RUNS_DIRECTORY="$HOME/ngiab_visualizer"
+VISUALIZER_CONF="$MODELS_RUNS_DIRECTORY/ngiab_visualizer.json"
 DATASTREAM_DIRECTORY="$HOME/.datastream_ngiab"
 TETHYS_CONTAINER_NAME="tethys-ngen-portal"
 DOCKER_NETWORK="tethys-network"
