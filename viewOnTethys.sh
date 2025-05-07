@@ -21,7 +21,6 @@ Color_Off='\033[0m'
 ################################################
 ###############HELPER FUNCTIONS#################
 ################################################
-
 # Function to automatically select file if only one is found
 _auto_select_file() {
   local files=("$@")  # Correct the handling of arguments as an array
@@ -216,20 +215,20 @@ _tear_down_tethys(){
 _ensure_host_dir() {
     local dir="$1"
 
-    # 1) create if missing
+    # Create missing directory
     if [ ! -d "$dir" ]; then
         mkdir -p "$dir"
     fi
 
-    # 2) fix ownership if directory is owned by a different UID
+    # Fix ownership if needed
     local owner_uid
     owner_uid=$(stat -c '%u' "$dir")
     if [ "$owner_uid" != "$(id -u)" ]; then
-        # Need sudo only if you don't already own the dir
+        echo -e "${BYellow}Changing ownership ownership of $dir.${Color_Off}"
         sudo chown -R "$(id -u):$(id -g)" "$dir"
     fi
 
-    # 3) make sure we can write
+    # Ensure you can write
     chmod u+rwx "$dir"
 }
 
@@ -249,17 +248,11 @@ _ensure_host_file() {
 
 
 _run_tethys() {
-    # ------------------------------------------------------------------ #
-    # 0. Make sure the host‑side paths exist and are writable by *you*.   #
-    #    This prevents “Permission denied” and root‑owned leftovers.      #
-    # ------------------------------------------------------------------ #
-    _ensure_host_dir  "$MODELS_RUNS_DIRECTORY"       # ~/ngiab_visualizer
-    _ensure_host_dir  "$DATASTREAM_DIRECTORY"        # ~/.datastream_ngiab
-    _ensure_host_file "$VISUALIZER_CONF"             # ~/ngiab_visualizer.json
 
-    # ------------------------------------------------------------------ #
-    # 1. Run the container                                               #
-    # ------------------------------------------------------------------ #
+    _ensure_host_dir  "$MODELS_RUNS_DIRECTORY"
+    _ensure_host_dir  "$DATASTREAM_DIRECTORY"
+    _ensure_host_file "$VISUALIZER_CONF"
+
     _execute_command docker run --rm -it -d \
         -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer" \
         -v "$VISUALIZER_CONF:$TETHYS_PERSIST_PATH/ngiab_visualizer.json" \
@@ -302,7 +295,7 @@ _copy_models_run() {
     else
         echo -e "${BYellow}Directory '$model_run_path' already exists.${Color_Off}" >&2
         while true; do
-            echo -e "${BYellow}Overwrite (O) or copy with different name (D)? [O/D]${Color_Off}" >&2
+            echo -ne "${BYellow}Overwrite (O) or copy with different name (D)? [O/D]: ${Color_Off}" >&2
             read -r choice < /dev/tty
             case "$choice" in
                 [Oo]* )
@@ -315,7 +308,7 @@ _copy_models_run() {
                     break
                     ;;
                 [Dd]* )
-                    echo -e "${BBlue}Enter a new directory name:${Color_Off}" >&2
+                    echo -ne "${BBlue}Enter a new directory name: ${Color_Off}" >&2
                     read -r new_name < /dev/tty
                     if [ -z "$new_name" ]; then
                         echo -e "${BRed}No name entered. Try again.${Color_Off}" >&2
@@ -404,6 +397,16 @@ create_tethys_portal(){
         fi
     done
     
+    echo -e "${BYellow}Specify the Tethys image tag to use: ${Color_Off}"
+    read -erp "Tag (e.g. v0.2.1, default: latest): " TETHYS_TAG
+    if [[ -z "$TETHYS_TAG" ]]; then
+        TETHYS_TAG="latest"
+    fi
+
+    # Build the full image reference
+    TETHYS_IMAGE_NAME="${TETHYS_REPO}:${TETHYS_TAG}"    
+
+
     # Execute the command
     if [[ "$visualization_choice" =~ ^[Yy]$ ]]; then
         echo -e "${BGreen}Setting up Tethys Portal image...${Color_Off}"
@@ -440,7 +443,9 @@ MODELS_RUNS_DIRECTORY="$HOME/ngiab_visualizer"
 DATASTREAM_DIRECTORY="$HOME/.datastream_ngiab"
 TETHYS_CONTAINER_NAME="tethys-ngen-portal"
 DOCKER_NETWORK="tethys-network"
-TETHYS_IMAGE_NAME=awiciroh/tethys-ngiab:main
+TETHYS_REPO="awiciroh/tethys-ngiab"
+TETHYS_TAG="latest"
+TETHYS_IMAGE_NAME=""
 DATA_FOLDER_PATH="$1"
 TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
 CONFIG_FILE="$HOME/.host_data_path.conf"
