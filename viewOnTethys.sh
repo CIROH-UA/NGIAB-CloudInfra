@@ -247,7 +247,7 @@ _ensure_visualizer_conf_host_file() {
     _ensure_host_dir "$dir"
 
     # Create file if missing, then chmod only that file
-    # [ -f "$file" ] || touch "$file"
+    [ -f "$file" ] || touch "$file"
 
     if [ ! -f "$file" ]; then
         echo '{"model_runs":[]}' > "$json_file"
