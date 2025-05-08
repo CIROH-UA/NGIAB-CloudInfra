@@ -87,6 +87,24 @@ _run_containers(){
     _run_tethys
 }
 
+_choose_port_to_run_tethys(){
+    while true; do
+        echo -e "${BYellow}Select a port to run Tethys (default: 80): ${Color_Off}"
+        read -erp "Port (default: 80): " NGINX_TETHYS_PORT
+        if [[ -z "$NGINX_TETHYS_PORT" ]]; then
+            NGINX_TETHYS_PORT=80
+            CSRF_TRUSTED_ORIGINS="\"[http://localhost:$NGINX_TETHYS_PORT, http://127.0.0.1:$NGINX_TETHYS_PORT]\""
+        fi
+
+        # Check if the port is already in use
+        if lsof -i:$NGINX_TETHYS_PORT > /dev/null; then
+            echo -e "${BRed}Port $NGINX_TETHYS_PORT is already in use. Please choose another port.${Color_Off}"
+        else
+            break
+        fi
+    done
+}
+
 # Wait for a Docker container to become healthy
 _wait_container() {
     local container_name=$1
@@ -215,25 +233,29 @@ _tear_down_tethys(){
 _ensure_host_dir() {
     local dir="$1"
 
-    # 1) create the directory (and parents) if missing
-    [ -d "$dir" ] || mkdir -p "$dir"
-
-    # 2) get current owner UID in a portable way
-    local owner_uid=""
-    if owner_uid=$(stat -c '%u' "$dir" 2>/dev/null); then       # GNU (Linux)
-        :
-    elif owner_uid=$(stat -f '%u' "$dir" 2>/dev/null); then     # BSD (macOS)
-        :
+    # 1) Create the directory (and parents) if it does not exist
+    if [ ! -d "$dir" ]; then
+        echo -e "${BYellow}Directory $dir doesn’t exist — creating it…${Color_Off}"
+        mkdir -p "$dir"
     fi
 
-    # 3) if we could read the UID and it's different, try to chown
+    # 2) Get owner UID (portable: Linux uses -c, macOS/BSD uses -f)
+    local owner_uid=""
+    if owner_uid=$(stat -c '%u' "$dir" 2>/dev/null); then
+        :  # GNU stat (Linux)
+    elif owner_uid=$(stat -f '%u' "$dir" 2>/dev/null); then
+        :  # BSD stat (macOS, Git-Bash)
+    fi
+
+    # 3) If the directory is not owned by the current user, try to chown it
     if [[ -n "$owner_uid" && "$owner_uid" != "$(id -u)" ]]; then
-        if command -v chown >/dev/null; then
+        if command -v chown >/dev/null 2>&1; then
+            echo -e "${BYellow}Reclaiming ownership of $dir (sudo may prompt)…${Color_Off}"
             sudo chown -R "$(id -u):$(id -g)" "$dir"
         fi
     fi
 
-    # 4) make sure *you* can write to the directory
+    # 4) Ensure the current user has rwx on the directory
     chmod u+rwx "$dir"
 }
 
@@ -248,6 +270,7 @@ _ensure_visualizer_conf_host_file() {
 
     # 2) create the file if it doesn't exist, and initialise it
     if [ ! -f "$file" ]; then
+        echo -e "${BRed}File $file does not exist. Creating it...${Color_Off}"
         echo '{"model_runs":[]}' > "$file"
     fi
 
@@ -274,6 +297,8 @@ _run_tethys() {
         --env SKIP_DB_SETUP="$SKIP_DB_SETUP" \
         --env DATASTREAM_CONF="$TETHYS_PERSIST_PATH/.datastream_ngiab" \
         --env VISUALIZER_CONF="$TETHYS_PERSIST_PATH/ngiab_visualizer/ngiab_visualizer.json" \
+        --env NGINX_PORT=$NGINX_TETHYS_PORT \
+        --env CSRF_TRUSTED_ORIGINS=$CSRF_TRUSTED_ORIGINS \
         "$TETHYS_IMAGE_NAME" \
         > /dev/null 2>&1
 }
@@ -422,9 +447,10 @@ create_tethys_portal(){
         echo -e "${BGreen}Setting up Tethys Portal image...${Color_Off}"
         _create_tethys_docker_network
         if _check_for_existing_tethys_image; then
+            _choose_port_to_run_tethys
             _execute_command _run_containers
             _wait_container $TETHYS_CONTAINER_NAME
-            echo -e "${BGreen}Your outputs are ready to be visualized at http://localhost/apps/ngiab ${Color_Off}"
+            echo -e "${BGreen}Your outputs are ready to be visualized at http://localhost:8080/apps/ngiab ${Color_Off}"
             echo -e "${UPurple}You can use the following to login: ${Color_Off}"
             echo -e "${BCyan}user: admin${Color_Off}"
             echo -e "${BCyan}password: pass${Color_Off}"
@@ -460,6 +486,9 @@ DATA_FOLDER_PATH="$1"
 TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
 CONFIG_FILE="$HOME/.host_data_path.conf"
 SKIP_DB_SETUP=false
+NGINX_TETHYS_PORT=80
+CSRF_TRUSTED_ORIGINS="\"[http://localhost:$NGINX_TETHYS_PORT, http://127.0.0.1:$NGINX_TETHYS_PORT]\""
+
 
 # check for architecture
 if uname -a | grep arm64 || uname -a | grep aarch64 ; then
