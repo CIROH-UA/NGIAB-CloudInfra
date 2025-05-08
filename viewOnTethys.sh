@@ -243,15 +243,15 @@ _ensure_visualizer_conf_host_file() {
     local dir
     dir=$(dirname "$file")
 
-    # Make sure parent dir is OK (permissions only on that dir)
-    _ensure_host_dir "$dir"
+    # 1) make sure the directory exists and is writable by the user
+    _ensure_host_dir "$dir" || return 1
 
-    # Create file if missing, then chmod only that file
-    [ -f "$file" ] || touch "$file"
-
+    # 2) create the file if it doesn't exist, and initialise it
     if [ ! -f "$file" ]; then
-        echo '{"model_runs":[]}' > "$json_file"
+        echo '{"model_runs":[]}' > "$file"
     fi
+
+    # 3) ensure *you* can read/write the file
     chmod u+rw "$file"
 }
 
