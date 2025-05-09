@@ -87,21 +87,31 @@ _run_containers(){
     _run_tethys
 }
 
-_choose_port_to_run_tethys(){
+_choose_port_to_run_tethys() {
     while true; do
-        echo -e "${BYellow}Select a port to run Tethys (default: 80): ${Color_Off}"
-        read -erp "Port (default: 80): " NGINX_TETHYS_PORT
+        echo -e "${BBlue}Select a port to run Tethys (default 80): ${Color_Off}"
+        read -erp "Port: " NGINX_TETHYS_PORT
+
+        # Default to 80 if the user just hits <Enter>
         if [[ -z "$NGINX_TETHYS_PORT" ]]; then
             NGINX_TETHYS_PORT=80
-            CSRF_TRUSTED_ORIGINS="\"[http://localhost:$NGINX_TETHYS_PORT, http://127.0.0.1:$NGINX_TETHYS_PORT]\""
         fi
 
-        # Check if the port is already in use
-        if lsof -i:$NGINX_TETHYS_PORT > /dev/null; then
-            echo -e "${BRed}Port $NGINX_TETHYS_PORT is already in use. Please choose another port.${Color_Off}"
-        else
-            break
+        # Validate numeric port 1-65535
+        if ! [[ "$NGINX_TETHYS_PORT" =~ ^[0-9]+$ ]] || \
+           [ "$NGINX_TETHYS_PORT" -lt 1 ] || [ "$NGINX_TETHYS_PORT" -gt 65535 ]; then
+            echo -e "${BRed}Invalid port number. Please enter 1-65535.${Color_Off}"
+            continue
         fi
+
+        # Check if the port is already in use (skip check if lsof not present)
+        if command -v lsof >/dev/null && lsof -i:"$NGINX_TETHYS_PORT" >/dev/null 2>&1; then
+            echo -e "${BRed}Port $NGINX_TETHYS_PORT is already in use. Choose another.${Color_Off}"
+            continue
+        fi
+        CSRF_TRUSTED_ORIGINS="[http://localhost:${NGINX_TETHYS_PORT},http://127.0.0.1:${NGINX_TETHYS_PORT}]"
+
+        break
     done
 }
 
@@ -288,7 +298,7 @@ _run_tethys() {
     _execute_command docker run --rm -it -d \
         -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer" \
         -v "$DATASTREAM_DIRECTORY:$TETHYS_PERSIST_PATH/.datastream_ngiab" \
-        -p 80:80 \
+        -p $NGINX_TETHYS_PORT:$NGINX_TETHYS_PORT \
         --platform "$PLATFORM" \
         --network "$DOCKER_NETWORK" \
         --name "$TETHYS_CONTAINER_NAME" \
@@ -396,17 +406,16 @@ _add_model_run() {
 
   # Always use /var/lib/tethys_persist/ngiab_visualizer as the base directory
   local final_path="/var/lib/tethys_persist/ngiab_visualizer/$base_name"
-
-  jq --arg label "$base_name" \
-     --arg path  "$final_path" \
-     --arg date  "$current_time" \
-     --arg id    "$new_uuid" \
+  jq --arg base_name "$base_name" \
+     --arg final_path  "$final_path" \
+     --arg current_time  "$current_time" \
+     --arg uuid    "$new_uuid" \
      '.model_runs += [ 
        { 
-         "label": $label, 
-         "path": $path, 
-         "date": $date, 
-         "id": $id, 
+         "label": $base_name, 
+         "path": $final_path, 
+         "date": $current_time, 
+         "id": $uuid, 
          "subset": "", 
          "tags": [] 
        }
@@ -450,7 +459,7 @@ create_tethys_portal(){
             _choose_port_to_run_tethys
             _execute_command _run_containers
             _wait_container $TETHYS_CONTAINER_NAME
-            echo -e "${BGreen}Your outputs are ready to be visualized at http://localhost:8080/apps/ngiab ${Color_Off}"
+            echo -e "${BGreen}Your outputs are ready to be visualized at http://localhost:$NGINX_TETHYS_PORT/apps/ngiab ${Color_Off}"
             echo -e "${UPurple}You can use the following to login: ${Color_Off}"
             echo -e "${BCyan}user: admin${Color_Off}"
             echo -e "${BCyan}password: pass${Color_Off}"
