@@ -221,7 +221,7 @@ done
 if [[ "$run_teehr_choice" == [Yy]* ]]; then
     # TEEHR run options
     echo -e "${UYellow}Specify the TEEHR image tag to use: ${Color_Off}"
-    read -erp "Image tag (ex. v0.1.4, default: 'latest'): " teehr_image_tag
+    read -erp "Image tag (ex. v0.1.4, x86, default: 'latest'): " teehr_image_tag
     if [[ -z "$teehr_image_tag" ]]; then
         if uname -a | grep arm64 || uname -a | grep aarch64 ; then
             teehr_image_tag=latest

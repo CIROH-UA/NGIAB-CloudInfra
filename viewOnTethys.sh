@@ -21,7 +21,6 @@ Color_Off='\033[0m'
 ################################################
 ###############HELPER FUNCTIONS#################
 ################################################
-
 # Function to automatically select file if only one is found
 _auto_select_file() {
   local files=("$@")  # Correct the handling of arguments as an array
@@ -88,6 +87,34 @@ _run_containers(){
     _run_tethys
 }
 
+_choose_port_to_run_tethys() {
+    while true; do
+        echo -e "${BBlue}Select a port to run Tethys (default 80): ${Color_Off}"
+        read -erp "Port: " NGINX_TETHYS_PORT
+
+        # Default to 80 if the user just hits <Enter>
+        if [[ -z "$NGINX_TETHYS_PORT" ]]; then
+            NGINX_TETHYS_PORT=80
+        fi
+
+        # Validate numeric port 1-65535
+        if ! [[ "$NGINX_TETHYS_PORT" =~ ^[0-9]+$ ]] || \
+           [ "$NGINX_TETHYS_PORT" -lt 1 ] || [ "$NGINX_TETHYS_PORT" -gt 65535 ]; then
+            echo -e "${BRed}Invalid port number. Please enter 1-65535.${Color_Off}"
+            continue
+        fi
+
+        # Check if the port is already in use (skip check if lsof not present)
+        if command -v lsof >/dev/null && lsof -i:"$NGINX_TETHYS_PORT" >/dev/null 2>&1; then
+            echo -e "${BRed}Port $NGINX_TETHYS_PORT is already in use. Choose another.${Color_Off}"
+            continue
+        fi
+        CSRF_TRUSTED_ORIGINS="[http://localhost:${NGINX_TETHYS_PORT},http://127.0.0.1:${NGINX_TETHYS_PORT}]"
+
+        break
+    done
+}
+
 # Wait for a Docker container to become healthy
 _wait_container() {
     local container_name=$1
@@ -149,6 +176,10 @@ check_last_path() {
      
     else
         DATA_FOLDER_PATH="$1"
+        _check_if_data_folder_exits
+        final_dir=$(_copy_models_run "$DATA_FOLDER_PATH")
+        _add_model_run "$final_dir"
+        return 0
     fi
 }
 _get_filename() {
@@ -209,105 +240,154 @@ _tear_down_tethys(){
 }
 
 
-_run_tethys(){
-    _execute_command docker run --rm -it -d \
-    -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer" \
-    -v "$VISUALIZER_CONF:$TETHYS_PERSIST_PATH/ngiab_visualizer.json" \
-    -v "$DATASTREAM_DIRECTORY:$TETHYS_PERSIST_PATH/.datastream_ngiab" \
-    -p 80:80 \
-    --platform $PLATFORM \
-    --network $DOCKER_NETWORK \
-    --name "$TETHYS_CONTAINER_NAME" \
-    --env MEDIA_ROOT="$TETHYS_PERSIST_PATH/media" \
-    --env MEDIA_URL="/media/" \
-    --env SKIP_DB_SETUP=$SKIP_DB_SETUP \
-    --env DATASTREAM_CONF="$TETHYS_PERSIST_PATH/.datastream_ngiab" \
-    $TETHYS_IMAGE_NAME \
-    > /dev/null 2>&1
+_ensure_host_dir() {
+    local dir="$1"
+
+    # 1) Create the directory (and parents) if it does not exist
+    if [ ! -d "$dir" ]; then
+        echo -e "${BYellow}Directory $dir doesn’t exist — creating it…${Color_Off}"
+        mkdir -p "$dir"
+    fi
+
+    # 2) Get owner UID (portable: Linux uses -c, macOS/BSD uses -f)
+    local owner_uid=""
+    if owner_uid=$(stat -c '%u' "$dir" 2>/dev/null); then
+        :  # GNU stat (Linux)
+    elif owner_uid=$(stat -f '%u' "$dir" 2>/dev/null); then
+        :  # BSD stat (macOS, Git-Bash)
+    fi
+
+    # 3) If the directory is not owned by the current user, try to chown it
+    if [[ -n "$owner_uid" && "$owner_uid" != "$(id -u)" ]]; then
+        if command -v chown >/dev/null 2>&1; then
+            echo -e "${BYellow}Reclaiming ownership of $dir (sudo may prompt)…${Color_Off}"
+            sudo chown -R "$(id -u):$(id -g)" "$dir"
+        fi
+    fi
+
+    # 4) Ensure the current user has rwx on the directory
+    chmod u+rwx "$dir"
 }
 
+# Ensure a *regular file* exists (and is writable) without touching siblings
+_ensure_visualizer_conf_host_file() {
+    local file="$1"
+    local dir
+    dir=$(dirname "$file")
+
+    # 1) make sure the directory exists and is writable by the user
+    _ensure_host_dir "$dir" || return 1
+
+    # 2) create the file if it doesn't exist, and initialise it
+    if [ ! -f "$file" ]; then
+        echo -e "${BRed}File $file does not exist. Creating it...${Color_Off}"
+        echo '{"model_runs":[]}' > "$file"
+    fi
+
+    # 3) ensure *you* can read/write the file
+    chmod u+rw "$file"
+}
+
+
+_run_tethys() {
+
+    _ensure_host_dir  "$MODELS_RUNS_DIRECTORY"
+    _ensure_host_dir  "$DATASTREAM_DIRECTORY"
+    _ensure_visualizer_conf_host_file "$VISUALIZER_CONF"
+
+    _execute_command docker run --rm -it -d \
+        -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer" \
+        -v "$DATASTREAM_DIRECTORY:$TETHYS_PERSIST_PATH/.datastream_ngiab" \
+        -p $NGINX_TETHYS_PORT:$NGINX_TETHYS_PORT \
+        --platform "$PLATFORM" \
+        --network "$DOCKER_NETWORK" \
+        --name "$TETHYS_CONTAINER_NAME" \
+        --env MEDIA_ROOT="$TETHYS_PERSIST_PATH/media" \
+        --env MEDIA_URL="/media/" \
+        --env SKIP_DB_SETUP="$SKIP_DB_SETUP" \
+        --env DATASTREAM_CONF="$TETHYS_PERSIST_PATH/.datastream_ngiab" \
+        --env VISUALIZER_CONF="$TETHYS_PERSIST_PATH/ngiab_visualizer/ngiab_visualizer.json" \
+        --env NGINX_PORT=$NGINX_TETHYS_PORT \
+        --env CSRF_TRUSTED_ORIGINS=$CSRF_TRUSTED_ORIGINS \
+        "$TETHYS_IMAGE_NAME" \
+        > /dev/null 2>&1
+}
 
 
 _copy_models_run() {
-  local input_path="$1"
-  local models_dir="$HOME/ngiab_visualizer"
+    local input_path="$1"
+    local models_dir="$HOME/ngiab_visualizer"
+    # 1) make sure ~/ngiab_visualizer exists and you own it
+    _ensure_host_dir "$models_dir" || {
+        echo -e "${BRed}Failed to create or fix permissions on $models_dir${Color_Off}" >&2
+        return 1
+    }
 
-  # Ensure the parent directory exists
-  if [ ! -d "$models_dir" ]; then
-    mkdir -p "$models_dir"
-  fi
+    # 2) derive the target path
+    local base_name
+    base_name="$(basename "$input_path")"
+    local model_run_path="$models_dir/$base_name"
+    local final_copied_path="$model_run_path"
 
-  # Derive the target path from the basename
-  local base_name
-  base_name="$(basename "$input_path")"
-  local model_run_path="$models_dir/$base_name"
+    # 3) copy logic
+    if [ ! -e "$model_run_path" ]; then
+        cp -r "$input_path" "$models_dir" || {
+            echo -e "${BRed}Error: Could not copy $input_path → $models_dir${Color_Off}" >&2
+            return 1
+        }
+        echo -e "${BCyan}Copied: $input_path → $model_run_path${Color_Off}" >&2
+    else
+        echo -e "${BYellow}Directory '$model_run_path' already exists.${Color_Off}" >&2
+        while true; do
+            echo -ne "${BYellow}Overwrite (O) or copy with different name (D)? [O/D]: ${Color_Off}" >&2
+            read -r choice < /dev/tty
+            case "$choice" in
+                [Oo]* )
+                    rm -rf "$model_run_path"
+                    cp -r "$input_path" "$models_dir" || {
+                        echo -e "${BRed}Error: Could not overwrite $model_run_path${Color_Off}" >&2
+                        return 1
+                    }
+                    echo -e "${BCyan}Overwritten with: $input_path → $model_run_path${Color_Off}" >&2
+                    break
+                    ;;
+                [Dd]* )
+                    echo -ne "${BBlue}Enter a new directory name: ${Color_Off}" >&2
+                    read -r new_name < /dev/tty
+                    if [ -z "$new_name" ]; then
+                        echo -e "${BRed}No name entered. Try again.${Color_Off}" >&2
+                        continue
+                    fi
+                    local new_path="$models_dir/$new_name"
+                    if [ -e "$new_path" ]; then
+                        echo -e "${BRed}'$new_name' already exists. Choose another name.${Color_Off}" >&2
+                        continue
+                    fi
+                    cp -r "$input_path" "$new_path" || {
+                        echo -e "${BRed}Error: Could not copy to $new_path${Color_Off}" >&2
+                        return 1
+                    }
+                    echo -e "${BPurple}Copied to: $new_path${Color_Off}" >&2
+                    final_copied_path="$new_path"
+                    break
+                    ;;
+                * )
+                    echo -e "${BRed}Invalid choice. Enter 'O' or 'D'.${Color_Off}" >&2
+                    ;;
+            esac
+        done
+    fi
 
-  # We'll store the path we finally used in this variable.
-  local final_copied_path="$model_run_path"
-
-  if [ ! -e "$model_run_path" ]; then
-    cp -r "$input_path" "$models_dir"
-    echo >&2 "Copying directory: $input_path -> $models_dir"
-    final_copied_path="$model_run_path"
-  else
-    echo -e "${BYellow}Directory '$model_run_path' already exists.\n${Color_Off}" >&2
-
-    while true; do
-      echo -e "${BYellow}Overwrite (O) or copy with different name (D)? [O/D]\n${Color_Off}" >&2
-
-      # Read from /dev/tty, so we can still get user input
-      read -r choice < /dev/tty
-
-      case "$choice" in
-        [Oo]* )
-          rm -rf "$model_run_path"
-          cp -r "$input_path" "$models_dir"
-          echo -e "${BCyan}Overwritten existing directory: $input_path -> $model_run_path.\n${Color_Off}" >&2
-          final_copied_path="$model_run_path"
-          break
-          ;;
-        [Dd]* )
-          echo -e "${BBlue}Enter a new directory name:\n${Color_Off}" >&2
-          read -r new_name < /dev/tty
-
-          if [ -z "$new_name" ]; then
-            echo >&2 "No new name entered, please try again."
-            continue
-          fi
-
-          local new_path="$models_dir/$new_name"
-          if [ -e "$new_path" ]; then
-            echo -e "${BBlue}A directory/file named '$new_name' already exists in $models_dir.\n${Color_Off}" >&2
-            echo -e "${BBlue}Please choose another name.\n${Color_Off}" >&2
-            continue
-          fi
-
-          cp -r "$input_path" "$new_path"
-
-          echo -e "${BPurple}Copied to: $new_path \n${Color_Off}" >&2
-        #   echo >&2 "Copied to: $new_path"
-          final_copied_path="$new_path"
-          break
-          ;;
-        * )
-          echo -e "${BRed}Invalid choice. Please enter 'O' or 'D' (or press Ctrl-C to abort). \n${Color_Off}" >&2
-        #   echo >&2 "Invalid choice. Please enter 'O' or 'D' (or press Ctrl-C to abort)."
-          ;;
-      esac
-    done
-  fi
-
-  # Echo the final path on STDOUT so the caller can capture it
-  echo "$final_copied_path"
+    # 4) output the directory the caller should register
+    echo "$final_copied_path"
 }
-
-
 
 _add_model_run() {
   local input_path="$1"
-  local json_file="$HOME/ngiab_visualizer.json"
+  local json_file="$VISUALIZER_CONF"
 
   # 1) Ensure $json_file exists
+  echo -e "${BGreen}Checking for $json_file...${Color_Off}"
   if [ ! -f "$json_file" ]; then
     echo '{"model_runs":[]}' > "$json_file"
   fi
@@ -326,17 +406,16 @@ _add_model_run() {
 
   # Always use /var/lib/tethys_persist/ngiab_visualizer as the base directory
   local final_path="/var/lib/tethys_persist/ngiab_visualizer/$base_name"
-
-  jq --arg label "$base_name" \
-     --arg path  "$final_path" \
-     --arg date  "$current_time" \
-     --arg id    "$new_uuid" \
+  jq --arg base_name "$base_name" \
+     --arg final_path  "$final_path" \
+     --arg current_time  "$current_time" \
+     --arg uuid    "$new_uuid" \
      '.model_runs += [ 
        { 
-         "label": $label, 
-         "path": $path, 
-         "date": $date, 
-         "id": $id, 
+         "label": $base_name, 
+         "path": $final_path, 
+         "date": $current_time, 
+         "id": $uuid, 
          "subset": "", 
          "tags": [] 
        }
@@ -362,14 +441,25 @@ create_tethys_portal(){
         fi
     done
     
+    echo -e "${BYellow}Specify the Tethys image tag to use: ${Color_Off}"
+    read -erp "Tag (e.g. v0.2.1, default: latest): " TETHYS_TAG
+    if [[ -z "$TETHYS_TAG" ]]; then
+        TETHYS_TAG="latest"
+    fi
+
+    # Build the full image reference
+    TETHYS_IMAGE_NAME="${TETHYS_REPO}:${TETHYS_TAG}"    
+
+
     # Execute the command
     if [[ "$visualization_choice" =~ ^[Yy]$ ]]; then
         echo -e "${BGreen}Setting up Tethys Portal image...${Color_Off}"
         _create_tethys_docker_network
         if _check_for_existing_tethys_image; then
+            _choose_port_to_run_tethys
             _execute_command _run_containers
             _wait_container $TETHYS_CONTAINER_NAME
-            echo -e "${BGreen}Your outputs are ready to be visualized at http://localhost/apps/ngiab ${Color_Off}"
+            echo -e "${BGreen}Your outputs are ready to be visualized at http://localhost:$NGINX_TETHYS_PORT/apps/ngiab ${Color_Off}"
             echo -e "${UPurple}You can use the following to login: ${Color_Off}"
             echo -e "${BCyan}user: admin${Color_Off}"
             echo -e "${BCyan}password: pass${Color_Off}"
@@ -393,16 +483,21 @@ trap handle_sigint SIGINT
 
 # Constanst
 PLATFORM='linux/amd64'
-VISUALIZER_CONF="$HOME/ngiab_visualizer.json"
 MODELS_RUNS_DIRECTORY="$HOME/ngiab_visualizer"
+VISUALIZER_CONF="$MODELS_RUNS_DIRECTORY/ngiab_visualizer.json"
 DATASTREAM_DIRECTORY="$HOME/.datastream_ngiab"
 TETHYS_CONTAINER_NAME="tethys-ngen-portal"
 DOCKER_NETWORK="tethys-network"
-TETHYS_IMAGE_NAME=awiciroh/tethys-ngiab:main
+TETHYS_REPO="awiciroh/tethys-ngiab"
+TETHYS_TAG="latest"
+TETHYS_IMAGE_NAME=""
 DATA_FOLDER_PATH="$1"
 TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
 CONFIG_FILE="$HOME/.host_data_path.conf"
 SKIP_DB_SETUP=false
+NGINX_TETHYS_PORT=80
+CSRF_TRUSTED_ORIGINS="\"[http://localhost:$NGINX_TETHYS_PORT, http://127.0.0.1:$NGINX_TETHYS_PORT]\""
+
 
 # check for architecture
 if uname -a | grep arm64 || uname -a | grep aarch64 ; then
