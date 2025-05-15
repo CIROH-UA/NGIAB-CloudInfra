@@ -245,7 +245,7 @@ check_for_existing_tethys_image() {
 
 choose_port_to_run_tethys() {
     while true; do
-        echo -e "${BBlue}Select a port to run Tethys [default: 80]: ${Color_Off}"
+        echo -e "${BBlue}Select a port to run Tethys on. [Default: 80] ${Color_Off}"
         read -erp "Port: " nginx_tethys_port
 
         # Default to 80 if the user just hits <Enter>
