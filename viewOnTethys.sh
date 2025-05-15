@@ -60,7 +60,6 @@ DATASTREAM_DIRECTORY="$HOME/.datastream_ngiab"
 VISUALIZER_CONF="$MODELS_RUNS_DIRECTORY/ngiab_visualizer.json"
 TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
 SKIP_DB_SETUP=false
-NGINX_TETHYS_PORT=80
 
 # Disable error trapping initially so we can catch and report errors
 set +e
@@ -245,10 +244,35 @@ check_for_existing_tethys_image() {
 }
 
 choose_port_to_run_tethys() {
-    NGINX_TETHYS_PORT=80
-    echo -e "${ARROW} ${BWhite}Using default port 80 for Tethys${Color_Off}"
-    CSRF_TRUSTED_ORIGINS="[\"http://localhost:${NGINX_TETHYS_PORT}\",\"http://127.0.0.1:${NGINX_TETHYS_PORT}\"]"
-    echo -e "  ${CHECK_MARK} ${BGreen}Port $NGINX_TETHYS_PORT selected${Color_Off}"
+    while true; do
+        echo -e "${BBlue}Select a port to run Tethys [default: 80]: ${Color_Off}"
+        read -erp "Port: " nginx_tethys_port
+
+        # Default to 80 if the user just hits <Enter>
+        if [[ -z "$nginx_tethys_port" ]]; then
+            nginx_tethys_port=80
+            echo -e "${ARROW} ${BWhite}Using default port 80 for Tethys.${Color_Off}"
+        fi
+
+        # Validate numeric port 1-65535
+        if ! [[ "$nginx_tethys_port" =~ ^[0-9]+$ ]] || \
+           [ "$nginx_tethys_port" -lt 1 ] || [ "$nginx_tethys_port" -gt 65535 ]; then
+            echo -e "${BRed}Invalid port number. Please enter 1-65535.${Color_Off}"
+            continue
+        fi
+
+        # Check if the port is already in use (skip check if lsof not present)
+        if command -v lsof >/dev/null && lsof -i:"$nginx_tethys_port" >/dev/null 2>&1; then
+            echo -e "${BRed}Port $nginx_tethys_port is already in use. Choose another.${Color_Off}"
+            continue
+        fi
+
+        break
+    done
+
+    CSRF_TRUSTED_ORIGINS="[\"http://localhost:${nginx_tethys_port}\",\"http://127.0.0.1:${nginx_tethys_port}\"]"
+    echo -e "  ${CHECK_MARK} ${BGreen}Port $nginx_tethys_port selected${Color_Off}"
+
     return 0
 }
 
@@ -412,7 +436,7 @@ run_tethys() {
     docker run --rm -d \
         -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer" \
         -v "$DATASTREAM_DIRECTORY:$TETHYS_PERSIST_PATH/.datastream_ngiab" \
-        -p "$NGINX_TETHYS_PORT:$NGINX_TETHYS_PORT" \
+        -p "$nginx_tethys_port:$nginx_tethys_port" \
         --network "$DOCKER_NETWORK" \
         --name "$TETHYS_CONTAINER_NAME" \
         --env MEDIA_ROOT="$TETHYS_PERSIST_PATH/media" \
@@ -420,7 +444,7 @@ run_tethys() {
         --env SKIP_DB_SETUP="$SKIP_DB_SETUP" \
         --env DATASTREAM_CONF="$TETHYS_PERSIST_PATH/.datastream_ngiab" \
         --env VISUALIZER_CONF="$TETHYS_PERSIST_PATH/ngiab_visualizer/ngiab_visualizer.json" \
-        --env NGINX_PORT="$NGINX_TETHYS_PORT" \
+        --env NGINX_PORT="$nginx_tethys_port" \
         --env CSRF_TRUSTED_ORIGINS="$CSRF_TRUSTED_ORIGINS" \
         "${TETHYS_REPO}:${TETHYS_TAG}"
         
@@ -435,7 +459,7 @@ run_tethys() {
 
 pause_script_execution() {
     echo -e "\n${BG_Blue}${BWhite} Tethys is now running ${Color_Off}"
-    echo -e "${INFO_MARK} Access the visualization at: ${UBlue}http://localhost:$NGINX_TETHYS_PORT/apps/ngiab${Color_Off}"
+    echo -e "${INFO_MARK} Access the visualization at: ${UBlue}http://localhost:$nginx_tethys_port/apps/ngiab${Color_Off}"
     echo -e "${INFO_MARK} Press ${BWhite}Ctrl+C${Color_Off} to stop Tethys when you're done."
     
     # Keep script running until user interrupts
@@ -520,7 +544,7 @@ wait_container "$TETHYS_CONTAINER_NAME" || {
 print_section_header "VISUALIZATION READY"
 
 echo -e "${BG_Green}${BWhite} Your model outputs are now available for visualization! ${Color_Off}\n"
-echo -e "${INFO_MARK} Access the visualization at: ${UBlue}http://localhost:$NGINX_TETHYS_PORT/apps/ngiab${Color_Off}"
+echo -e "${INFO_MARK} Access the visualization at: ${UBlue}http://localhost:$nginx_tethys_port/apps/ngiab${Color_Off}"
 echo -e "${INFO_MARK} Login credentials:"
 echo -e "  ${ARROW} ${BWhite}Username:${Color_Off} admin"
 echo -e "  ${ARROW} ${BWhite}Password:${Color_Off} pass"
