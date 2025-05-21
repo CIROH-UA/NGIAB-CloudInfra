@@ -1,5 +1,14 @@
 #!/bin/bash
-# ANSI color codes
+
+# ======================================================================
+# CIROH: NextGen In A Box (NGIAB) - Tethys Visualization
+# ======================================================================
+
+# Enable debug mode to see what's happening
+# set -x
+
+# Color definitions with enhanced palette
+BBlack='\033[1;30m'
 BRed='\033[1;31m'
 BGreen='\033[1;32m'
 BYellow='\033[1;33m'
@@ -17,239 +26,126 @@ UCyan='\033[4;36m'
 UWhite='\033[4;37m'
 Color_Off='\033[0m'
 
+# Extended color palette with 256-color support
+LBLUE='\033[38;5;39m'  # Light blue
+LGREEN='\033[38;5;83m' # Light green 
+LPURPLE='\033[38;5;171m' # Light purple
+LORANGE='\033[38;5;215m' # Light orange
+LTEAL='\033[38;5;87m'  # Light teal
 
-################################################
-###############HELPER FUNCTIONS#################
-################################################
-# Function to automatically select file if only one is found
-_auto_select_file() {
-  local files=("$@")  # Correct the handling of arguments as an array
-  if [ "${#files[@]}" -eq 1 ]; then
-    echo "${files[0]}"
-  else
-    echo ""
-  fi
-}
-_check_if_data_folder_exits(){
-    # Check the directory exists
-    if [ ! -d "$DATA_FOLDER_PATH" ]; then
-        echo -e "${BRed}Directory does not exist. Exiting the program.${Color_Off}"
-        exit 0
-    fi
+# Background colors for highlighting important messages
+BG_Green='\033[42m'
+BG_Blue='\033[44m'
+BG_Red='\033[41m'
+BG_LBLUE='\033[48;5;117m' # Light blue background
+
+# Symbols for better UI
+CHECK_MARK="${BGreen}✓${Color_Off}"
+CROSS_MARK="${BRed}✗${Color_Off}"
+ARROW="${LORANGE}→${Color_Off}"
+INFO_MARK="${LBLUE}ℹ${Color_Off}"
+WARNING_MARK="${BYellow}⚠${Color_Off}"
+
+# Fix for missing environment variables that might cause display issues
+export TERM=xterm-256color
+
+# Constants
+CONFIG_FILE="$HOME/.host_data_path.conf"
+DOCKER_NETWORK="tethys-network"
+TETHYS_CONTAINER_NAME="tethys-ngen-portal"
+TETHYS_REPO="awiciroh/tethys-ngiab"
+TETHYS_TAG="latest"
+MODELS_RUNS_DIRECTORY="$HOME/ngiab_visualizer"
+DATASTREAM_DIRECTORY="$HOME/.datastream_ngiab"
+VISUALIZER_CONF="$MODELS_RUNS_DIRECTORY/ngiab_visualizer.json"
+TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
+SKIP_DB_SETUP=false
+
+# Disable error trapping initially so we can catch and report errors
+set +e
+
+# Function for animated loading with gradient colors
+show_loading() {
+    local message=$1
+    local duration=${2:-3}
+    local chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+    local colors=("\033[38;5;39m" "\033[38;5;45m" "\033[38;5;51m" "\033[38;5;87m")
+    local end_time=$((SECONDS + duration))
+    
+    while [ $SECONDS -lt $end_time ]; do
+        for (( i=0; i<${#chars}; i++ )); do
+            color_index=$((i % ${#colors[@]}))
+            echo -ne "\r${colors[$color_index]}${chars:$i:1}${Color_Off} $message"
+            sleep 0.1
+        done
+    done
+    echo -ne "\r${CHECK_MARK} $message - Complete!   \n"
 }
 
-# Check if the config file exists and read from it
-_check_and_read_config() {
-    local config_file="$1"
-    if [ -f "$config_file" ]; then
-        local last_path=$(cat "$config_file")
-        echo -e "Last used data directory path: %s\n" "$last_path${Color_Off}"
-        read -erp "Do you want to use the same path? (Y/n): " use_last_path
-        
-        if [[ "$use_last_path" =~ ^[Yy] ]]; then
-            DATA_FOLDER_PATH="$last_path"
-            _check_if_data_folder_exits
-            final_dir=$(_copy_models_run "$DATA_FOLDER_PATH")
-            _add_model_run "$final_dir"
-            return 0
-        elif [[ "$use_last_path" =~ ^[Nn] ]]; then
-            read -erp "Enter your input data directory path (use absolute path): " DATA_FOLDER_PATH
-            _check_if_data_folder_exits
-            # Save the new path to the config file
-            echo "$DATA_FOLDER_PATH" > "$CONFIG_FILE"
-            final_dir=$(_copy_models_run "$DATA_FOLDER_PATH")
-            _add_model_run "$final_dir"
-            echo -e "The Directory you've given is:\n$DATA_FOLDER_PATH\n${Color_Off}"   
-        else
-            echo -e "Invalid input. Exiting.\n${Color_Off}" >&2
-            return 1
-        fi
-    fi
+# Function for section headers
+print_section_header() {
+    local title=$1
+    local width=70
+    local padding=$(( (width - ${#title}) / 2 ))
+    
+    # Create a more visually appealing section header with light blue background
+    echo -e "\n\033[48;5;117m$(printf "%${width}s" " ")\033[0m"
+    echo -e "\033[48;5;117m$(printf "%${padding}s" " ")${BWhite}${title}$(printf "%${padding}s" " ")\033[0m"
+    echo -e "\033[48;5;117m$(printf "%${width}s" " ")\033[0m\n"
 }
 
-_execute_command() {
-  "$@"
-  local status=$?
-  if [ $status -ne 0 ]; then
-    echo -e "${BRed}Error executing command: $1${Color_Off}"
-    _tear_down
+# Simple banner without complex formatting
+print_welcome_banner() {
+    clear
+    echo -e "\n"
+    echo -e "${BBlue}=================================================${Color_Off}"
+    echo -e "${BBlue}|  CIROH: NextGen In A Box (NGIAB) - Tethys     |${Color_Off}"
+    echo -e "${BBlue}|  Interactive Model Output Visualization       |${Color_Off}"
+    echo -e "${BBlue}=================================================${Color_Off}"
+    echo -e "\n${INFO_MARK} ${BWhite}Developed by CIROH${Color_Off}\n"
+    sleep 1
+}
+
+# Function for error handling
+handle_error() {
+    echo -e "\n${BG_Red}${BWhite} ERROR: $1 ${Color_Off}"
+    # Save error to log file
+    echo "$(date): ERROR: $1" >> ~/ngiab_tethys_error.log
+    
+    # Be sure to clean up resources even on error
+    tear_down
     exit 1
-  fi
-  return $status
-}
-
-_tear_down(){
-    _tear_down_tethys
-    docker network rm $DOCKER_NETWORK > /dev/null 2>&1
-}
-
-_run_containers(){
-    _run_tethys
-}
-
-_choose_port_to_run_tethys() {
-    while true; do
-        echo -e "${BBlue}Select a port to run Tethys (default 80): ${Color_Off}"
-        read -erp "Port: " NGINX_TETHYS_PORT
-
-        # Default to 80 if the user just hits <Enter>
-        if [[ -z "$NGINX_TETHYS_PORT" ]]; then
-            NGINX_TETHYS_PORT=80
-        fi
-
-        # Validate numeric port 1-65535
-        if ! [[ "$NGINX_TETHYS_PORT" =~ ^[0-9]+$ ]] || \
-           [ "$NGINX_TETHYS_PORT" -lt 1 ] || [ "$NGINX_TETHYS_PORT" -gt 65535 ]; then
-            echo -e "${BRed}Invalid port number. Please enter 1-65535.${Color_Off}"
-            continue
-        fi
-
-        # Check if the port is already in use (skip check if lsof not present)
-        if command -v lsof >/dev/null && lsof -i:"$NGINX_TETHYS_PORT" >/dev/null 2>&1; then
-            echo -e "${BRed}Port $NGINX_TETHYS_PORT is already in use. Choose another.${Color_Off}"
-            continue
-        fi
-        CSRF_TRUSTED_ORIGINS="[http://localhost:${NGINX_TETHYS_PORT},http://127.0.0.1:${NGINX_TETHYS_PORT}]"
-
-        break
-    done
-}
-
-# Wait for a Docker container to become healthy
-_wait_container() {
-    local container_name=$1
-    local container_health_status=""
-    local attempt_counter=0
-
-    echo -e "${UPurple}Waiting for container: $container_name to become healthy. This can take a couple of minutes...\n${Color_Off}"
-
-    while true; do
-        # Update the health status
-        container_health_status=$(docker inspect -f '{{.State.Health.Status}}' "$container_name" 2>/dev/null)
-
-        if [ $? -ne 0 ]; then
-            echo -e "${BRed}Failed to get health status for container $container_name. Ensure the container exists and has a health check.\n${Color_Off}" >&2
-            return 1
-        fi
-
-        if [[ "$container_health_status" == "healthy" ]]; then
-            echo -e "${BCyan}Container $container_name is now healthy.\n${Color_Off}"
-            return 0
-        elif [[ "$container_health_status" == "unhealthy" ]]; then
-            echo -e "${BRed}Container $container_name is unhealthy.\n${Color_Off}" >&2
-            return 1
-        elif [[ -z "$container_health_status" ]]; then
-            echo -e "${BRed}No health status available for container $container_name. Ensure the container has a health check configured.\n${Color_Off}" >&2
-            return 1
-        fi
-
-        ((attempt_counter++))
-        sleep 2  # Adjust the sleep time as needed
-    done
-}
-
-_pause_script_execution() {
-    while true; do
-        echo -e "${BYellow}Press q to exit the visualization (default: q/Q):\n${Color_Off}"
-        read -r exit_choice
-
-        if [[ "$exit_choice" =~ ^[qQ]$ ]]; then
-            echo -e "${BRed}Cleaning up Tethys ...\n${Color_Off}"
-            _tear_down
-            exit 0
-        else
-            echo -e "${BRed}Invalid input. Please press 'q' or 'Q' to exit.\n${Color_Off}"
-        fi
-    done
 }
 
 # Function to handle the SIGINT (Ctrl-C)
 handle_sigint() {
-    echo -e "${BRed}Cleaning up . . .${Color_Off}"
-    _tear_down
+    echo -e "\n${BG_Red}${BWhite} Operation cancelled by user. Cleaning up... ${Color_Off}"
+    tear_down
     exit 1
 }
 
-check_last_path() {
-    if [[ -z "$1" ]]; then
-        _check_and_read_config "$CONFIG_FILE"
-     
-    else
-        DATA_FOLDER_PATH="$1"
-        _check_if_data_folder_exits
-        final_dir=$(_copy_models_run "$DATA_FOLDER_PATH")
-        _add_model_run "$final_dir"
-        return 0
-    fi
-}
-_get_filename() {
-  local full_path="$1"
-  local filename="${full_path##*/}"
-  echo "$filename"
-}
+# Set up trap for signal handlers
+trap handle_sigint INT TERM
+trap 'handle_error "Unexpected error occurred at line $LINENO: $BASH_COMMAND"' ERR
 
+# Detect platform
+if uname -a | grep -q 'arm64\|aarch64'; then
+    PLATFORM="linux/arm64"
+else
+    PLATFORM="linux/amd64"
+fi
 
-################################################
-###############TETHYS FUNCTIONS#################
-################################################
-
-#create the docker network to communicate between tethys and geoserver
-_create_tethys_docker_network(){
-    network_result=$(_execute_command docker network create -d bridge tethys-network 2>&1)
-    if grep -i "Error" <<< "$network_result"; then
-        echo -e "${BRed}Error while attempting to create Docker network. (Is Docker running?)${Color_Off}"
-        _tear_down
-        exit 1
-    fi
-}
-
-_check_for_existing_tethys_image() {
-    echo -e "${BYellow}Select an option (type a number): ${Color_Off}\n"
-    options=("Run Tethys using existing local docker image" "Run Tethys after updating to latest docker image" "Exit")
-    select option in "${options[@]}"; do
-        case $option in
-            "Run Tethys using existing local docker image")
-                echo -e "${BGreen}Using local image of the Tethys platform\n${Color_Off}"
-                return 0
-                ;;
-            "Run Tethys after updating to latest docker image")
-                echo -e "${BGreen}Pulling container...${Color_Off}\n"
-                if ! docker pull "$TETHYS_IMAGE_NAME"; then
-                    echo -e "${BRed}Failed to pull Docker image: $TETHYS_IMAGE_NAME\n${Color_Off}" >&2
-                    return 1
-                fi
-                return 0
-                ;;
-            "Exit")
-                echo -e "${BCyan}Have a nice day!${Color_Off}\n"
-                _tear_down
-                exit 0
-                ;;
-            *)
-                echo -e "${BRed}Invalid option $REPLY, 1 to continue with existing local image, 2 to update and run, and 3 to exit\n${Color_Off}"
-                ;;
-        esac
-    done
-}
-
-
-_tear_down_tethys(){
-    if [ "$(docker ps -aq -f name=$TETHYS_CONTAINER_NAME)" ]; then
-        docker stop $TETHYS_CONTAINER_NAME > /dev/null 2>&1
-    fi
-}
-
-
-_ensure_host_dir() {
+# Main functions
+ensure_host_dir() {
     local dir="$1"
 
-    # 1) Create the directory (and parents) if it does not exist
+    # Create the directory if it doesn't exist
     if [ ! -d "$dir" ]; then
-        echo -e "${BYellow}Directory $dir doesn’t exist — creating it…${Color_Off}"
-        mkdir -p "$dir"
+        echo -e "${INFO_MARK} Directory ${BWhite}$dir${Color_Off} doesn't exist — creating it..."
+        mkdir -p "$dir" || { echo "Could not create directory $dir"; return 1; }
     fi
 
-    # 2) Get owner UID (portable: Linux uses -c, macOS/BSD uses -f)
+    # Get owner UID (portable: Linux uses -c, macOS/BSD uses -f)
     local owner_uid=""
     if owner_uid=$(stat -c '%u' "$dir" 2>/dev/null); then
         :  # GNU stat (Linux)
@@ -257,49 +153,290 @@ _ensure_host_dir() {
         :  # BSD stat (macOS, Git-Bash)
     fi
 
-    # 3) If the directory is not owned by the current user, try to chown it
+    # If the directory is not owned by the current user, try to chown it
     if [[ -n "$owner_uid" && "$owner_uid" != "$(id -u)" ]]; then
         if command -v chown >/dev/null 2>&1; then
-            echo -e "${BYellow}Reclaiming ownership of $dir (sudo may prompt)…${Color_Off}"
-            sudo chown -R "$(id -u):$(id -g)" "$dir"
+            echo -e "${INFO_MARK} ${BYellow}Reclaiming ownership of $dir (sudo may prompt)...${Color_Off}"
+            sudo chown -R "$(id -u):$(id -g)" "$dir" || echo -e "${WARNING_MARK} Could not change directory ownership."
         fi
     fi
 
-    # 4) Ensure the current user has rwx on the directory
-    chmod u+rwx "$dir"
+    # Ensure the current user has rwx on the directory
+    chmod u+rwx "$dir" || { echo "Could not set directory permissions on $dir"; return 1; }
+    return 0
 }
 
-# Ensure a *regular file* exists (and is writable) without touching siblings
-_ensure_visualizer_conf_host_file() {
+ensure_visualizer_conf_host_file() {
     local file="$1"
     local dir
     dir=$(dirname "$file")
 
-    # 1) make sure the directory exists and is writable by the user
-    _ensure_host_dir "$dir" || return 1
-
-    # 2) create the file if it doesn't exist, and initialise it
-    if [ ! -f "$file" ]; then
-        echo -e "${BRed}File $file does not exist. Creating it...${Color_Off}"
-        echo '{"model_runs":[]}' > "$file"
+    # Make sure the directory exists and is writable by the user
+    if ! ensure_host_dir "$dir"; then
+        echo "Failed to ensure directory for config file"
+        return 1
     fi
 
-    # 3) ensure *you* can read/write the file
-    chmod u+rw "$file"
+    # Create the file if it doesn't exist, and initialize it
+    if [ ! -f "$file" ]; then
+        echo -e "${INFO_MARK} Creating configuration file ${BWhite}$file${Color_Off}..."
+        echo '{"model_runs":[]}' > "$file" || { echo "Could not create file $file"; return 1; }
+    fi
+
+    # Ensure the user can read/write the file
+    chmod u+rw "$file" || { echo "Could not set file permissions on $file"; return 1; }
+    return 0
 }
 
+create_tethys_docker_network() {
+    echo -e "${INFO_MARK} Setting up Docker network for Tethys..."
+    
+    # Check if Docker daemon is running
+    if ! docker info >/dev/null 2>&1; then
+        echo -e "${BRed}Docker daemon is not running or accessible.${Color_Off}"
+        return 1
+    fi
+    
+    # Check if network already exists
+    if docker network inspect "$DOCKER_NETWORK" >/dev/null 2>&1; then
+        echo -e "  ${CHECK_MARK} Network ${BCyan}$DOCKER_NETWORK${Color_Off} already exists."
+        return 0
+    fi
+    
+    # Create the network
+    if docker network create -d bridge "$DOCKER_NETWORK" >/dev/null 2>&1; then
+        echo -e "  ${CHECK_MARK} Network ${BCyan}$DOCKER_NETWORK${Color_Off} created successfully."
+        # Add a small delay to ensure network is fully created
+        sleep 1
+        return 0
+    else
+        echo -e "  ${CROSS_MARK} ${BRed}Failed to create Docker network.${Color_Off}"
+        return 1
+    fi
+}
 
-_run_tethys() {
+check_for_existing_tethys_image() {
+    # First check if Docker is running
+    if ! docker info >/dev/null 2>&1; then
+        echo -e "${BRed}Docker daemon is not running or accessible.${Color_Off}"
+        return 1
+    fi
+    
+    # Check if the image exists locally
+    local image_exists=false
+    if docker image inspect "${TETHYS_REPO}:${TETHYS_TAG}" >/dev/null 2>&1; then
+        image_exists=true
+    fi
+    
+    if [ "$image_exists" = true ]; then
+        echo -e "  ${CHECK_MARK} ${BGreen}Using local Tethys image: ${TETHYS_REPO}:${TETHYS_TAG}${Color_Off}"
+        return 0
+    else
+        echo -e "  ${INFO_MARK} ${BYellow}Tethys image not found locally. Pulling from registry...${Color_Off}"
+        show_loading "Downloading Tethys image" 3
+        if ! docker pull "${TETHYS_REPO}:${TETHYS_TAG}"; then
+            echo -e "  ${CROSS_MARK} ${BRed}Failed to pull Docker image: ${TETHYS_REPO}:${TETHYS_TAG}${Color_Off}"
+            return 1
+        fi
+        echo -e "  ${CHECK_MARK} ${BGreen}Tethys image downloaded successfully${Color_Off}"
+        return 0
+    fi
+}
 
-    _ensure_host_dir  "$MODELS_RUNS_DIRECTORY"
-    _ensure_host_dir  "$DATASTREAM_DIRECTORY"
-    _ensure_visualizer_conf_host_file "$VISUALIZER_CONF"
+choose_port_to_run_tethys() {
+    while true; do
+        echo -e "${BBlue}Select a port to run Tethys on. [Default: 80] ${Color_Off}"
+        read -erp "Port: " nginx_tethys_port
 
-    _execute_command docker run --rm -it -d \
+        # Default to 80 if the user just hits <Enter>
+        if [[ -z "$nginx_tethys_port" ]]; then
+            nginx_tethys_port=80
+            echo -e "${ARROW} ${BWhite}Using default port 80 for Tethys.${Color_Off}"
+        fi
+
+        # Validate numeric port 1-65535
+        if ! [[ "$nginx_tethys_port" =~ ^[0-9]+$ ]] || \
+           [ "$nginx_tethys_port" -lt 1 ] || [ "$nginx_tethys_port" -gt 65535 ]; then
+            echo -e "${BRed}Invalid port number. Please enter 1-65535.${Color_Off}"
+            continue
+        fi
+
+        # Check if the port is already in use (skip check if lsof not present)
+        if command -v lsof >/dev/null && lsof -i:"$nginx_tethys_port" >/dev/null 2>&1; then
+            echo -e "${BRed}Port $nginx_tethys_port is already in use. Choose another.${Color_Off}"
+            continue
+        fi
+
+        break
+    done
+
+    CSRF_TRUSTED_ORIGINS="[\"http://localhost:${nginx_tethys_port}\",\"http://127.0.0.1:${nginx_tethys_port}\"]"
+    echo -e "  ${CHECK_MARK} ${BGreen}Port $nginx_tethys_port selected${Color_Off}"
+
+    return 0
+}
+
+tear_down() {
+    echo -e "\n${ARROW} ${BYellow}Cleaning up resources...${Color_Off}"
+    
+    # Check if Docker daemon is running
+    if ! docker info >/dev/null 2>&1; then
+        echo -e "  ${CROSS_MARK} ${BRed}Docker daemon is not running, cannot clean up containers.${Color_Off}"
+        return 1
+    fi
+    
+    # Stop the Tethys container if it's running
+    if docker ps -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
+        echo -e "  ${INFO_MARK} Stopping Tethys container..."
+        docker stop "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1
+        sleep 2
+    fi
+    
+    # Remove the Docker network if it exists
+    if docker network inspect "$DOCKER_NETWORK" >/dev/null 2>&1; then
+        echo -e "  ${INFO_MARK} Removing Docker network..."
+        docker network rm "$DOCKER_NETWORK" >/dev/null 2>&1 || true
+    fi
+    
+    echo -e "  ${CHECK_MARK} ${BGreen}Cleanup completed${Color_Off}"
+    return 0
+}
+
+wait_container() {
+    local container_name=$1
+    local max_attempts=10
+    local attempt_counter=0
+
+    echo -e "\n${ARROW} ${BWhite}Waiting for Tethys container to start...${Color_Off}"
+    echo -e "  ${INFO_MARK} This may take a few moments."
+    
+    # First check if the container is running
+    if ! docker ps -q -f name="$container_name" >/dev/null 2>&1; then
+        echo -e "  ${CROSS_MARK} ${BRed}Container $container_name is not running${Color_Off}"
+        return 1
+    fi
+    
+    # Simple wait to give the container time to initialize
+    sleep 5
+    
+    # Check again if container is still running
+    if ! docker ps -q -f name="$container_name" >/dev/null 2>&1; then
+        echo -e "  ${CROSS_MARK} ${BRed}Container $container_name stopped unexpectedly${Color_Off}"
+        return 1
+    fi
+    
+    echo -e "  ${CHECK_MARK} ${BGreen}Tethys is now running${Color_Off}"
+    return 0
+}
+
+copy_models_run() {
+    local input_path="$1"
+    local models_dir="$MODELS_RUNS_DIRECTORY"
+    
+    # Ensure directory exists with correct permissions
+    if ! ensure_host_dir "$models_dir"; then
+        echo "Failed to create models directory"
+        return 1
+    fi
+
+    # Derive the target path
+    local base_name
+    base_name="$(basename "$input_path")"
+    local model_run_path="$models_dir/$base_name"
+    
+    # Copy logic - simplified to reduce errors
+    echo -e "${INFO_MARK} ${BWhite}Copying model data to visualization directory...${Color_Off}"
+    
+    # Remove existing directory if it exists
+    if [ -e "$model_run_path" ]; then
+        echo -e "  ${INFO_MARK} ${BYellow}Directory already exists, overwriting...${Color_Off}"
+        rm -rf "$model_run_path"
+    fi
+    
+    # Copy the data
+    if cp -r "$input_path" "$models_dir/"; then
+        echo -e "  ${CHECK_MARK} ${BGreen}Model data copied successfully${Color_Off}"
+    else
+        echo -e "  ${CROSS_MARK} ${BRed}Failed to copy model data${Color_Off}"
+        return 1
+    fi
+    
+    # Output the directory path
+    echo "$model_run_path"
+}
+
+add_model_run() {
+    local input_path="$1"
+    local json_file="$VISUALIZER_CONF"
+
+    # Ensure JSON file exists
+    if ! ensure_visualizer_conf_host_file "$json_file"; then
+        echo "Failed to create config file"
+        return 1
+    fi
+
+    # Extract the basename for label
+    local base_name
+    base_name=$(basename "$input_path")
+
+    # Generate a new UUID for the id field - simplified
+    local new_uuid="ngiab-$(date +%Y%m%d%H%M%S)-$(( RANDOM % 1000 ))"
+
+    # Current date/time
+    local current_time
+    current_time=$(date +"%Y-%m-%d:%H:%M:%S")
+
+    # Path for Tethys container
+    local final_path="$TETHYS_PERSIST_PATH/ngiab_visualizer/$base_name"
+    
+    echo -e "${INFO_MARK} ${BWhite}Registering model run in visualization system...${Color_Off}"
+    
+    # Simplified approach - create a new file
+    echo '{"model_runs":[{"label":"'"$base_name"'","path":"'"$final_path"'","date":"'"$current_time"'","id":"'"$new_uuid"'","subset":"","tags":[]}]}' > "$json_file"
+    
+    if [ $? -eq 0 ]; then
+        echo -e "  ${CHECK_MARK} ${BGreen}Model run registered successfully${Color_Off}"
+        return 0
+    else
+        echo -e "  ${CROSS_MARK} ${BRed}Failed to register model run.${Color_Off}"
+        return 1
+    fi
+}
+
+run_tethys() {
+    ensure_host_dir "$MODELS_RUNS_DIRECTORY"
+    ensure_host_dir "$DATASTREAM_DIRECTORY"
+    ensure_visualizer_conf_host_file "$VISUALIZER_CONF"
+    
+    echo -e "${ARROW} ${BWhite}Launching Tethys container...${Color_Off}"
+    
+    # First, make sure any existing Tethys containers are stopped
+    if docker ps -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
+        echo -e "  ${INFO_MARK} ${BYellow}Tethys container is already running. Stopping it first...${Color_Off}"
+        docker stop "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1
+        sleep 3
+    fi
+    
+    # Final check - if container still exists, force removal
+    if docker ps -a -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
+        echo -e "  ${WARNING_MARK} ${BYellow}Forcibly removing container...${Color_Off}"
+        docker rm -f "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1 || true
+        sleep 2
+    fi
+    
+    # Create new network
+    create_tethys_docker_network
+    
+    # Brief delay before starting
+    sleep 1
+    echo -e "  ${INFO_MARK} ${BYellow}Starting Tethys container...${Color_Off}"
+    
+    # Launch container with explicit error handling
+    echo -e "  ${INFO_MARK} Running docker command..."
+    docker run --rm -d \
         -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer" \
         -v "$DATASTREAM_DIRECTORY:$TETHYS_PERSIST_PATH/.datastream_ngiab" \
-        -p $NGINX_TETHYS_PORT:$NGINX_TETHYS_PORT \
-        --platform "$PLATFORM" \
+        -p "$nginx_tethys_port:$nginx_tethys_port" \
         --network "$DOCKER_NETWORK" \
         --name "$TETHYS_CONTAINER_NAME" \
         --env MEDIA_ROOT="$TETHYS_PERSIST_PATH/media" \
@@ -307,206 +444,113 @@ _run_tethys() {
         --env SKIP_DB_SETUP="$SKIP_DB_SETUP" \
         --env DATASTREAM_CONF="$TETHYS_PERSIST_PATH/.datastream_ngiab" \
         --env VISUALIZER_CONF="$TETHYS_PERSIST_PATH/ngiab_visualizer/ngiab_visualizer.json" \
-        --env NGINX_PORT=$NGINX_TETHYS_PORT \
-        --env CSRF_TRUSTED_ORIGINS=$CSRF_TRUSTED_ORIGINS \
-        "$TETHYS_IMAGE_NAME" \
-        > /dev/null 2>&1
-}
-
-
-_copy_models_run() {
-    local input_path="$1"
-    local models_dir="$HOME/ngiab_visualizer"
-    # 1) make sure ~/ngiab_visualizer exists and you own it
-    _ensure_host_dir "$models_dir" || {
-        echo -e "${BRed}Failed to create or fix permissions on $models_dir${Color_Off}" >&2
-        return 1
-    }
-
-    # 2) derive the target path
-    local base_name
-    base_name="$(basename "$input_path")"
-    local model_run_path="$models_dir/$base_name"
-    local final_copied_path="$model_run_path"
-
-    # 3) copy logic
-    if [ ! -e "$model_run_path" ]; then
-        cp -r "$input_path" "$models_dir" || {
-            echo -e "${BRed}Error: Could not copy $input_path → $models_dir${Color_Off}" >&2
-            return 1
-        }
-        echo -e "${BCyan}Copied: $input_path → $model_run_path${Color_Off}" >&2
-    else
-        echo -e "${BYellow}Directory '$model_run_path' already exists.${Color_Off}" >&2
-        while true; do
-            echo -ne "${BYellow}Overwrite (O) or copy with different name (D)? [O/D]: ${Color_Off}" >&2
-            read -r choice < /dev/tty
-            case "$choice" in
-                [Oo]* )
-                    rm -rf "$model_run_path"
-                    cp -r "$input_path" "$models_dir" || {
-                        echo -e "${BRed}Error: Could not overwrite $model_run_path${Color_Off}" >&2
-                        return 1
-                    }
-                    echo -e "${BCyan}Overwritten with: $input_path → $model_run_path${Color_Off}" >&2
-                    break
-                    ;;
-                [Dd]* )
-                    echo -ne "${BBlue}Enter a new directory name: ${Color_Off}" >&2
-                    read -r new_name < /dev/tty
-                    if [ -z "$new_name" ]; then
-                        echo -e "${BRed}No name entered. Try again.${Color_Off}" >&2
-                        continue
-                    fi
-                    local new_path="$models_dir/$new_name"
-                    if [ -e "$new_path" ]; then
-                        echo -e "${BRed}'$new_name' already exists. Choose another name.${Color_Off}" >&2
-                        continue
-                    fi
-                    cp -r "$input_path" "$new_path" || {
-                        echo -e "${BRed}Error: Could not copy to $new_path${Color_Off}" >&2
-                        return 1
-                    }
-                    echo -e "${BPurple}Copied to: $new_path${Color_Off}" >&2
-                    final_copied_path="$new_path"
-                    break
-                    ;;
-                * )
-                    echo -e "${BRed}Invalid choice. Enter 'O' or 'D'.${Color_Off}" >&2
-                    ;;
-            esac
-        done
-    fi
-
-    # 4) output the directory the caller should register
-    echo "$final_copied_path"
-}
-
-_add_model_run() {
-  local input_path="$1"
-  local json_file="$VISUALIZER_CONF"
-
-  # 1) Ensure $json_file exists
-  echo -e "${BGreen}Checking for $json_file...${Color_Off}"
-  if [ ! -f "$json_file" ]; then
-    echo '{"model_runs":[]}' > "$json_file"
-  fi
-
-  # 2) Extract the basename for label
-  local base_name
-  base_name=$(basename "$input_path")
-
-  # Generate a new UUID for the id field
-  local new_uuid
-  new_uuid=$(uuidgen)
-
-  # Current date/time (adjust format as needed)
-  local current_time
-  current_time=$(date +"%Y-%m-%d:%H:%M:%S")
-
-  # Always use /var/lib/tethys_persist/ngiab_visualizer as the base directory
-  local final_path="/var/lib/tethys_persist/ngiab_visualizer/$base_name"
-  jq --arg base_name "$base_name" \
-     --arg final_path  "$final_path" \
-     --arg current_time  "$current_time" \
-     --arg uuid    "$new_uuid" \
-     '.model_runs += [ 
-       { 
-         "label": $base_name, 
-         "path": $final_path, 
-         "date": $current_time, 
-         "id": $uuid, 
-         "subset": "", 
-         "tags": [] 
-       }
-     ]' \
-     "$json_file" > "${json_file}.tmp" && mv -f "${json_file}.tmp" "$json_file"
-}
-
-create_tethys_portal(){
-    while true; do
-        echo -e "${BYellow}Visualize outputs using the Tethys Platform (https://www.tethysplatform.org/)? (Y/n, default: n):${Color_Off}"
-        read -r visualization_choice
+        --env NGINX_PORT="$nginx_tethys_port" \
+        --env CSRF_TRUSTED_ORIGINS="$CSRF_TRUSTED_ORIGINS" \
+        "${TETHYS_REPO}:${TETHYS_TAG}"
         
-        # Default to 'n' if input is empty
-        if [[ -z "$visualization_choice" ]]; then
-            visualization_choice="n"
-        fi
-
-        # Check for valid input
-        if [[ "$visualization_choice" =~ ^[YyNn]$ ]]; then
-            break
-        else
-            echo -e "${BRed}Invalid choice. Please enter 'y' for yes, 'n' for no, or press Enter for default (no).${Color_Off}"
-        fi
-    done
-    
-    echo -e "${BYellow}Specify the Tethys image tag to use: ${Color_Off}"
-    read -erp "Tag (e.g. v0.2.1, default: latest): " TETHYS_TAG
-    if [[ -z "$TETHYS_TAG" ]]; then
-        TETHYS_TAG="latest"
-    fi
-
-    # Build the full image reference
-    TETHYS_IMAGE_NAME="${TETHYS_REPO}:${TETHYS_TAG}"    
-
-
-    # Execute the command
-    if [[ "$visualization_choice" =~ ^[Yy]$ ]]; then
-        echo -e "${BGreen}Setting up Tethys Portal image...${Color_Off}"
-        _create_tethys_docker_network
-        if _check_for_existing_tethys_image; then
-            _choose_port_to_run_tethys
-            _execute_command _run_containers
-            _wait_container $TETHYS_CONTAINER_NAME
-            echo -e "${BGreen}Your outputs are ready to be visualized at http://localhost:$NGINX_TETHYS_PORT/apps/ngiab ${Color_Off}"
-            echo -e "${UPurple}You can use the following to login: ${Color_Off}"
-            echo -e "${BCyan}user: admin${Color_Off}"
-            echo -e "${BCyan}password: pass${Color_Off}"
-            echo -e "${UPurple}Check the App source code: https://github.com/CIROH-UA/ngiab-client ${Color_Off}"
-            _pause_script_execution
-        else
-            echo -e "${BRed}Failed to prepare Tethys portal.\n${Color_Off}"
-        fi
+    if [ $? -eq 0 ]; then
+        echo -e "  ${CHECK_MARK} ${BGreen}Tethys container started successfully.${Color_Off}"
+        return 0
     else
-        echo -e "${BCyan}Skipping Tethys visualization setup.\n${Color_Off}"
+        echo -e "  ${CROSS_MARK} ${BRed}Failed to start Tethys container.${Color_Off}"
+        return 1
     fi
 }
 
+pause_script_execution() {
+    echo -e "\n${BG_Blue}${BWhite} Tethys is now running ${Color_Off}"
+    echo -e "${INFO_MARK} Access the visualization at: ${UBlue}http://localhost:$nginx_tethys_port/apps/ngiab${Color_Off}"
+    echo -e "${INFO_MARK} Press ${BWhite}Ctrl+C${Color_Off} to stop Tethys when you're done."
+    
+    # Keep script running until user interrupts
+    while true; do
+        sleep 10
+    done
+}
 
-##########################
-#####START OF SCRIPT######
-##########################
+# Main script execution
+print_welcome_banner
 
-# Set up the SIGINT trap to call the handle_sigint function
-trap handle_sigint SIGINT
-
-# Constanst
-PLATFORM='linux/amd64'
-MODELS_RUNS_DIRECTORY="$HOME/ngiab_visualizer"
-VISUALIZER_CONF="$MODELS_RUNS_DIRECTORY/ngiab_visualizer.json"
-DATASTREAM_DIRECTORY="$HOME/.datastream_ngiab"
-TETHYS_CONTAINER_NAME="tethys-ngen-portal"
-DOCKER_NETWORK="tethys-network"
-TETHYS_REPO="awiciroh/tethys-ngiab"
-TETHYS_TAG="latest"
-TETHYS_IMAGE_NAME=""
+# Check if data path is provided as argument
 DATA_FOLDER_PATH="$1"
-TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
-CONFIG_FILE="$HOME/.host_data_path.conf"
-SKIP_DB_SETUP=false
-NGINX_TETHYS_PORT=80
-CSRF_TRUSTED_ORIGINS="\"[http://localhost:$NGINX_TETHYS_PORT, http://127.0.0.1:$NGINX_TETHYS_PORT]\""
 
-
-# check for architecture
-if uname -a | grep arm64 || uname -a | grep aarch64 ; then
-    PLATFORM=linux/arm64
-else
-    PLATFORM=linux/amd64
+if [[ -z "$DATA_FOLDER_PATH" ]]; then
+    # If no path provided, check if we have a saved path
+    if [ -f "$CONFIG_FILE" ]; then
+        LAST_PATH=$(cat "$CONFIG_FILE")
+        echo -e "${INFO_MARK} Last used data directory: ${BBlue}$LAST_PATH${Color_Off}"
+        echo -e "  ${ARROW} Use this path? [Y/n]: "
+        echo -ne "\r\033[2A"  # Move up 2 lines
+        read -e use_last_path
+        echo -e "\033[2B"  # Move down 2 lines
+        
+        if [[ -z "$use_last_path" || "$use_last_path" =~ ^[Yy] ]]; then
+            DATA_FOLDER_PATH="$LAST_PATH"
+            echo -e "  ${CHECK_MARK} ${BGreen}Using previously configured path${Color_Off}"
+        else
+            echo -ne "  ${ARROW} Enter your input data directory path: "
+            read -e DATA_FOLDER_PATH
+        fi
+    else
+        echo -e "${INFO_MARK} ${BYellow}No previous configuration found.${Color_Off}"
+        echo -ne "  ${ARROW} Enter your input data directory path: "
+        read -e DATA_FOLDER_PATH
+    fi
+    
+    # Save the new path
+    echo "$DATA_FOLDER_PATH" > "$CONFIG_FILE"
+    echo -e "  ${CHECK_MARK} ${BGreen}Path saved for future use.${Color_Off}"
 fi
 
+# Validate the directory
+if [ ! -d "$DATA_FOLDER_PATH" ]; then
+    echo -e "${CROSS_MARK} ${BRed}Directory does not exist: $DATA_FOLDER_PATH${Color_Off}"
+    exit 1
+fi
 
-check_last_path "$@"
+print_section_header "PREPARING VISUALIZATION ENVIRONMENT"
 
-create_tethys_portal
+# Copy model data to visualization directory
+final_dir=$(copy_models_run "$DATA_FOLDER_PATH") || {
+    echo -e "${CROSS_MARK} ${BRed}Failed to copy model data. Exiting.${Color_Off}"
+    exit 1
+}
+
+# Register the model run
+add_model_run "$final_dir" || {
+    echo -e "${CROSS_MARK} ${BRed}Failed to register model run. Exiting.${Color_Off}"
+    exit 1
+}
+
+print_section_header "LAUNCHING TETHYS VISUALIZATION"
+
+# Setup and run Tethys
+check_for_existing_tethys_image || {
+    echo -e "${CROSS_MARK} ${BRed}Failed to prepare Tethys image. Exiting.${Color_Off}"
+    exit 1
+}
+choose_port_to_run_tethys
+run_tethys || {
+    echo -e "${CROSS_MARK} ${BRed}Failed to start Tethys container. Exiting.${Color_Off}"
+    exit 1
+}
+
+# Wait for container to be ready
+wait_container "$TETHYS_CONTAINER_NAME" || {
+    echo -e "${CROSS_MARK} ${BRed}Tethys container failed to start properly. Exiting.${Color_Off}"
+    exit 1
+}
+
+print_section_header "VISUALIZATION READY"
+
+echo -e "${BG_Green}${BWhite} Your model outputs are now available for visualization! ${Color_Off}\n"
+echo -e "${INFO_MARK} Access the visualization at: ${UBlue}http://localhost:$nginx_tethys_port/apps/ngiab${Color_Off}"
+echo -e "${INFO_MARK} Login credentials:"
+echo -e "  ${ARROW} ${BWhite}Username:${Color_Off} admin"
+echo -e "  ${ARROW} ${BWhite}Password:${Color_Off} pass"
+echo -e "\n${INFO_MARK} Source code: ${UBlue}https://github.com/CIROH-UA/ngiab-client${Color_Off}"
+
+# Keep the script running
+pause_script_execution
+
+exit 0
