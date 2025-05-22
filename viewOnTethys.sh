@@ -215,6 +215,14 @@ create_tethys_docker_network() {
     fi
 }
 
+set_tethys_tag() {
+    echo -e "${Color_Off}${BBlue}Specify the Tethys image tag to use: ${Color_Off}"
+    read -erp "$(echo -e "  ${ARROW} Tag (e.g. v0.2.1, default: latest): ")" TETHYS_TAG
+    if [[ -z "$TETHYS_TAG" ]]; then
+        TETHYS_TAG="latest"
+    fi
+}
+
 check_for_existing_tethys_image() {
     # First check if Docker is running
     if ! docker info >/dev/null 2>&1; then
@@ -246,7 +254,7 @@ check_for_existing_tethys_image() {
 choose_port_to_run_tethys() {
     while true; do
         echo -e "${BBlue}Select a port to run Tethys on. [Default: 80] ${Color_Off}"
-        read -erp "Port: " nginx_tethys_port
+        read -erp "$(echo -e "  ${ARROW} Port: ")" nginx_tethys_port
 
         # Default to 80 if the user just hits <Enter>
         if [[ -z "$nginx_tethys_port" ]]; then
@@ -277,7 +285,7 @@ choose_port_to_run_tethys() {
 }
 
 # Wait for a Docker container to become healthy
-_wait_container_healthy() {
+wait_container_healthy() {
     local container_name=$1
     local container_health_status=""
     local attempt_counter=0
@@ -440,7 +448,7 @@ run_tethys() {
     ensure_host_dir "$MODELS_RUNS_DIRECTORY"
     ensure_host_dir "$DATASTREAM_DIRECTORY"
     ensure_visualizer_conf_host_file "$VISUALIZER_CONF"
-    
+
     echo -e "${ARROW} ${BWhite}Launching Tethys container...${Color_Off}"
     
     # First, make sure any existing Tethys containers are stopped
@@ -556,6 +564,9 @@ add_model_run "$final_dir" || {
 }
 
 print_section_header "LAUNCHING TETHYS VISUALIZATION"
+
+# Select Tethys image
+set_tethys_tag
 
 # Setup and run Tethys
 check_for_existing_tethys_image || {
