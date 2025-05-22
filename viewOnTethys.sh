@@ -276,6 +276,39 @@ choose_port_to_run_tethys() {
     return 0
 }
 
+# Wait for a Docker container to become healthy
+_wait_container_healthy() {
+    local container_name=$1
+    local container_health_status=""
+    local attempt_counter=0
+
+    echo -e "${UPurple}Waiting for container: $container_name to become healthy. This can take a couple of minutes...\n${Color_Off}"
+
+    while true; do
+        # Update the health status
+        container_health_status=$(docker inspect -f '{{.State.Health.Status}}' "$container_name" 2>/dev/null)
+
+        if [ $? -ne 0 ]; then
+            echo -e "${BRed}Failed to get health status for container $container_name. Ensure the container exists and has a health check.\n${Color_Off}" >&2
+            return 1
+        fi
+
+        if [[ "$container_health_status" == "healthy" ]]; then
+            echo -e "${BCyan}Container $container_name is now healthy.\n${Color_Off}"
+            return 0
+        elif [[ "$container_health_status" == "unhealthy" ]]; then
+            echo -e "${BRed}Container $container_name is unhealthy.\n${Color_Off}" >&2
+            return 1
+        elif [[ -z "$container_health_status" ]]; then
+            echo -e "${BRed}No health status available for container $container_name. Ensure the container has a health check configured.\n${Color_Off}" >&2
+            return 1
+        fi
+
+        ((attempt_counter++))
+        sleep 2  # Adjust the sleep time as needed
+    done
+}
+
 tear_down() {
     echo -e "\n${ARROW} ${BYellow}Cleaning up resources...${Color_Off}"
     
@@ -536,7 +569,7 @@ run_tethys || {
 }
 
 # Wait for container to be ready
-wait_container "$TETHYS_CONTAINER_NAME" || {
+wait_container_healthy "$TETHYS_CONTAINER_NAME" || {
     echo -e "${CROSS_MARK} ${BRed}Tethys container failed to start properly. Exiting.${Color_Off}"
     exit 1
 }
