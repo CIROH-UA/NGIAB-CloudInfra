@@ -172,10 +172,7 @@ check_and_read_config() {
     if [ -f "$CONFIG_FILE" ]; then
         LAST_PATH=$(cat "$CONFIG_FILE")
         echo -e "${INFO_MARK} Last used data directory: ${BBlue}$LAST_PATH${Color_Off}"
-        echo -e "  ${ARROW} Use this path? [Y/n]: "
-        echo -ne "\r\033[2A"  # Move up 2 lines
-        read -e use_last_path
-        echo -e "\033[2B"  # Move down 2 lines
+        read -erp "$(echo -e "  ${ARROW} Use this path? [Y/n]: ")" use_last_path
         
         if [[ -z "$use_last_path" || "$use_last_path" =~ ^[Yy] ]]; then
             DATA_FOLDER_PATH="$LAST_PATH"
