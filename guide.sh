@@ -86,7 +86,7 @@ print_section_header() {
     
     # Create a more visually appealing section header with light blue background
     echo -e "\n\033[48;5;117m$(printf "%${width}s" " ")\033[0m"
-    echo -e "\033[48;5;117m$(printf "%${padding}s" " ")${BWhite}${title}$(printf "%${padding}s" " ")\033[0m"
+    echo -e "\033[48;5;117m$(printf "%${padding}s" " ")${BBlack}${title}$(printf "%${padding}s" " ")\033[0m"
     echo -e "\033[48;5;117m$(printf "%${width}s" " ")\033[0m\n"
 }
 
@@ -102,7 +102,7 @@ print_welcome_banner() {
     echo -e "\033[38;5;39m  ╚══════════════════════════════════════════════════════════════════════════════════════════╝\033[0m"
     echo -e "\n"
     echo -e "  ${ARROW} \033[1;38;5;39mVisit our website: \033[4;38;5;87mhttps://ngiab.ciroh.org\033[0m"
-    echo -e "  ${INFO_MARK} \033[1;38;5;231mDeveloped by CIROH\033[0m"
+    echo -e "  ${INFO_MARK} \033[1;38;5;231mDeveloped by CIROH & Lynker\033[0m"
     echo -e "\n"
     sleep 1
 }

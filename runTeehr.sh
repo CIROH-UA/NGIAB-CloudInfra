@@ -81,7 +81,7 @@ print_section_header() {
     
     # Create a more visually appealing section header with light blue background
     echo -e "\n\033[48;5;117m$(printf "%${width}s" " ")\033[0m"
-    echo -e "\033[48;5;117m$(printf "%${padding}s" " ")${BWhite}${title}$(printf "%${padding}s" " ")\033[0m"
+    echo -e "\033[48;5;117m$(printf "%${padding}s" " ")${BBlack}${title}$(printf "%${padding}s" " ")\033[0m"
     echo -e "\033[48;5;117m$(printf "%${width}s" " ")\033[0m\n"
 }
 
