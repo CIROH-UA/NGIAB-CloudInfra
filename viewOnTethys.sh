@@ -310,8 +310,8 @@ wait_container_healthy() {
             echo -e "\n ${CHECK_MARK} ${BG_Green}${BWhite} Container $container_name is now healthy! ${Color_Off}"
             return 0
         elif [[ "$container_health_status" == "unhealthy" ]]; then
-            echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} Container $container_name is unhealthy. ${Color_Off}"
-            return 1
+            echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} Container $container_name is unhealthy! ${Color_Off}"
+            return 0
         elif [[ -z "$container_health_status" ]]; then
             echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} No health status available for container $container_name. Ensure the container has a health check configured. ${Color_Off}"
             return 1
@@ -376,6 +376,47 @@ run_tethys() {
     fi
 }
 
+# ──────────────────────────────────────────────────────────────────────
+# Decide whether to use the local Tethys image or pull an update
+# ──────────────────────────────────────────────────────────────────────
+select_tethys_image_source() {
+    # Bail out early if Docker is unavailable
+    if ! docker info >/dev/null 2>&1; then
+        echo -e "  ${CROSS_MARK} ${BRed}Docker daemon not running.${Color_Off}"
+        return 1
+    fi
+
+    local image_ref="${TETHYS_REPO}:${TETHYS_TAG}"
+
+    # Does the image already exist locally?
+    if docker image inspect "$image_ref" >/dev/null 2>&1; then
+        echo -e "  ${INFO_MARK} Found local image ${BCyan}$image_ref${Color_Off}"
+        while true; do
+            echo -ne "  ${ARROW} Use local copy (L) or Pull latest from registry (P)? [L/P]: "
+            read -r decision < /dev/tty
+            case "$decision" in
+                [Ll]* )
+                    echo -e "  ${CHECK_MARK} Using local image" ; return 0 ;;
+                [Pp]* )
+                    echo -e "  ${INFO_MARK} ${BYellow}Pulling image – this may take a moment…${Color_Off}"
+                    show_loading "Downloading Tethys image" 3
+                    docker pull "$image_ref" && return 0
+                    echo -e "  ${CROSS_MARK} ${BRed}Failed to pull $image_ref${Color_Off}"
+                    return 1 ;;
+                * )
+                    echo -e "  ${CROSS_MARK} ${BRed}Invalid choice. Enter 'L' or 'P'.${Color_Off}" ;;
+            esac
+        done
+    else
+        # No local image – pull automatically
+        echo -e "  ${INFO_MARK} ${BYellow}Image not found locally – pulling $image_ref…${Color_Off}"
+        show_loading "Downloading Tethys image" 3
+        docker pull "$image_ref" && return 0
+        echo -e "  ${CROSS_MARK} ${BRed}Failed to pull $image_ref${Color_Off}"
+        return 1
+    fi
+}
+
 tear_down() {
     echo -e "\n${ARROW} ${BYellow}Cleaning up resources...${Color_Off}"
     
@@ -402,144 +443,180 @@ tear_down() {
     return 0
 }
 
-wait_container() {
-    local container_name=$1
-    local max_attempts=10
-    local attempt_counter=0
-
-    echo -e "\n${ARROW} ${BWhite}Waiting for Tethys container to start...${Color_Off}"
-    echo -e "  ${INFO_MARK} This may take a few moments."
-    
-    # First check if the container is running
-    if ! docker ps -q -f name="$container_name" >/dev/null 2>&1; then
-        echo -e "  ${CROSS_MARK} ${BRed}Container $container_name is not running${Color_Off}"
-        return 1
-    fi
-    
-    # Simple wait to give the container time to initialize
-    sleep 5
-    
-    # Check again if container is still running
-    if ! docker ps -q -f name="$container_name" >/dev/null 2>&1; then
-        echo -e "  ${CROSS_MARK} ${BRed}Container $container_name stopped unexpectedly${Color_Off}"
-        return 1
-    fi
-    
-    echo -e "  ${CHECK_MARK} ${BGreen}Tethys is now running${Color_Off}"
-    return 0
-}
-
 copy_models_run() {
     local input_path="$1"
-    local models_dir="$HOME/ngiab_visualizer"
-    # 1) make sure ~/ngiab_visualizer exists and you own it
+    local models_dir="$MODELS_RUNS_DIRECTORY"
+
+    # ────────────────────────────────────────────────────────────────────
+    # 0. Top-level directory already contains runs?  Ask user what to do.
+    # ────────────────────────────────────────────────────────────────────
+    if [ -d "$models_dir" ] && [ -n "$(ls -A "$models_dir" 2>/dev/null)" ]; then
+        echo -e "  ${WARNING_MARK} ${BYellow}$models_dir is not empty.${Color_Off}" >&2
+        while true; do
+            echo -ne "  ${ARROW} Keep (K) or Fresh start (F)? [K/F]: " >&2
+            read -r keep_choice < /dev/tty
+            case "$keep_choice" in
+                [Kk]* ) break ;;   # keep as-is
+                [Ff]* )
+                    echo -e "  ${INFO_MARK} ${BYellow}Removing previous runs…" \
+                            "${LBLUE}(sudo may be required)${Color_Off}" >&2
+                    rm -rf "${models_dir:?}/"* 2>/dev/null || sudo rm -rf "${models_dir:?}/"* 
+                    break ;;
+                * ) echo -e "  ${CROSS_MARK} ${BRed}Invalid choice.${Color_Off}" >&2 ;;
+            esac
+        done
+    fi
+
+    # ────────────────────────────────────────────────────────────────────
+    # 1. Ensure ~/ngiab_visualizer exists & is writable
+    # ────────────────────────────────────────────────────────────────────
     ensure_host_dir "$models_dir" || {
-        echo -e "${BRed}Failed to create or fix permissions on $models_dir${Color_Off}" >&2
+        echo -e "  ${CROSS_MARK} ${BRed}Cannot ready $models_dir${Color_Off}" >&2
         return 1
     }
 
-    # 2) derive the target path
+    # 2. Figure out target paths
     local base_name
     base_name="$(basename "$input_path")"
     local model_run_path="$models_dir/$base_name"
     local final_copied_path="$model_run_path"
 
-    # 3) copy logic
+    # 3. Copy / overwrite / duplicate – user-driven
     if [ ! -e "$model_run_path" ]; then
-        cp -r "$input_path" "$models_dir" || {
-            echo -e "${BRed}Error: Could not copy $input_path → $models_dir${Color_Off}" >&2
-            return 1
-        }
-        echo -e "${BCyan}Copied: $input_path → $model_run_path${Color_Off}" >&2
+        cp -r "$input_path" "$models_dir/" || {
+            echo -e "  ${CROSS_MARK} ${BRed}Copy failed${Color_Off}" >&2 ; return 1 ; }
+        echo -e "  ${CHECK_MARK} ${BCyan}Copied${Color_Off} ➜ $model_run_path" >&2
     else
-        echo -e "${BYellow}Directory '$model_run_path' already exists.${Color_Off}" >&2
+        echo -e "  ${WARNING_MARK} ${BYellow}Directory exists:${Color_Off} $model_run_path" >&2
         while true; do
-            echo -ne "${BYellow}Overwrite (O) or copy with different name (D)? [O/D]: ${Color_Off}" >&2
+            echo -ne "  ${ARROW} Overwrite (O) or Duplicate (D)? [O/D]: " >&2
             read -r choice < /dev/tty
             case "$choice" in
                 [Oo]* )
-                    rm -rf "$model_run_path"
-                    cp -r "$input_path" "$models_dir" || {
-                        echo -e "${BRed}Error: Could not overwrite $model_run_path${Color_Off}" >&2
-                        return 1
-                    }
-                    echo -e "${BCyan}Overwritten with: $input_path → $model_run_path${Color_Off}" >&2
-                    break
-                    ;;
+                    rm -rf "$model_run_path" 2>/dev/null || sudo rm -rf "$model_run_path"
+                    cp -r "$input_path" "$models_dir/" || {
+                        echo -e "  ${CROSS_MARK} ${BRed}Overwrite failed${Color_Off}" >&2 ; return 1 ; }
+                    echo -e "  ${CHECK_MARK} ${BCyan}Overwritten${Color_Off} ➜ $model_run_path" >&2
+                    break ;;
                 [Dd]* )
-                    echo -ne "${BBlue}Enter a new directory name: ${Color_Off}" >&2
+                    echo -ne "  ${ARROW} ${BBlue}New directory name:${Color_Off} " >&2
                     read -r new_name < /dev/tty
-                    if [ -z "$new_name" ]; then
-                        echo -e "${BRed}No name entered. Try again.${Color_Off}" >&2
-                        continue
-                    fi
+                    [[ -z "$new_name" ]] && { echo -e "  ${CROSS_MARK} ${BRed}No name entered${Color_Off}" >&2 ; continue ; }
                     local new_path="$models_dir/$new_name"
                     if [ -e "$new_path" ]; then
-                        echo -e "${BRed}'$new_name' already exists. Choose another name.${Color_Off}" >&2
+                        echo -e "  ${CROSS_MARK} ${BRed}'$new_name' already exists${Color_Off}" >&2
                         continue
                     fi
                     cp -r "$input_path" "$new_path" || {
-                        echo -e "${BRed}Error: Could not copy to $new_path${Color_Off}" >&2
-                        return 1
-                    }
-                    echo -e "${BPurple}Copied to: $new_path${Color_Off}" >&2
+                        echo -e "  ${CROSS_MARK} ${BRed}Copy failed${Color_Off}" >&2 ; return 1 ; }
+                    echo -e "  ${CHECK_MARK} ${BPurple}Copied to${Color_Off} ➜ $new_path" >&2
                     final_copied_path="$new_path"
-                    break
-                    ;;
-                * )
-                    echo -e "${BRed}Invalid choice. Enter 'O' or 'D'.${Color_Off}" >&2
-                    ;;
+                    break ;;
+                * ) echo -e "  ${CROSS_MARK} ${BRed}Invalid choice. Enter 'O' or 'D'.${Color_Off}" >&2 ;;
             esac
         done
     fi
 
-    # 4) output the directory the caller should register
+    # 4. Return the final path
     echo "$final_copied_path"
 }
 
 add_model_run() {
-  local input_path="$1"
-  local json_file="$VISUALIZER_CONF"
+    local input_path="$1"
+    local json_file="$VISUALIZER_CONF"
 
-  # 1) Ensure $json_file exists
-  echo -e "${BGreen}Checking for $json_file...${Color_Off}"
-  if [ ! -f "$json_file" ]; then
-    echo '{"model_runs":[]}' > "$json_file"
-  fi
+    # ── 0. Make sure the JSON file exists ───────────────────────────────
+    echo -e "${BGreen}Checking for $json_file...${Color_Off}"
+    [[ -f "$json_file" ]] || echo '{"model_runs":[]}' > "$json_file"
 
-  # 2) Extract the basename for label
-  local base_name
-  base_name=$(basename "$input_path")
+    # ── 1. Gather new-run metadata ──────────────────────────────────────
+    local base_name new_uuid current_time final_path
+    base_name=$(basename "$input_path")
+    new_uuid=$(uuidgen)
+    current_time=$(date +"%Y-%m-%d:%H:%M:%S")
+    final_path="/var/lib/tethys_persist/ngiab_visualizer/$base_name"
 
-  # Generate a new UUID for the id field
-  local new_uuid
-  new_uuid=$(uuidgen)
+    # ── 2. Pick a jq implementation (host → docker → fail) ──────────────
+    local jq_exec
+    if command -v jq >/dev/null 2>&1; then
+        jq_exec="jq"
+    elif command -v docker >/dev/null 2>&1; then
+        local jq_image="ghcr.io/jqlang/jq:latest"
+        docker image inspect "$jq_image" >/dev/null 2>&1 || {
+            echo -e "  ${INFO_MARK} ${BYellow}Pulling jq helper image…${Color_Off}"
+            docker pull "$jq_image" >/dev/null
+        }
+        jq_exec="docker run --rm -i $jq_image"
+    else
+        echo -e "  ${CROSS_MARK} ${BRed}jq is required, but neither jq nor Docker is available.${Color_Off}"
+        return 1
+    fi
 
-  # Current date/time (adjust format as needed)
-  local current_time
-  current_time=$(date +"%Y-%m-%d:%H:%M:%S")
-
-  # Always use /var/lib/tethys_persist/ngiab_visualizer as the base directory
-  local final_path="/var/lib/tethys_persist/ngiab_visualizer/$base_name"
-
-
-  jq --arg base_name "$base_name" \
-     --arg final_path  "$final_path" \
-     --arg current_time  "$current_time" \
-     --arg uuid    "$new_uuid" \
-     '.model_runs += [ 
-       { 
-         "label": $base_name, 
-         "path": $final_path, 
-         "date": $current_time, 
-         "id": $uuid, 
-         "subset": "", 
-         "tags": [] 
-       }
-     ]' \
-     "$json_file" > "${json_file}.tmp" && mv -f "${json_file}.tmp" "$json_file"
+    # ── 3. Append the new record ────────────────────────────────────────
+    if $jq_exec \
+        --arg base_name    "$base_name" \
+        --arg final_path   "$final_path" \
+        --arg current_time "$current_time" \
+        --arg uuid         "$new_uuid" \
+        '
+        .model_runs += [{
+            label:  $base_name,
+            path:   $final_path,
+            date:   $current_time,
+            id:     $uuid,
+            subset: "",
+            tags:   []
+        }]
+        ' < "$json_file" > "${json_file}.tmp" && \
+       mv -f "${json_file}.tmp" "$json_file"; then
+        ## ► success message
+        echo -e "  ${CHECK_MARK} ${BCyan}Model run “$base_name” registered (${new_uuid})${Color_Off}"
+    else
+        ## ► failure message
+        echo -e "  ${CROSS_MARK} ${BRed}Failed to update $json_file with new model run.${Color_Off}"
+        return 1
+    fi
 }
 
+
+manage_datastream_cache() {
+    local cache_dir="$DATASTREAM_DIRECTORY"
+
+    # Make (or fix) the directory first
+    ensure_host_dir "$cache_dir" || {
+        echo -e "  ${CROSS_MARK} ${BRed}Cannot ready $cache_dir${Color_Off}"
+        return 1
+    }
+
+    # ─── Nothing inside?  Tell the user and bail out ───────────────────
+    if [ -z "$(ls -A "$cache_dir" 2>/dev/null)" ]; then
+        echo -e "  ${INFO_MARK} ${LGREEN}No existing Datastream cache found –" \
+                "a fresh download will be used.${Color_Off}"
+        return 0
+    fi
+
+    # ─── Cache exists → ask what to do ─────────────────────────────────
+    echo -e "  ${INFO_MARK} ${BYellow}Existing Datastream cache detected:${Color_Off} $cache_dir"
+    echo -e "  ${LBLUE}Keeping it avoids re-downloading archives, but a large cache"
+    echo -e "  can slow the first container start-up depending on your system.${Color_Off}\n"
+
+    while true; do
+        echo -ne "  ${ARROW} Keep cache (K) or Fresh start (F)? [K/F]: "
+        read -r answer < /dev/tty
+        case "$answer" in
+            [Kk]* )
+                echo -e "  ${CHECK_MARK} Keeping existing cache"
+                break ;;
+            [Ff]* )
+                echo -e "  ${INFO_MARK} ${BYellow}Clearing Datastream cache " \
+                        "(sudo may be required)…${Color_Off}"
+                rm -rf "${cache_dir:?}/"* 2>/dev/null || sudo rm -rf "${cache_dir:?}/"*
+                break ;;
+            * )
+                echo -e "  ${CROSS_MARK} ${BRed}Invalid choice. Please enter 'K' or 'F'.${Color_Off}" ;;
+        esac
+    done
+}
 pause_script_execution() {
     echo -e "\n${BG_Blue}${BWhite} Tethys is now running ${Color_Off}"
     echo -e "${INFO_MARK} Access the visualization at: ${UBlue}http://localhost:$nginx_tethys_port/apps/ngiab${Color_Off}"
@@ -602,16 +679,24 @@ add_model_run "$final_dir" || {
     exit 1
 }
 
+# Ask what to do with ~/.datastream_ngiab
+manage_datastream_cache
+
 print_section_header "LAUNCHING TETHYS VISUALIZATION"
 
 # Select Tethys image
 set_tethys_tag
 
-# Setup and run Tethys
-check_for_existing_tethys_image || {
-    echo -e "${CROSS_MARK} ${BRed}Failed to prepare Tethys image. Exiting.${Color_Off}"
+select_tethys_image_source || {
+    echo -e "${CROSS_MARK} ${BRed}Unable to obtain Tethys image. Exiting.${Color_Off}"
     exit 1
 }
+
+# Setup and run Tethys
+# check_for_existing_tethys_image || {
+#     echo -e "${CROSS_MARK} ${BRed}Failed to prepare Tethys image. Exiting.${Color_Off}"
+#     exit 1
+# }
 choose_port_to_run_tethys
 run_tethys || {
     echo -e "${CROSS_MARK} ${BRed}Failed to start Tethys container. Exiting.${Color_Off}"
