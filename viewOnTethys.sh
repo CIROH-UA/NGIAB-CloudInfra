@@ -471,7 +471,7 @@ copy_models_run() {
     # 1. Ensure ~/ngiab_visualizer exists & is writable
     # ────────────────────────────────────────────────────────────────────
     ensure_host_dir "$models_dir" || {
-        echo -e "  ${CROSS_MARK} ${BRed}Cannot ready $models_dir${Color_Off}" >&2
+        echo -e "  ${CROSS_MARK} ${BRed}Cannot access $models_dir${Color_Off}" >&2
         return 1
     }
 
