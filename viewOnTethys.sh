@@ -433,7 +433,7 @@ copy_models_run() {
     local input_path="$1"
     local models_dir="$HOME/ngiab_visualizer"
     # 1) make sure ~/ngiab_visualizer exists and you own it
-    _ensure_host_dir "$models_dir" || {
+    ensure_host_dir "$models_dir" || {
         echo -e "${BRed}Failed to create or fix permissions on $models_dir${Color_Off}" >&2
         return 1
     }
