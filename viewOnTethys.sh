@@ -156,8 +156,14 @@ ensure_host_dir() {
     # If the directory is not owned by the current user, try to chown it
     if [[ -n "$owner_uid" && "$owner_uid" != "$(id -u)" ]]; then
         if command -v chown >/dev/null 2>&1; then
-            echo -e "${INFO_MARK} ${BYellow}Reclaiming ownership of $dir (sudo may prompt)...${Color_Off}"
-            sudo chown -R "$(id -u):$(id -g)" "$dir" || echo -e "${WARNING_MARK} Could not change directory ownership."
+            # 1) \n guarantees its own line
+            # 2) >&2 sends it to stderr (same stream as sudo prompt)
+            # 3) sleep 0.1 lets the text reach the terminal before sudo starts
+            echo -e "${INFO_MARK} ${BYellow}Reclaiming ownership of $dir " \
+                    "(sudo may prompt)…${Color_Off}" >&2
+            sleep 0.1
+            sudo chown -R "$(id -u):$(id -g)" "$dir" \
+            || echo -e "${WARNING_MARK} Could not change directory ownership."
         fi
     fi
 
@@ -290,25 +296,24 @@ wait_container_healthy() {
     local container_health_status=""
     local attempt_counter=0
 
-    echo -e "${UPurple}Waiting for container: $container_name to become healthy. This can take a couple of minutes...\n${Color_Off}"
-
+    echo -e "${INFO_MARK} ${BWhite} Waiting for container: $container_name to become healthy. This can take a couple of minutes...${Color_Off}"
     while true; do
         # Update the health status
         container_health_status=$(docker inspect -f '{{.State.Health.Status}}' "$container_name" 2>/dev/null)
 
         if [ $? -ne 0 ]; then
-            echo -e "${BRed}Failed to get health status for container $container_name. Ensure the container exists and has a health check.\n${Color_Off}" >&2
+            echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} Failed to get health status for container $container_name. Ensure the container exists and has a health check. ${Color_Off}"
             return 1
         fi
 
         if [[ "$container_health_status" == "healthy" ]]; then
-            echo -e "${BCyan}Container $container_name is now healthy.\n${Color_Off}"
+            echo -e "\n ${CHECK_MARK} ${BG_Green}${BWhite} Container $container_name is now healthy! ${Color_Off}"
             return 0
         elif [[ "$container_health_status" == "unhealthy" ]]; then
-            echo -e "${BRed}Container $container_name is unhealthy.\n${Color_Off}" >&2
+            echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} Container $container_name is unhealthy. ${Color_Off}"
             return 1
         elif [[ -z "$container_health_status" ]]; then
-            echo -e "${BRed}No health status available for container $container_name. Ensure the container has a health check configured.\n${Color_Off}" >&2
+            echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} No health status available for container $container_name. Ensure the container has a health check configured. ${Color_Off}"
             return 1
         fi
 
@@ -370,132 +375,115 @@ wait_container() {
     return 0
 }
 
-copy_models_run() {
+_copy_models_run() {
     local input_path="$1"
-    local models_dir="$MODELS_RUNS_DIRECTORY"
-    
-    # Ensure directory exists with correct permissions
-    if ! ensure_host_dir "$models_dir"; then
-        echo "Failed to create models directory"
+    local models_dir="$HOME/ngiab_visualizer"
+    # 1) make sure ~/ngiab_visualizer exists and you own it
+    _ensure_host_dir "$models_dir" || {
+        echo -e "${BRed}Failed to create or fix permissions on $models_dir${Color_Off}" >&2
         return 1
-    fi
+    }
 
-    # Derive the target path
+    # 2) derive the target path
     local base_name
     base_name="$(basename "$input_path")"
     local model_run_path="$models_dir/$base_name"
-    
-    # Copy logic - simplified to reduce errors
-    echo -e "${INFO_MARK} ${BWhite}Copying model data to visualization directory...${Color_Off}"
-    
-    # Remove existing directory if it exists
-    if [ -e "$model_run_path" ]; then
-        echo -e "  ${INFO_MARK} ${BYellow}Directory already exists, overwriting...${Color_Off}"
-        rm -rf "$model_run_path"
-    fi
-    
-    # Copy the data
-    if cp -r "$input_path" "$models_dir/"; then
-        echo -e "  ${CHECK_MARK} ${BGreen}Model data copied successfully${Color_Off}"
+    local final_copied_path="$model_run_path"
+
+    # 3) copy logic
+    if [ ! -e "$model_run_path" ]; then
+        cp -r "$input_path" "$models_dir" || {
+            echo -e "${BRed}Error: Could not copy $input_path → $models_dir${Color_Off}" >&2
+            return 1
+        }
+        echo -e "${BCyan}Copied: $input_path → $model_run_path${Color_Off}" >&2
     else
-        echo -e "  ${CROSS_MARK} ${BRed}Failed to copy model data${Color_Off}"
-        return 1
+        echo -e "${BYellow}Directory '$model_run_path' already exists.${Color_Off}" >&2
+        while true; do
+            echo -ne "${BYellow}Overwrite (O) or copy with different name (D)? [O/D]: ${Color_Off}" >&2
+            read -r choice < /dev/tty
+            case "$choice" in
+                [Oo]* )
+                    rm -rf "$model_run_path"
+                    cp -r "$input_path" "$models_dir" || {
+                        echo -e "${BRed}Error: Could not overwrite $model_run_path${Color_Off}" >&2
+                        return 1
+                    }
+                    echo -e "${BCyan}Overwritten with: $input_path → $model_run_path${Color_Off}" >&2
+                    break
+                    ;;
+                [Dd]* )
+                    echo -ne "${BBlue}Enter a new directory name: ${Color_Off}" >&2
+                    read -r new_name < /dev/tty
+                    if [ -z "$new_name" ]; then
+                        echo -e "${BRed}No name entered. Try again.${Color_Off}" >&2
+                        continue
+                    fi
+                    local new_path="$models_dir/$new_name"
+                    if [ -e "$new_path" ]; then
+                        echo -e "${BRed}'$new_name' already exists. Choose another name.${Color_Off}" >&2
+                        continue
+                    fi
+                    cp -r "$input_path" "$new_path" || {
+                        echo -e "${BRed}Error: Could not copy to $new_path${Color_Off}" >&2
+                        return 1
+                    }
+                    echo -e "${BPurple}Copied to: $new_path${Color_Off}" >&2
+                    final_copied_path="$new_path"
+                    break
+                    ;;
+                * )
+                    echo -e "${BRed}Invalid choice. Enter 'O' or 'D'.${Color_Off}" >&2
+                    ;;
+            esac
+        done
     fi
-    
-    # Output the directory path
-    echo "$model_run_path"
+
+    # 4) output the directory the caller should register
+    echo "$final_copied_path"
 }
 
-add_model_run() {
-    local input_path="$1"
-    local json_file="$VISUALIZER_CONF"
+_add_model_run() {
+  local input_path="$1"
+  local json_file="$VISUALIZER_CONF"
 
-    # Ensure JSON file exists
-    if ! ensure_visualizer_conf_host_file "$json_file"; then
-        echo "Failed to create config file"
-        return 1
-    fi
+  # 1) Ensure $json_file exists
+  echo -e "${BGreen}Checking for $json_file...${Color_Off}"
+  if [ ! -f "$json_file" ]; then
+    echo '{"model_runs":[]}' > "$json_file"
+  fi
 
-    # Extract the basename for label
-    local base_name
-    base_name=$(basename "$input_path")
+  # 2) Extract the basename for label
+  local base_name
+  base_name=$(basename "$input_path")
 
-    # Generate a new UUID for the id field - simplified
-    local new_uuid="ngiab-$(date +%Y%m%d%H%M%S)-$(( RANDOM % 1000 ))"
+  # Generate a new UUID for the id field
+  local new_uuid
+  new_uuid=$(uuidgen)
 
-    # Current date/time
-    local current_time
-    current_time=$(date +"%Y-%m-%d:%H:%M:%S")
+  # Current date/time (adjust format as needed)
+  local current_time
+  current_time=$(date +"%Y-%m-%d:%H:%M:%S")
 
-    # Path for Tethys container
-    local final_path="$TETHYS_PERSIST_PATH/ngiab_visualizer/$base_name"
-    
-    echo -e "${INFO_MARK} ${BWhite}Registering model run in visualization system...${Color_Off}"
-    
-    # Simplified approach - create a new file
-    echo '{"model_runs":[{"label":"'"$base_name"'","path":"'"$final_path"'","date":"'"$current_time"'","id":"'"$new_uuid"'","subset":"","tags":[]}]}' > "$json_file"
-    
-    if [ $? -eq 0 ]; then
-        echo -e "  ${CHECK_MARK} ${BGreen}Model run registered successfully${Color_Off}"
-        return 0
-    else
-        echo -e "  ${CROSS_MARK} ${BRed}Failed to register model run.${Color_Off}"
-        return 1
-    fi
-}
+  # Always use /var/lib/tethys_persist/ngiab_visualizer as the base directory
+  local final_path="/var/lib/tethys_persist/ngiab_visualizer/$base_name"
 
-run_tethys() {
-    ensure_host_dir "$MODELS_RUNS_DIRECTORY"
-    ensure_host_dir "$DATASTREAM_DIRECTORY"
-    ensure_visualizer_conf_host_file "$VISUALIZER_CONF"
 
-    echo -e "${ARROW} ${BWhite}Launching Tethys container...${Color_Off}"
-    
-    # First, make sure any existing Tethys containers are stopped
-    if docker ps -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
-        echo -e "  ${INFO_MARK} ${BYellow}Tethys container is already running. Stopping it first...${Color_Off}"
-        docker stop "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1
-        sleep 3
-    fi
-    
-    # Final check - if container still exists, force removal
-    if docker ps -a -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
-        echo -e "  ${WARNING_MARK} ${BYellow}Forcibly removing container...${Color_Off}"
-        docker rm -f "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1 || true
-        sleep 2
-    fi
-    
-    # Create new network
-    create_tethys_docker_network
-    
-    # Brief delay before starting
-    sleep 1
-    echo -e "  ${INFO_MARK} ${BYellow}Starting Tethys container...${Color_Off}"
-    
-    # Launch container with explicit error handling
-    echo -e "  ${INFO_MARK} Running docker command..."
-    docker run --rm -d \
-        -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer" \
-        -v "$DATASTREAM_DIRECTORY:$TETHYS_PERSIST_PATH/.datastream_ngiab" \
-        -p "$nginx_tethys_port:$nginx_tethys_port" \
-        --network "$DOCKER_NETWORK" \
-        --name "$TETHYS_CONTAINER_NAME" \
-        --env MEDIA_ROOT="$TETHYS_PERSIST_PATH/media" \
-        --env MEDIA_URL="/media/" \
-        --env SKIP_DB_SETUP="$SKIP_DB_SETUP" \
-        --env DATASTREAM_CONF="$TETHYS_PERSIST_PATH/.datastream_ngiab" \
-        --env VISUALIZER_CONF="$TETHYS_PERSIST_PATH/ngiab_visualizer/ngiab_visualizer.json" \
-        --env NGINX_PORT="$nginx_tethys_port" \
-        --env CSRF_TRUSTED_ORIGINS="$CSRF_TRUSTED_ORIGINS" \
-        "${TETHYS_REPO}:${TETHYS_TAG}"
-        
-    if [ $? -eq 0 ]; then
-        echo -e "  ${CHECK_MARK} ${BGreen}Tethys container started successfully.${Color_Off}"
-        return 0
-    else
-        echo -e "  ${CROSS_MARK} ${BRed}Failed to start Tethys container.${Color_Off}"
-        return 1
-    fi
+  jq --arg base_name "$base_name" \
+     --arg final_path  "$final_path" \
+     --arg current_time  "$current_time" \
+     --arg uuid    "$new_uuid" \
+     '.model_runs += [ 
+       { 
+         "label": $base_name, 
+         "path": $final_path, 
+         "date": $current_time, 
+         "id": $uuid, 
+         "subset": "", 
+         "tags": [] 
+       }
+     ]' \
+     "$json_file" > "${json_file}.tmp" && mv -f "${json_file}.tmp" "$json_file"
 }
 
 pause_script_execution() {
