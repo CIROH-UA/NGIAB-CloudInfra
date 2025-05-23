@@ -322,6 +322,60 @@ wait_container_healthy() {
     done
 }
 
+run_tethys() {
+    ensure_host_dir "$MODELS_RUNS_DIRECTORY"
+    ensure_host_dir "$DATASTREAM_DIRECTORY"
+    ensure_visualizer_conf_host_file "$VISUALIZER_CONF"
+
+    echo -e "${ARROW} ${BWhite}Launching Tethys container...${Color_Off}"
+
+    # First, make sure any existing Tethys containers are stopped
+    if docker ps -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
+        echo -e "  ${INFO_MARK} ${BYellow}Tethys container is already running. Stopping it first...${Color_Off}"
+        docker stop "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1
+        sleep 3
+    fi
+
+    # Final check - if container still exists, force removal
+    if docker ps -a -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
+        echo -e "  ${WARNING_MARK} ${BYellow}Forcibly removing container...${Color_Off}"
+        docker rm -f "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1 || true
+        sleep 2
+    fi
+
+    # Create new network
+    create_tethys_docker_network
+
+    # Brief delay before starting
+    sleep 1
+    echo -e "  ${INFO_MARK} ${BYellow}Starting Tethys container...${Color_Off}"
+
+    # Launch container with explicit error handling
+    echo -e "  ${INFO_MARK} Running docker command..."
+    docker run --rm -d \
+        -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer" \
+        -v "$DATASTREAM_DIRECTORY:$TETHYS_PERSIST_PATH/.datastream_ngiab" \
+        -p "$nginx_tethys_port:$nginx_tethys_port" \
+        --network "$DOCKER_NETWORK" \
+        --name "$TETHYS_CONTAINER_NAME" \
+        --env MEDIA_ROOT="$TETHYS_PERSIST_PATH/media" \
+        --env MEDIA_URL="/media/" \
+        --env SKIP_DB_SETUP="$SKIP_DB_SETUP" \
+        --env DATASTREAM_CONF="$TETHYS_PERSIST_PATH/.datastream_ngiab" \
+        --env VISUALIZER_CONF="$TETHYS_PERSIST_PATH/ngiab_visualizer/ngiab_visualizer.json" \
+        --env NGINX_PORT="$nginx_tethys_port" \
+        --env CSRF_TRUSTED_ORIGINS="$CSRF_TRUSTED_ORIGINS" \
+        "${TETHYS_REPO}:${TETHYS_TAG}"
+
+    if [ $? -eq 0 ]; then
+        echo -e "  ${CHECK_MARK} ${BGreen}Tethys container started successfully.${Color_Off}"
+        return 0
+    else
+        echo -e "  ${CROSS_MARK} ${BRed}Failed to start Tethys container.${Color_Off}"
+        return 1
+    fi
+}
+
 tear_down() {
     echo -e "\n${ARROW} ${BYellow}Cleaning up resources...${Color_Off}"
     
@@ -375,7 +429,7 @@ wait_container() {
     return 0
 }
 
-_copy_models_run() {
+copy_models_run() {
     local input_path="$1"
     local models_dir="$HOME/ngiab_visualizer"
     # 1) make sure ~/ngiab_visualizer exists and you own it
@@ -443,7 +497,7 @@ _copy_models_run() {
     echo "$final_copied_path"
 }
 
-_add_model_run() {
+add_model_run() {
   local input_path="$1"
   local json_file="$VISUALIZER_CONF"
 
