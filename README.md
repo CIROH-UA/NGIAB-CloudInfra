@@ -33,13 +33,13 @@
 
 - **NGIAB Guide Scripts**: This repository holds several guide scripts: `guide.sh`, `runTeehr.sh`, and `viewOnTethys.sh`. These scripts act as the primary entrypoint for running NGIAB.
 
-- **Documentation**: The `docs/` folder contains information on all of the finer details that can help you get the most out of the contents of this repository. For broader ecosystem-wide documentation, please visit DocuHub at [docs.ciroh.org/products/ngiab](https://docs.ciroh.org/products/ngiab).
+- **Documentation**: The [`docs/` folder](./docs/00_CONTENTS.md) contains information on all of the finer details that can help you get the most out of the contents of this repository. For broader ecosystem-wide documentation, please visit DocuHub at [docs.ciroh.org/products/ngiab](https://docs.ciroh.org/products/ngiab), where all of the information from this and other NGIAB repositories is mirrored.
 
 ### For development
 
 - `docker/`: This folder contains the Dockerfile and entrypoint for the NGIAB container. See [Section 3.1](./docs/03_01_CONTAINERS.md) of the documentation for more information.
 
-- `.github`: Workflows, issue templates, and other GitHub-focused configuration files.
+- `.github/`: Workflows, issue templates, and other GitHub-focused configuration files.
 
 - `archive/`: Older files that are no longer maintained.
 

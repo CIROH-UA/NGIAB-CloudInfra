@@ -14,10 +14,8 @@ To get started with NGIAB-CloudInfra, you'll need to have Docker installed (and 
 4. **Open WSL as Admin:** Right-click on the WSL icon and select "Run as Administrator".
 5. **Verify Installation:** In the WSL window, type the command docker ps -a to check if Docker is running correctly. This command should display a list of Docker containers.
 
-:::warning
-If you've installed WSL before as a part of Docker, be sure to create a second WSL distribution that isn't tied to Docker.
+> **Warning**: If you've installed WSL before as a part of Docker, be sure to create a second WSL distribution that isn't tied to Docker.
 NextGen In A Box shell commands can't be run from within Docker's dedicated WSL environment.
-:::
 
 ### Mac
 1. **Install Docker Desktop:** Download and install Docker Desktop for Mac from: https://docs.docker.com/desktop/install/mac-install/
