@@ -33,7 +33,8 @@
 
 - **NGIAB Guide Scripts**: This repository holds several guide scripts: `guide.sh`, `runTeehr.sh`, and `viewOnTethys.sh`. These scripts are the recommended way to run NGIAB.
 
-- **Documentation**: The [`docs/` folder](./docs/00_CONTENTS.md) contains information on all of the finer details that can help you get the most out of the contents of this repository. For broader ecosystem-wide documentation, please visit DocuHub at [docs.ciroh.org/products/ngiab](https://docs.ciroh.org/products/ngiab), where all of the information from this and other NGIAB repositories is mirrored.
+- **Documentation**: The [`docs/` folder](./docs/00_CONTENTS.md) contains information on all of the finer details that can help you get the most out of the contents of this repository.
+  - For broader ecosystem-wide documentation, please visit DocuHub at [docs.ciroh.org/products/ngiab](https://docs.ciroh.org/products/ngiab), where all of the information from this and other NGIAB repositories is mirrored.
 
 ### For development
 
