@@ -1,3 +1,3 @@
-# Building the NGIAB Docker container
+# Building the NGIAB Docker Container
 
 STUB

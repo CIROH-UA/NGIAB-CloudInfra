@@ -3,16 +3,16 @@
 # Contribution Guidelines
 
 Thank you for considering contributing to our project! We welcome contributions from everyone, and we want to make the process as easy and transparent as possible.
-  
 
-## Issue Tracking  
+
+## Issue tracking  
 
 Please check our [issue tracker](https://github.com/CIROH-UA/NGIAB-CloudInfra/issues) for existing issues that you can work on. If you find a new issue or have a feature request, please open a new issue so we can discuss it and prioritize it accordingly.
 
 > Note that in addition to its own reports, the NGIAB-CloudInfra issue tracker currently hosts tickets from CIROH CyberInfrastructure.
 
 
-## How to Contribute
+## How to contribute
 
 1. If an Issue does not already exist, you can use the [bug report template](https://github.com/CIROH-UA/NGIAB-CloudInfra/issues/new?assignees=&labels=bug&projects=&template=bug_report.md&title=) to create one.
 
@@ -29,3 +29,8 @@ Please check our [issue tracker](https://github.com/CIROH-UA/NGIAB-CloudInfra/is
 7. Please make sure that the PR pipeline is successful.
 
 8. The maintainers of the repository will merge the PR upon verifying both the validation pipeline results and the contents of the commit.
+
+
+## Testing changes locally
+
+Please see ["Building the NGIAB Docker Container"](./04_BUILDING.md) for information on testing local changes.
