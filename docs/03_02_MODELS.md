@@ -39,7 +39,8 @@ TOPMODEL is a watershed model focused on interactions between groundwater and su
 
 ## Long Short-Term Memory (LSTM)
 
-> *GitHub: [NOAA-OWP/l](https://github.com/NOAA-OWP/lstm)*
+> *GitHub: [CIROH-UA/lstm](https://github.com/CIROH-UA/lstm)*  
+> *Fork developed by [Jonathan Frame](https://github.com/jmframe)*
 
 LSTM networks are a type of recurrent neural network used in deep learning.
 This LSTM module is specifically tailored for generalize streamflow prediction within CONUS.
@@ -59,7 +60,8 @@ Its underlying methodology is comparable to NOAH-MP (see NOAH-OWP-Modular above)
 
 # T-Route
 
-> *GitHub: [CIROH-UA/t-route](https://github.com/CIROH-UA/t-route)*
+> *GitHub: [CIROH-UA/t-route](https://github.com/CIROH-UA/t-route)*  
+> *Fork maintained by [Josh Cunningham](https://github.com/joshcu)*
 
 T-Route is a routing model used for solving streamflow networks.
 Compared to the other models packaged with NGIAB, T-Route is uniquely central because it sits at the core of all NextGen model runs.
