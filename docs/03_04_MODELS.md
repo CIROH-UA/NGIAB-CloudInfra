@@ -11,12 +11,16 @@ SLoTH offers the simplest possible behavior for a model: each input will be retu
 While largely useless on its own, it offers necessary utilities for supporting complex formulations of multiple BMI modules.
 For example, it can be used to feed constant forcing values into a model or echo output values between timesteps.
 
+Library file path: `/dmod/shared_libs/libslothmodel.so.1.0.0`
+
 ## Conceptual Functional Equivalent (CFE)
 
 > *GitHub: [NOAA-OWP/CFE](https://github.com/NOAA-OWP/CFE)*
 
 This simplified conceptual model by Fred Ogden is designe to be functionally equivalent to earlier versions of the National Water Model.
 It offers a streamlined solution to modeling runoff generation, vadose zone dynamics, and groundwater behavior.
+
+Library file path: `/dmod/shared_libs/libcfebmi.so.1.0.0`
 
 ## Potential Evapotranspiration (PET)
 
@@ -25,11 +29,15 @@ It offers a streamlined solution to modeling runoff generation, vadose zone dyna
 This module bundles several functions for estimating potential evapotranspiration, or the upper bound for the amount of water
 that will be passively evaporated from soil given sufficient supply.
 
+Library file path: `/dmod/shared_libs/libpetbmi.so.1.0.0`
+
 ## NOAH-OWP-Modular
 
 > *GitHub: [NOAA-OWP/NOAH-OWP-Modular](https://github.com/NOAA-OWP/NOAH-OWP-Modular)*
 
 NOAH-OWP-Modular is a generalized refactoring of Noah-MP, a land surface model.
+
+Library file path: `/dmod/shared_libs/libsurfacebmi.so`
 
 ## TOPMODEL
 
@@ -37,19 +45,24 @@ NOAH-OWP-Modular is a generalized refactoring of Noah-MP, a land surface model.
 
 TOPMODEL is a watershed model focused on interactions between groundwater and surface water.
 
+Library file path: `/dmod/shared_libs/libtopmodelbmi.so.1.0.0`
+
 ## Long Short-Term Memory (LSTM)
 
-> *GitHub: [CIROH-UA/lstm](https://github.com/CIROH-UA/lstm)*  
-> *Fork developed by [Jonathan Frame](https://github.com/jmframe)*
+> *GitHub: [NOAA-OWP/l](https://github.com/NOAA-OWP/lstm)*
 
 LSTM networks are a type of recurrent neural network used in deep learning.
 This LSTM module is specifically tailored for generalize streamflow prediction within CONUS.
+
+Python class: `lstm.bmi_LSTM` <!-- TODO: verify -->
 
 ## Soil Moisture Profiles
 
 > *GitHub: [NOAA-OWP/SoilMoistureProfiles](https://github.com/NOAA-OWP/SoilMoistureProfiles)*
 
 This module packages several schemes to model soil moisture, including ones specifically tailored to CFE and TOPMODEL.
+
+<!-- TODO: Can't find the shared file within the NGIAB container. Is this actually included? -->
 
 ## Soil Freeze-Thaw Model
 
@@ -58,13 +71,15 @@ This module packages several schemes to model soil moisture, including ones spec
 This model simulates heat transfer in soil, enabling modeling of freeze/thaw cycles in water.
 Its underlying methodology is comparable to NOAH-MP (see NOAH-OWP-Modular above).
 
+<!-- TODO: Can't find the shared file within the NGIAB container. Is this actually included? -->
+
 # T-Route
 
-> *GitHub: [CIROH-UA/t-route](https://github.com/CIROH-UA/t-route)*  
-> *Fork maintained by [Josh Cunningham](https://github.com/joshcu)*
+> *GitHub: [CIROH-UA/t-route](https://github.com/CIROH-UA/t-route)*
 
 T-Route is a routing model used for solving streamflow networks.
 Compared to the other models packaged with NGIAB, T-Route is uniquely central because it sits at the core of all NextGen model runs.
+As such, instead of invoking it via a formulation, it should be configured in `troute.yaml`.
 <!-- TODO: This is inferred from context! More information needed. -->
 
 NGIAB includes a customized fork of T-Route maintained by CIROH.
