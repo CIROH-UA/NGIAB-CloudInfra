@@ -171,6 +171,22 @@ cd docker
 docker build -f Dockerfile -t awiciroh/ciroh-ngen-image:latest . --no-cache
 ```
 
+## Contributors
+- Arpita Patel, Alabama Water Institute, CIROH (apatel54@ua.edu)
+- Benjamin Lee, Alabama Water Institute, CIROH (blee60@ua.edu)
+- Zach Wills, Lynker (zwills@lynker.com)
+- Nels Frazier, Lynker (nfrazier@lynker.com)
+- Josh Cunningham, Alabama Water Institute, CIROH (jcunningham8@ua.edu)
+- Gio Romero, Aquaveo (gromero@aquaveo.com)
+- Sam Lamont, RTI International (slamont@rti.org)
+- Matthew Denno, RTI International (mdenno@rti.org)
+- James Halgren, Alabama Water Institute, CIROH (jshalgren@ua.edu)
+
+## Sponsorship
+- NOAA Cooperative Institute for Research to Operations in Hydrology ([CIROH](https://ciroh.org))
+Project: CIROH: Community Water Model Infrastructure, Stewardship, and Integration (PI - Steven Burian)
+Project: [Advancing Community NextGen and NextGen In A Box (NGIAB) – Paving the Pathway to Operations](https://ciroh.ua.edu/research-projects/advancing-community-nextgen-and-nextgen-in-a-box-ngiab-paving-the-pathway-to-operations/) (PI - Arpita Patel)
+
 ## Additional Resources
 
 - [End-to-End Setup Guide](https://docs.ciroh.org/docs/products/Community%20Hydrologic%20Modeling%20Framework/nextgeninaboxDocker/workflow)
