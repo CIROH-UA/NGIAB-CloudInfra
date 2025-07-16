@@ -17,7 +17,7 @@ Library file path: `/dmod/shared_libs/libslothmodel.so.1.0.0`
 
 > *GitHub: [NOAA-OWP/CFE](https://github.com/NOAA-OWP/CFE)*
 
-This simplified conceptual model by Fred Ogden is designe to be functionally equivalent to earlier versions of the National Water Model.
+This simplified conceptual model by Fred Ogden is designed to be functionally equivalent to earlier versions of the National Water Model.
 It offers a streamlined solution to modeling runoff generation, vadose zone dynamics, and groundwater behavior.
 
 Library file path: `/dmod/shared_libs/libcfebmi.so.1.0.0`
