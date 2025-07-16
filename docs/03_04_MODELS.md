@@ -63,7 +63,7 @@ Python class: `lstm.bmi_LSTM` <!-- TODO: verify -->
 
 This module packages several schemes to model soil moisture, including ones specifically tailored to CFE and TOPMODEL.
 
-<!-- TODO: Can't find the shared file within the NGIAB container. Is this actually included? -->
+*Temporarily unavailable due to an [upstream issue](https://github.com/CIROH-UA/ngen/issues/14).*
 
 ## Soil Freeze-Thaw Model
 
@@ -72,7 +72,7 @@ This module packages several schemes to model soil moisture, including ones spec
 This model simulates heat transfer in soil, enabling modeling of freeze/thaw cycles in water.
 Its underlying methodology is comparable to NOAH-MP (see NOAH-OWP-Modular above).
 
-<!-- TODO: Can't find the shared file within the NGIAB container. Is this actually included? -->
+*Temporarily unavailable due to an [upstream issue](https://github.com/CIROH-UA/ngen/issues/14).*
 
 # T-Route
 

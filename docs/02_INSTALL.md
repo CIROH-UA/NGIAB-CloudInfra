@@ -47,9 +47,7 @@ cd NextGen
 
 ### Step 2: Download Sample Data
 
-:::info
-While this step isn't strictly necessary, it'll be useful for verifying that NGIAB is working properly on your system.
-:::
+> While this step isn't strictly necessary, it'll be useful for verifying that NGIAB is working properly on your system.
 
 - Within your project directory, create the `ngen-data` folder to hold the sample data.
 ```bash
@@ -69,11 +67,9 @@ cd ..
 ```
 
 ### Step 3: Clone and Run NGIAB
-:::warning
-**For WSL users:** Before pulling NGIAB, ensure that Git is configured to pull with LF line breaks instead of CRLF line breaks.
-Failing to do so will prevent NGIAB's shell scripts from correctly running.
-Information on triaging this issue is available in the [NGIAB 101 training module](https://docs.ciroh.org/training-NGIAB-101/installation.html).
-:::
+
+> **For WSL users:** Before pulling NGIAB, ensure that Git is configured to pull with LF line breaks instead of CRLF line breaks. Failing to do so will prevent NGIAB's shell scripts from correctly running.  
+> Information on triaging this issue is available in the [NGIAB 101 training module](https://docs.ciroh.org/training-NGIAB-101/installation.html).
 
 - Clone the NGIAB-CloudInfra repository.
 ```bash
