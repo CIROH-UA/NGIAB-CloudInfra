@@ -1,5 +1,3 @@
-<!-- TODO: Filename TBD -->
-
 # Contribution Guidelines
 
 Thank you for considering contributing to our project! We welcome contributions from everyone, and we want to make the process as easy and transparent as possible.

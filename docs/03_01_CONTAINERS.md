@@ -6,7 +6,7 @@ NGIAB includes a series of guide scripts that invoke both NGIAB itself and sever
 
 ## NGIAB Docker distribution ([`awiciroh/ciroh-ngen-image`](https://hub.docker.com/r/awiciroh/ciroh-ngen-image/tags))
 
-This image is **the core NGIAB distribution** for non-HPC environments. It contains everything you need to run the NextGen framework, along with a core series of common NextGen-compatible models. For the specifics of which models are included by default, see [3.2. Included Models](./03_02_MODELS.md).
+This image is **the core NGIAB distribution** for non-HPC environments. It contains everything you need to run the NextGen framework, along with a core series of common NextGen-compatible models. For the specifics of which models are included by default, see [3.4. Included Models](./03_04_MODELS.md).
 
 The NGIAB image builds from this repository's `docker/` folder. The following command is used to build it locally:
 ```bash

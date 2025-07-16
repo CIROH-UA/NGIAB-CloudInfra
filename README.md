@@ -45,7 +45,7 @@
 
 ## Contributing
 
-Interested in contributing? Please see our [contribution guide](09_CONTRIBUTE.md) for more information.
+Interested in contributing? Please see our [contribution guide](05_CONTRIBUTE.md) for more information.
 
 ## Contributors
 - Arpita Patel, Alabama Water Institute, CIROH (apatel54@ua.edu)
