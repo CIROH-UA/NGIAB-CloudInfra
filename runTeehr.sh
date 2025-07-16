@@ -302,7 +302,7 @@ if [[ "$run_teehr_choice" =~ ^[Yy] ]]; then
     
     echo -e "${BG_Green}${BWhite} TEEHR evaluation completed successfully! ${Color_Off}\n"
     echo -e "${INFO_MARK} ${BWhite}Results have been saved to your outputs directory:${Color_Off}"
-    echo -e "  ${ARROW} ${BCyan}$DATA_FOLDER_PATH/outputs/teehr/${Color_Off}"
+    echo -e "  ${ARROW} ${BCyan}$DATA_FOLDER_PATH/teehr/${Color_Off}"
     echo -e "\n${INFO_MARK} You can visualize these results using the Tethys platform"
     echo -e "  ${ARROW} Run ${UBlue}./viewOnTethys.sh $DATA_FOLDER_PATH${Color_Off} to start visualization"
 else
