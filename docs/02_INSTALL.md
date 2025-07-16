@@ -17,15 +17,22 @@ To get started with NGIAB-CloudInfra, you'll need to have Docker installed (and 
 > **Warning**: If you've installed WSL before as a part of Docker, be sure to create a second WSL distribution that isn't tied to Docker.
 NextGen In A Box shell commands can't be run from within Docker's dedicated WSL environment.
 
+> Note that the absolute best Windows performance can be achieved by installing Docker Engine within a WSL environment and working strictly from there, using the same steps as a typical Linux installation.  
+> However, since the overhead from WSL will apply either way, it's often not worth the hassle. A purely Linux-based environment is strongly recommended for performance-sensitive and operational applications.
+
 ### Mac
 1. **Install Docker Desktop:** Download and install Docker Desktop for Mac from: https://docs.docker.com/desktop/install/mac-install/
 2. **Start Docker Desktop:** Launch the Docker Desktop application once the installation is complete.
 3. **Open Terminal:** Open the Terminal application on your Mac.
 4. **Verify Installation:** Similar to Windows, use the command docker ps -a in the Terminal to verify Docker is functioning as expected.
 
+> Note that the Docker VMM offers the best performance on Macs. For more information, see Docker's documentation on [Virtual Machine Managers](https://docs.docker.com/desktop/features/vmm/).  
+
 ### Linux
 1. **Install Docker:** The installation process for Linux varies depending on your distribution. Refer to the official documentation for detailed instructions: https://docs.docker.com/desktop/install/linux-install/
 2. **Start Docker and Verify:** Follow the same steps as described for Mac to start Docker and verify its installation using the docker ps -a command in the terminal.
+
+> Note that Linux-based Docker performance will be significantly improved when installing Docker Engine rather than Docker Desktop.
 
 ## Installing and Testing
 
