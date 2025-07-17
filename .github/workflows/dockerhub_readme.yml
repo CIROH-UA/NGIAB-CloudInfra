@@ -1,0 +1,21 @@
+name: Update Dockerhub Image Description
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'README.md'
+jobs:
+  update-dockerhub-description:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Update Docker Hub Description
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ secrets.DOCKERHUB_USERNAME }}/ciroh-ngen-image
