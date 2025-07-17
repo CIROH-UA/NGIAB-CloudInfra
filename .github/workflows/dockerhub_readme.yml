@@ -5,7 +5,7 @@ on:
     paths:
       - 'README.md'
 jobs:
-  build-and-push:
+  update-dockerhub-description:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

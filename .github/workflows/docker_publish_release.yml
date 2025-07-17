@@ -5,7 +5,7 @@ on:
     types: [published]
 
 jobs:
-  build-and-push:
+  build-and-push-release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -17,9 +17,7 @@ jobs:
           dockerfile-tag: ${{ github.event.release.tag_name }}
           docker-tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/ciroh-ngen-image:${{ github.event.release.tag_name }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/ciroh-ngen-image:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/ngiab:${{ github.event.release.tag_name }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/ngiab:latest
           slack-title: Build and Release
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
