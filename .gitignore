@@ -1,3 +1,6 @@
+# User directory for custom scripts
+.localignore/*
+
 # Local .terraform directories
 **/.terraform/*
 
