@@ -1,7 +1,7 @@
 FROM rockylinux:9.1 AS base
 ENV TROUTE_REPO=CIROH-UA/t-route
 ENV TROUTE_BRANCH=ngiab
-ENV NGEN_REPO=CIROH-UA/ngen
+ENV NGEN_REPO=Sheargrub/ngen
 ENV NGEN_BRANCH=ngiab
 
 # Install final dependencies to make sure ngen is build and deployed with matching versions
@@ -199,6 +199,11 @@ ENV PATH="/ngen/.venv/bin:${PATH}"
 # Install lstm - the extra index url installs cpu-only pytorch which is ~6gb smaller
 COPY --from=ngen_clone /ngen/ngen/extern/lstm/lstm /ngen/ngen/extern/lstm
 RUN uv pip install --no-cache-dir /ngen/ngen/extern/lstm --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Install dHBV2.0
+COPY --from=ngen_clone /ngen/ngen/extern/dhbv2/dhbv2 /ngen/ngen/extern/dhbv2/
+RUN uv pip install --no-cache-dir /ngen/ngen/extern/dhbv2/dhbv2
+#--extra-index-url https://download.pytorch.org/whl/cpu
 
 ## add some metadata to the image
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url
