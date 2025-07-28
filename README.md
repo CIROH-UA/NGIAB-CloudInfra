@@ -23,9 +23,15 @@
 - **Evaluation Tools**: Integrated TEEHR evaluation capabilities
 - **Visualization**: Built-in support for output visualization via Tethys Platform
 
-| | | |
-| --- | --- | --- |
-| ![Nexus Output](./docs/img/Provo_GeoSpatial.png) | ![Catchment Time Series](./docs/img/Provo_catchments.png) | ![Nexus Time Series](./docs/img/Provo_nexus_point.png) |
+| | |
+| --- | --- | 
+| ![Nexus Output](./docs/img/Provo_GeoSpatial.png) | ![Catchment Time Series](./docs/img/Provo_catchments.png) |
+
+| | |
+| --- | --- | 
+| ![Teehr Plot](./docs/img/Provo_nexus_point.png) | ![Teehr Metrics](./docs/img/Provo_teehr_metrics.png) |
+
+> 🔗 For more information on this case study, including calibration files, input data, and setup details, visit the [HydroShare resource page for the Provo River near Woodland NGIAB Case Study](https://www.hydroshare.org/resource/88e0ebf2719c492381efcb27fba71032/).
 
 ## Navigating this repository
 
