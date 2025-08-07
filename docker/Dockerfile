@@ -1,7 +1,7 @@
 FROM rockylinux:9.1 AS base
 ENV TROUTE_REPO=CIROH-UA/t-route
 ENV TROUTE_BRANCH=ngiab
-ENV NGEN_REPO=CIROH-UA/ngen
+ENV NGEN_REPO=Sheargrub/ngen
 ENV NGEN_BRANCH=ngiab
 
 # Install final dependencies to make sure ngen is build and deployed with matching versions
@@ -12,7 +12,7 @@ RUN dnf update -y && \
     dnf config-manager --set-enabled crb && \
     dnf install -y \
     vim libgfortran sqlite \
-    bzip2 expat udunits2 zlib \
+    bzip2 expat udunits2 zlib git \
     mpich hdf5 netcdf netcdf-fortran netcdf-cxx netcdf-cxx4-mpich
 
 FROM base AS build_base
@@ -21,7 +21,7 @@ RUN echo "max_parallel_downloads=10" >> /etc/dnf/dnf.conf
 RUN dnf install -y epel-release && \
     dnf config-manager --set-enabled crb && \
     dnf install -y \
-    sudo gcc gcc-c++ make cmake ninja-build tar git gcc-gfortran libgfortran sqlite sqlite-devel \
+    sudo gcc gcc-c++ make cmake ninja-build tar gcc-gfortran libgfortran sqlite sqlite-devel \
     python3 python3-devel python3-pip \
     expat-devel flex bison udunits2-devel zlib-devel \
     wget mpich-devel hdf5-devel netcdf-devel \
@@ -85,6 +85,14 @@ ADD https://api.github.com/repos/${NGEN_REPO}/git/refs/heads/${NGEN_BRANCH} /tmp
 RUN git clone --single-branch --branch $NGEN_BRANCH https://github.com/$NGEN_REPO.git && \
     cd ngen && \
     git submodule update --init --recursive --depth 1
+# dHBV2.0 needs to store its versioning info
+RUN cd ngen && \
+    git submodule update --init --remote extern/dhbv2/dhbv2 && \
+    COMMIT_FULL=$(git submodule status extern/dhbv2/dhbv2) && \
+    IFS=' ' read -ra COMMIT_ARR <<< "$COMMIT_FULL" && \
+    COMMIT="${COMMIT_ARR[2]:1}" && \
+    COMMIT="${COMMIT%?}" && \
+    echo "$COMMIT_FULL" >> ./extern/dhbv2/dhbv2/src/dhbv2/_version.py
 
 
 
@@ -199,6 +207,16 @@ ENV PATH="/ngen/.venv/bin:${PATH}"
 # Install lstm - the extra index url installs cpu-only pytorch which is ~6gb smaller
 COPY --from=ngen_clone /ngen/ngen/extern/lstm/lstm /ngen/ngen/extern/lstm
 RUN uv pip install --no-cache-dir /ngen/ngen/extern/lstm --extra-index-url https://download.pytorch.org/whl/cpu
+
+# setuptools_scm gets mad if git isn't added to the path here
+ENV PATH="/bin/git:${PATH}"
+
+# Install dHBV2.0
+# (Pretend version needs to be set to appease setuptools_scm)
+COPY --from=ngen_clone /ngen/ngen/extern/dhbv2/dhbv2 /ngen/ngen/extern/dhbv2/
+ENV SETUPTOOLS_SCM_DEBUG=1
+RUN export SETUPTOOLS_SCM_PRETEND_VERSION=$(cat /ngen/ngen/extern/dhbv2/src/dhbv2/_version.py) && \
+    uv pip install --no-cache-dir /ngen/ngen/extern/dhbv2/ --extra-index-url https://download.pytorch.org/whl/cpu
 
 ## add some metadata to the image
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url
