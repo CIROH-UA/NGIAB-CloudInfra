@@ -215,7 +215,7 @@ ENV PATH="/bin/git:${PATH}"
 # (Pretend version needs to be set to appease setuptools_scm)
 COPY --from=ngen_clone /ngen/ngen/extern/dhbv2/dhbv2 /ngen/ngen/extern/dhbv2/
 ENV SETUPTOOLS_SCM_DEBUG=1
-RUN export SETUPTOOLS_SCM_PRETEND_VERSION="v1.0.0" && \
+RUN export SETUPTOOLS_SCM_PRETEND_VERSION=$(cat /ngen/ngen/extern/dhbv2/src/dhbv2/_version.py) && \
     uv pip install --no-cache-dir /ngen/ngen/extern/dhbv2/ --extra-index-url https://download.pytorch.org/whl/cpu
 
 ## add some metadata to the image
