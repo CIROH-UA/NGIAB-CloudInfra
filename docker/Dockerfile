@@ -88,11 +88,12 @@ RUN git clone --single-branch --branch $NGEN_BRANCH https://github.com/$NGEN_REP
 # dHBV2.0 needs to store its versioning info
 RUN cd ngen && \
     git submodule update --init --remote extern/dhbv2/dhbv2 && \
-    COMMIT_FULL=$(git submodule status extern/dhbv2/dhbv2) && \
-    IFS=' ' read -ra COMMIT_ARR <<< "$COMMIT_FULL" && \
-    COMMIT="${COMMIT_ARR[2]:1}" && \
-    COMMIT="${COMMIT%?}" && \
-    echo "$COMMIT_FULL" >> ./extern/dhbv2/dhbv2/src/dhbv2/_version.py
+    git -C extern/dhbv2/dhbv2 tag >> ./extern/dhbv2/dhbv2/src/dhbv2/_version.py
+#    COMMIT_FULL=$(git submodule status extern/dhbv2/dhbv2) && \
+#    IFS=' ' read -ra COMMIT_ARR <<< "$COMMIT_FULL" && \
+#    COMMIT="${COMMIT_ARR[2]:1}" && \
+#    COMMIT="${COMMIT%?}" && \
+#    echo "$COMMIT_FULL" >> ./extern/dhbv2/dhbv2/src/dhbv2/_version.py
 
 
 
