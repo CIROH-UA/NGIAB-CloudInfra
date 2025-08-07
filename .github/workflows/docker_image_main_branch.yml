@@ -20,30 +20,55 @@ jobs:
    env:
       AWS_REGION: us-east-1
    steps:
-     - name: start arm runner
-       uses: gagoar/invoke-aws-lambda@master
-       with:
-         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-         FunctionName: StartCirohRunner
-       if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA') || 
-           (startsWith(github.ref, 'refs/heads/main') && github.event_name != 'pull_request')
+    - name: Install dependencies
+      run: npm install @aws-sdk/client-lambda
+     
+    - name: start arm runner
+      run: |
+        node -e "
+            const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda');
+            const client = new LambdaClient({ region: process.env.AWS_REGION });
+            const command = new InvokeCommand({ FunctionName: 'StartCirohRunner' });
+            client.send(command).then(res => {
+              console.log('Lambda invoked. StatusCode:', res.StatusCode);
+            }).catch(err => {
+              console.error('Error invoking Lambda:', err);
+              process.exit(1);
+            });
+        "
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{ env.AWS_REGION }}
+      if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA') || 
+          (startsWith(github.ref, 'refs/heads/main') && github.event_name != 'pull_request')
 
-     - name: start x86 runner
-       uses: gagoar/invoke-aws-lambda@master
-       with:
-         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-         FunctionName: StartCirohX86Runner
-       if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA') || 
-           (startsWith(github.ref, 'refs/heads/main') && github.event_name != 'pull_request')
-
-     - name: wait runner up
-       shell: bash
-       run: |
-           sleep 300
-       if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA') || 
-           (startsWith(github.ref, 'refs/heads/main') && github.event_name != 'pull_request')
+    - name: start x86 runner
+      run: |
+        node -e "
+            const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda');
+            const client = new LambdaClient({ region: process.env.AWS_REGION });
+            const command = new InvokeCommand({ FunctionName: 'StartCirohX86Runner' });
+            client.send(command).then(res => {
+              console.log('Lambda invoked. StatusCode:', res.StatusCode);
+            }).catch(err => {
+              console.error('Error invoking Lambda:', err);
+              process.exit(1);
+            });
+        "
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{ env.AWS_REGION }}
+      if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA') || 
+          (startsWith(github.ref, 'refs/heads/main') && github.event_name != 'pull_request')
+      
+    - name: wait runner up
+      shell: bash
+      run: |
+          sleep 300
+      if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA') || 
+          (startsWith(github.ref, 'refs/heads/main') && github.event_name != 'pull_request')
   init:
     needs: start-runner
     runs-on: ${{ matrix.runner}}
