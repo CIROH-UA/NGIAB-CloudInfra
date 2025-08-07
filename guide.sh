@@ -195,7 +195,7 @@ while getopts 'd:hrt:' flag; do
 done
 
 # For consistency with other scripts: if no flags provided, first argument should be used as data path
-if [ $FLAGS_USED == false ] && [ -n $1 ]; then
+if [ "$FLAGS_USED" == false ] && [ -n "$1" ]; then
     DATA_FOLDER_PATH="$1"
 fi
 
@@ -217,7 +217,7 @@ echo -e "\n  ${ARROW} \033[38;5;205moutputs/\033[0m - Target directory for simul
 echo -e "          \033[38;5;117m└─ Flow estimates, water levels, and diagnostic information\033[0m"
 
 # If no path provided as an argument...
-if [ -z $HOST_DATA_PATH ]; then
+if [ -z "$HOST_DATA_PATH" ]; then
     echo -e "\n${INFO_MARK} ${BWhite}Please specify a directory containing these components below.${Color_Off}\n"
 
     # Path selection with improved user experience and fixed formatting
@@ -426,7 +426,7 @@ fi
 print_section_header "MODEL EXECUTION OPTIONS"
 
 IMAGE_NAME="$NGEN_IMAGE_NAME:$NGEN_IMAGE_TAG"
-$USING_CUSTOM_TAG && echo -e "  ${CHECK_MARK} Using specified tag: ${BGreen}$IMAGE_NAME${Color_Off}\n"
+$CUSTOM_TAG_USED && echo -e "  ${CHECK_MARK} Using specified tag: ${BGreen}$IMAGE_NAME${Color_Off}\n"
 
 echo -e "${ARROW} ${BWhite}Please select an option to proceed:${Color_Off}\n"
 options=("Run NextGen using existing local docker image" "Update to latest docker image and run" "Exit")
@@ -507,7 +507,7 @@ if [ $Final_Outputs_Count -gt 0 ]; then
             fi
             
             # Disable clearing console if needed
-            if [ $CLEAR_CONSOLE == true ]; then
+            if [ "$CLEAR_CONSOLE" == true ]; then
                 teehr_call="$TEEHR_SCRIPT -y -d $HOST_DATA_PATH"
             else
                 teehr_call="$TEEHR_SCRIPT -y -r -d $HOST_DATA_PATH"
@@ -577,7 +577,7 @@ if [ $Final_Outputs_Count -gt 0 ]; then
             fi
 
             # Disable clearing console if needed
-            if [ $CLEAR_CONSOLE == true ]; then
+            if [ "$CLEAR_CONSOLE" == true ]; then
                 tethys_call="$TETHYS_SCRIPT -d $HOST_DATA_PATH"
             else
                 tethys_call="$TETHYS_SCRIPT -r -d $HOST_DATA_PATH"

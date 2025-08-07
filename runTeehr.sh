@@ -243,7 +243,7 @@ while getopts 'd:hrt:y' flag; do
 done
 
 # Backwards compatibility: If no flags provided, first argument should be used as data path
-if [ $FLAGS_USED == false ] && [ -n $1 ]; then
+if [ "$FLAGS_USED" == false ] && [ -n "$1" ]; then
     DATA_FOLDER_PATH="$1"
 fi
 
@@ -258,7 +258,7 @@ print_section_header "TEEHR EVALUATION SETUP"
 echo -e "${INFO_MARK} ${BWhite}TEEHR will evaluate model outputs against observations${Color_Off}"
 echo -e "  ${ARROW} Learn more: ${UBlue}https://rtiinternational.github.io/ngiab-teehr/${Color_Off}\n"
 
-if [ $DO_STARTUP_PROMPT == true ]; then
+if [ "$DO_STARTUP_PROMPT" == true ]; then
     echo -e "${ARROW} ${BWhite}Would you like to run a TEEHR evaluation on your model outputs?${Color_Off}"
     read -erp "  Run evaluation? [Y/n]: " run_teehr_choice
 else

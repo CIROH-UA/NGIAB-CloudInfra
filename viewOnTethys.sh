@@ -670,7 +670,7 @@ pause_script_execution() {
 
 
 print_usage() {
-    echo -e "${BYellow}Usage: ${BCyan}runTeehr.sh [arg ...]${Color_Off}"
+    echo -e "${BYellow}Usage: ${BCyan}viewOnTethys.sh [arg ...]${Color_Off}"
     echo -e "${BYellow}Options:${Color_Off}"
     echo -e "${BCyan}  -d [path]:${Color_Off} Designates the provided path as the data directory to import into the visualizer."
     echo -e "${BCyan}  -h:${Color_Off} Displays usage information, then exits."
@@ -698,14 +698,14 @@ while getopts 'd:hinrt:' flag; do
     FLAGS_USED=true
 done
 
-if [ -n "$DATA_FOLDER_PATH" ] && [ $IMPORT_GAGE == "no" ]; then
-    echo -e "${CROSS_MARK} ${BRed}ERROR: Flags -g and -l are incompatible.${Color_Off}"
+if [ -n "$DATA_FOLDER_PATH" ] && [ "$IMPORT_GAGE" == "no" ]; then
+    echo -e "${CROSS_MARK} ${BRed}ERROR: Flags -d and -n are incompatible.${Color_Off}"
     print_usage
     exit 1
 fi
 
 # Backwards compatibility: If no flags provided, first argument should be used as data path
-if [ $FLAGS_USED == false ] && [ -n $1 ]; then
+if [ "$FLAGS_USED" == false ] && [ -n "$1" ]; then
     DATA_FOLDER_PATH="$1"
 fi
 
