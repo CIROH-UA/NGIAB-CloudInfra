@@ -85,15 +85,6 @@ ADD https://api.github.com/repos/${NGEN_REPO}/git/refs/heads/${NGEN_BRANCH} /tmp
 RUN git clone --single-branch --branch $NGEN_BRANCH https://github.com/$NGEN_REPO.git && \
     cd ngen && \
     git submodule update --init --recursive --depth 1
-# dHBV2.0 needs to store its versioning info
-RUN cd ngen && \
-    git submodule update --init --remote extern/dhbv2/dhbv2 && \
-    git -C extern/dhbv2/dhbv2 tag >> ./extern/dhbv2/dhbv2/src/dhbv2/_version.py
-#    COMMIT_FULL=$(git submodule status extern/dhbv2/dhbv2) && \
-#    IFS=' ' read -ra COMMIT_ARR <<< "$COMMIT_FULL" && \
-#    COMMIT="${COMMIT_ARR[2]:1}" && \
-#    COMMIT="${COMMIT%?}" && \
-#    echo "$COMMIT_FULL" >> ./extern/dhbv2/dhbv2/src/dhbv2/_version.py
 
 
 
@@ -216,7 +207,7 @@ ENV PATH="/bin/git:${PATH}"
 # (Pretend version needs to be set to appease setuptools_scm)
 COPY --from=ngen_clone /ngen/ngen/extern/dhbv2/dhbv2 /ngen/ngen/extern/dhbv2/
 ENV SETUPTOOLS_SCM_DEBUG=1
-RUN export SETUPTOOLS_SCM_PRETEND_VERSION=$(cat /ngen/ngen/extern/dhbv2/src/dhbv2/_version.py) && \
+RUN export SETUPTOOLS_SCM_PRETEND_VERSION=$(git -C extern/dhbv2/dhbv2 tag) && \
     uv pip install --no-cache-dir /ngen/ngen/extern/dhbv2/ --extra-index-url https://download.pytorch.org/whl/cpu
 
 ## add some metadata to the image
