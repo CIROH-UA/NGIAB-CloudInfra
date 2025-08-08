@@ -188,6 +188,8 @@ jobs:
    runs-on: ubuntu-latest
    if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA') || 
        (startsWith(github.ref, 'refs/heads/main') && github.event_name != 'pull_request')
+   env:
+      AWS_REGION: us-east-1
    steps:
     - name: Install dependencies
       run: npm install @aws-sdk/client-lambda
@@ -211,7 +213,7 @@ jobs:
         AWS_REGION: ${{ env.AWS_REGION }}
     - name: stop x86 runner
       run: |
-       node -e "
+        node -e "
           const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda');
           const client = new LambdaClient({ region: process.env.AWS_REGION });
           const command = new InvokeCommand({ FunctionName: 'StopCirohX86Runner' });
