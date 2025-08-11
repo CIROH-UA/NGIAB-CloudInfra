@@ -64,6 +64,8 @@ Interested in contributing? Please see our [contribution guide](05_CONTRIBUTE.md
 - Matthew Denno, RTI International (mdenno@rti.org)
 - James Halgren, Alabama Water Institute, CIROH (jshalgren@ua.edu)
 
+> This repository was originally forked from [AlabamaWaterInstitute/CloudInfra](https://github.com/AlabamaWaterInstitute/CloudInfra), which has now been  deprecated and archived.
+
 ## Sponsorship
 - NOAA Cooperative Institute for Research to Operations in Hydrology ([CIROH](https://ciroh.org))
 Project: CIROH: Community Water Model Infrastructure, Stewardship, and Integration (PI - Steven Burian)
