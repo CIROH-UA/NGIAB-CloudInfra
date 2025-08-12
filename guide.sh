@@ -68,7 +68,6 @@ DO_STARTUP_PROMPT=true # If false, skips the "Would you like to run a TEEHR eval
 FLAGS_USED=false # Backwards compatibility. If false, uses the first argument as the data directory path.
 CUSTOM_TAG_USED=false # Used to provide direct feedback if a custom tag is used.
 
-
 # Function for animated loading with gradient colors
 show_loading() {
     local message=$1
