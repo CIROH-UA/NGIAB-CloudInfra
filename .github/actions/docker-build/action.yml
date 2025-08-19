@@ -38,7 +38,7 @@ runs:
       with:
         driver: cloud
         endpoint: ${{ inputs.buildcloud-endpoint }}
-        buildkitd-config: |
+        buildkitd-config-inline: |
           [worker.oci]
             max-parallelism = 1
           [worker.containerd]
