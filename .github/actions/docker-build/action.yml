@@ -38,11 +38,6 @@ runs:
       with:
         driver: cloud
         endpoint: ${{ inputs.buildcloud-endpoint }}
-        buildkitd-config-inline: |
-          [worker.oci]
-            max-parallelism = 1
-          [worker.containerd]
-            max-parallelism = 1
 
     - name: Update Dockerfile
       shell: bash
