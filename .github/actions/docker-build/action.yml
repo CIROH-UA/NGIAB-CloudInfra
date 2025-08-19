@@ -36,7 +36,6 @@ runs:
     - name: Set up Docker Buildx with cloud driver
       uses: docker/setup-buildx-action@v3
       with:
-        version: "lab:latest"
         driver: cloud
         endpoint: "ngiab-dev"
 
