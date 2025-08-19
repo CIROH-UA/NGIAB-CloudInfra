@@ -1,0 +1,28 @@
+name: Build Pull Request Test Image
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - docker/**
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Build and Push Docker
+        uses: ./.github/actions/docker-build
+        with:
+          dockerfile-tag: ${{ github.event.pull_request.number }}
+          docker-tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/ciroh-ngen-image-dev:${{ github.event.pull_request.number }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/ngiab-dev:${{ github.event.pull_request.number }}
+          slack-title: Pull request built ${{ github.event.pull_request.title }}
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+          buildcloud-endpoint: ${{ secrets.BUILDCLOUD_ENDPOINT }}
+          slack-webhook-url: ${{ secrets.SLACK_APP_WEBHOOK_URL }}
