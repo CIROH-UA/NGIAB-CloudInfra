@@ -33,11 +33,11 @@ runs:
         username: ${{ inputs.dockerhub-username }}
         password: ${{ inputs.dockerhub-token }}
 
-    - name: Use existing Build Cloud builder
+    - name: Create Build Cloud builder
       shell: bash
       run: |
-        docker buildx use ${{ inputs.buildcloud-endpoint }}
-        docker buildx inspect ${{ inputs.buildcloud-endpoint }}
+        docker buildx create --name ${{ inputs.buildcloud-endpoint }} --driver cloud ${{ inputs.buildcloud-endpoint }} --use
+      
 
     - name: Update Dockerfile
       shell: bash
