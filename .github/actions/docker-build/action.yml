@@ -37,7 +37,12 @@ runs:
       uses: docker/setup-buildx-action@v3
       with:
         driver: cloud
-        endpoint: ${{ inputs.buildcloud-endpoint }}
+        name: benbuild
+        endpoint: endpoint: node-amd64
+        use: true
+    - name: Add ARM64 node manually
+      shell: bash
+      run: docker buildx create --append --name benbuild node-arm64
 
     - name: Update Dockerfile
       shell: bash
