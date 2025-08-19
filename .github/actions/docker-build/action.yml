@@ -33,15 +33,11 @@ runs:
         username: ${{ inputs.dockerhub-username }}
         password: ${{ inputs.dockerhub-token }}
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-      with:
-        name: ${{ inputs.buildcloud-endpoint }}
-        version: "lab:latest"
-        driver: cloud
-        endpoint: ${{ inputs.buildcloud-endpoint }}
-        use: true
-        install: false
+    - name: Use existing Build Cloud builder
+      shell: bash
+      run: |
+        docker buildx use ${{ inputs.buildcloud-endpoint }}
+        docker buildx inspect ${{ inputs.buildcloud-endpoint }}
 
     - name: Update Dockerfile
       shell: bash
