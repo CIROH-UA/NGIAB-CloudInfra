@@ -38,7 +38,7 @@ runs:
       with:
         driver: cloud
         name: benbuild
-        endpoint: endpoint: node-amd64
+        endpoint: node-amd64
         use: true
     - name: Add ARM64 node manually
       shell: bash
