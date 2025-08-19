@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - docker/**
+      - docker/buildtest
 
 jobs:
   build-and-push:
