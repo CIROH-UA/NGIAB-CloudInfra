@@ -33,6 +33,14 @@ runs:
         username: ${{ inputs.dockerhub-username }}
         password: ${{ inputs.dockerhub-token }}
 
+    - name: Debug endpoint value
+      shell: bash
+      run: |
+        echo "Endpoint value: '${{ inputs.buildcloud-endpoint }}'"
+        echo "Endpoint length: ${#ENDPOINT}"
+      env:
+        ENDPOINT: ${{ inputs.buildcloud-endpoint }}
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
       with:
