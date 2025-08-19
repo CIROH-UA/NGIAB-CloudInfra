@@ -38,7 +38,7 @@ runs:
       with:
         version: "lab:latest"
         driver: cloud
-        endpoint: ${{ inputs.buildcloud-endpoint }}
+        endpoint: "ngiab-dev"
 
     - name: Update Dockerfile
       shell: bash
