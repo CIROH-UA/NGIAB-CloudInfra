@@ -50,25 +50,11 @@ jobs:
       # Install Docker first since macOS doesn't have it by default
       - name: Install and Start Docker
         run: |
-          # Install Docker Desktop (includes daemon)
-          brew install --cask docker
+          # Install Colima (lightweight Docker runtime)
+          brew install colima docker
           
-          # Add Docker to PATH (sometimes needed)
-          echo "/Applications/Docker.app/Contents/Resources/bin" >> $GITHUB_PATH
-          
-          # Start Docker Desktop
-          open /Applications/Docker.app
-          
-          # Wait for Docker daemon
-          echo "Waiting for Docker daemon..."
-          for i in {1..60}; do
-            if docker ps >/dev/null 2>&1; then
-              echo "Docker is ready!"
-              break
-            fi
-            echo "Attempt $i/60: Docker not ready yet..."
-            sleep 5
-          done
+          # Start Colima
+          colima start --arch aarch64 --vm-type=vz --vz-rosetta
           
           # Verify Docker is working
           docker --version
