@@ -57,8 +57,8 @@ jobs:
           sudo mkdir -p /tmp/colima
           
           # Try Colima with minimal configuration
-          echo "Starting Colima with minimal VZ configuration..."
-          colima start --vm-type=vz --memory 2 --disk 20 --cpu 2
+          echo "Starting Colima ..."
+          colima start --vm-type=vz --vz-rosetta
           
           # Verify Docker is working
           docker --version
