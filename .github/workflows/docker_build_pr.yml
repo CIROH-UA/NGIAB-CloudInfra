@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - docker/buildtest
+      - docker/**
 
 jobs:
   build-and-push:
@@ -26,3 +26,57 @@ jobs:
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
           buildcloud-endpoint: ${{ secrets.BUILDCLOUD_ENDPOINT }}
           slack-webhook-url: ${{ secrets.SLACK_APP_WEBHOOK_URL }}
+  test-amd64:
+    needs: build-and-push
+    runs-on: ubuntu-latest  # Native AMD64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+        
+      - name: Test AMD64 Docker Image
+        uses: ./.github/actions/docker-test
+        with:
+          image-name: "ngiab-dev"
+          tag-name: ${{ github.event.pull_request.number }}
+          test-data-url-1: "https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-010-lstm/AWI-10154200-lstm.tar.gz"
+          test-data-url-2: "https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-007/AWI_16_2863657_007.tar.gz"
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          current-platform: "linux/amd64"
+
+  test-arm64:
+    needs: build-and-push
+    runs-on: ubuntu-24.04-arm64  # Native ARM64 runner
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+        
+      - name: Test ARM64 Docker Image
+        uses: ./.github/actions/docker-test
+        with:
+          image-name: "ngiab-dev"
+          tag-name: ${{ github.event.pull_request.number }}
+          test-data-url-1: "https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-010-lstm/AWI-10154200-lstm.tar.gz"
+          test-data-url-2: "https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-007/AWI_16_2863657_007.tar.gz"
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          current-platform: "linux/arm64"
+  
+  # Optional: Job to check if both tests passed
+  test-summary:
+    needs: [test-amd64, test-arm64]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Test Results Summary
+        shell: bash
+        run: |
+          echo "AMD64 Test: ${{ needs.test-amd64.result }}"
+          echo "ARM64 Test: ${{ needs.test-arm64.result }}"
+          
+          if [[ "${{ needs.test-amd64.result }}" == "success" && "${{ needs.test-arm64.result }}" == "success" ]]; then
+            echo "✅ All platform tests passed!"
+            echo "PR #${{ github.event.pull_request.number }} ready for review"
+          else
+            echo "❌ Some platform tests failed"
+            echo "PR #${{ github.event.pull_request.number }} needs attention"
+            exit 1
+          fi
