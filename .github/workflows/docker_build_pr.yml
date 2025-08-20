@@ -48,9 +48,25 @@ jobs:
     runs-on: macos-14  # Native ARM64 runner
     steps:
       # Install Docker first since macOS doesn't have it by default
-      - name: Install Docker
+      - name: Install and Start Docker
         run: |
-          brew install docker
+          # Install Docker Desktop (includes daemon)
+          brew install --cask docker
+          
+          # Start Docker Desktop with privileged components
+          sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
+          open -a Docker
+          
+          # Wait for Docker to start
+          echo "Waiting for Docker to start..."
+          while ! docker system info > /dev/null 2>&1; do
+            sleep 5
+          done
+          echo "Docker started successfully"
+          
+          # Verify Docker is working
+          docker --version
+          docker system info
 
       - name: Checkout
         uses: actions/checkout@v4.2.2
