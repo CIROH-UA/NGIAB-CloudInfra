@@ -58,7 +58,7 @@ jobs:
           
           # Try Colima with minimal configuration
           echo "Starting Colima ..."
-          colima start --vm-type=vz --vz-rosetta
+          colima start --cpu 2 --memory 4 --disk 10 --arch x86_64 --runtime docker
           
           # Verify Docker is working
           docker --version
