@@ -52,9 +52,13 @@ jobs:
         run: |
           # Install Colima (lightweight Docker runtime)
           brew install colima docker
+
+          # Create the missing directory that's causing warnings
+          sudo mkdir -p /tmp/colima
           
-          # Start Colima
-          colima start --arch aarch64 --vm-type=vz --vz-rosetta
+          # Try Colima with minimal configuration
+          echo "Starting Colima with minimal VZ configuration..."
+          colima start --vm-type=vz --memory 2 --disk 20 --cpu 2
           
           # Verify Docker is working
           docker --version
