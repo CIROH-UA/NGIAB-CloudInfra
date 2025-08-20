@@ -53,16 +53,22 @@ jobs:
           # Install Docker Desktop (includes daemon)
           brew install --cask docker
           
-          # Start Docker Desktop with privileged components
-          sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
-          open -a Docker
+          # Add Docker to PATH (sometimes needed)
+          echo "/Applications/Docker.app/Contents/Resources/bin" >> $GITHUB_PATH
           
-          # Wait for Docker to start
-          echo "Waiting for Docker to start..."
-          while ! docker system info > /dev/null 2>&1; do
+          # Start Docker Desktop
+          open /Applications/Docker.app
+          
+          # Wait for Docker daemon
+          echo "Waiting for Docker daemon..."
+          for i in {1..60}; do
+            if docker ps >/dev/null 2>&1; then
+              echo "Docker is ready!"
+              break
+            fi
+            echo "Attempt $i/60: Docker not ready yet..."
             sleep 5
           done
-          echo "Docker started successfully"
           
           # Verify Docker is working
           docker --version
