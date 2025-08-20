@@ -74,7 +74,7 @@ runs:
       shell: bash
       run: |
         echo "Verifying container architecture..."
-        docker run --rm awiciroh/${{ inputs.image-name }}:${{ inputs.tag-name }} uname -m
+        docker run --rm --entrypoint="/bin/bash" awiciroh/${{ inputs.image-name }}:${{ inputs.tag-name }} -c "uname -m"
         
     - name: Cleanup test data
       if: always()
