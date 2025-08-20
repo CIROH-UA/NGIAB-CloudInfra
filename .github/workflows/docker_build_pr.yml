@@ -51,10 +51,8 @@ jobs:
       - name: Install and Start Docker
         run: |
           # Install Colima (lightweight Docker runtime)
-          brew install colima docker qemu
-
-          # Create the missing directory that's causing warnings
-          sudo mkdir -p /tmp/colima
+          brew install colima docker qemu lima
+          brew install lima-additional-guestagents
           
           # Try Colima with minimal configuration
           echo "Starting Colima ..."
