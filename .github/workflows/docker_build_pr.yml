@@ -45,8 +45,13 @@ jobs:
 
   test-arm64:
     needs: build-and-push
-    runs-on: ubuntu-24.04-arm64  # Native ARM64 runner
+    runs-on: macos-14  # Native ARM64 runner
     steps:
+      # Install Docker first since macOS doesn't have it by default
+      - name: Install Docker
+        run: |
+          brew install docker
+
       - name: Checkout
         uses: actions/checkout@v4.2.2
         
