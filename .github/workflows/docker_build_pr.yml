@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - docker/**
+env:
+  AWS_REGION: us-east-1
 
 jobs:
   build-and-push:
@@ -26,6 +28,49 @@ jobs:
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
           buildcloud-endpoint: ${{ secrets.BUILDCLOUD_ENDPOINT }}
           slack-webhook-url: ${{ secrets.SLACK_APP_WEBHOOK_URL }}
+  start-arm64-runner:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: npm install @aws-sdk/client-lambda
+     
+      - name: Start ARM64 Runner via Lambda
+        run: |
+          node -e "
+              const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda');
+              const client = new LambdaClient({ region: process.env.AWS_REGION });
+              const command = new InvokeCommand({ FunctionName: 'StartCirohRunner' });
+              client.send(command).then(res => {
+                console.log('Lambda invoked. StatusCode:', res.StatusCode);
+              }).catch(err => {
+                console.error('Error invoking Lambda:', err);
+                process.exit(1);
+              });
+          "
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+        if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA') || 
+            (startsWith(github.ref, 'refs/heads/main') && github.event_name != 'pull_request')
+      - name: Wait for runner to register
+        run: |
+          echo "Waiting for ARM64 runner to come online..."
+          for i in {1..30}; do
+            online=$(gh api repos/${{ github.repository }}/actions/runners \
+              --jq '.runners[] | select(.labels[]?.name=="ARM64") | select(.status=="online") | .id')
+            if [ -n "$online" ]; then
+              echo "ARM64 runner is online: $online"
+              exit 0
+            fi
+            echo "Runner not ready yet, sleeping 20s..."
+            sleep 20
+          done
+          echo "ARM64 runner did not come online in time"
+          exit 1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
   test-amd64:
     needs: build-and-push
     runs-on: ubuntu-latest  # Native AMD64
@@ -44,24 +89,9 @@ jobs:
           current-platform: "linux/amd64"
 
   test-arm64:
-    needs: build-and-push
-    runs-on: macos-14  # Native ARM64 runner
+    needs: [build-and-push, start-arm64-runner]
+    runs-on: [self-hosted, ARM64]
     steps:
-      # Install Docker first since macOS doesn't have it by default
-      - name: Install and Start Docker
-        run: |
-          # Install Colima (lightweight Docker runtime)
-          brew install colima docker qemu lima
-          brew install lima-additional-guestagents
-          
-          # Try Colima with minimal configuration
-          echo "Starting Colima ..."
-          colima start --cpu 2 --memory 4 --disk 10 --arch x86_64 --runtime docker
-          
-          # Verify Docker is working
-          docker --version
-          docker system info
-
       - name: Checkout
         uses: actions/checkout@v4.2.2
         
@@ -74,6 +104,25 @@ jobs:
           test-data-url-2: "https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-007/AWI_16_2863657_007.tar.gz"
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           current-platform: "linux/arm64"
+      
+      - name: Stop ARM64 self-hosted runner
+        if: always()   # make sure shutdown happens even if tests fail
+        run: |
+          node -e "
+            const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda');
+            const client = new LambdaClient({ region: process.env.AWS_REGION });
+            const command = new InvokeCommand({ FunctionName: 'StopCirohRunner' });
+            client.send(command).then(res => {
+              console.log('Lambda invoked. StatusCode:', res.StatusCode);
+            }).catch(err => {
+              console.error('Error invoking Lambda:', err);
+              process.exit(1);
+            });
+          "
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ env.AWS_REGION }}
   
   # Optional: Job to check if both tests passed
   test-summary:
