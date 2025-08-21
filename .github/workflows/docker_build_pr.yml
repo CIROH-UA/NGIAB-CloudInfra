@@ -136,8 +136,18 @@ jobs:
           if [[ "${{ needs.test-amd64.result }}" == "success" && "${{ needs.test-arm64.result }}" == "success" ]]; then
             echo "✅ All platform tests passed!"
             echo "PR #${{ github.event.pull_request.number }} ready for review"
+            echo "JOBSTATUS=success" >> "$GITHUB_ENV"
           else
             echo "❌ Some platform tests failed"
             echo "PR #${{ github.event.pull_request.number }} needs attention"
+            echo "JOBSTATUS=failure" >> "$GITHUB_ENV"
             exit 1
           fi
+      - name: Publish slack message
+        if: always()
+        uses: ./.github/action_templates/slack
+        with:
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          job-status: ${{ env.JOBSTATUS }}
+          pull_request_url: ${{ github.event.pull_request.html_url }}
+          head_commit_url: ${{ github.event.head_commit.url }}
