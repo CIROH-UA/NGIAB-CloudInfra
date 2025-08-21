@@ -1,17 +1,17 @@
 name: Build and push final image
 on:
-  push:
-    branches: [ main ]
-    paths-ignore:
-      - '.github/ISSUE_TEMPLATE/**'
-      - 'README.md'
-      - 'docs/**'
-  pull_request:
-    branches: [ main ]
-    paths-ignore:
-      - '.github/ISSUE_TEMPLATE/**'
-      - 'README.md'
-      - 'docs/**'
+  #push:
+  #  branches: [ main ]
+  #  paths-ignore:
+  #    - '.github/ISSUE_TEMPLATE/**'
+  #    - 'README.md'
+  #    - 'docs/**'
+  #pull_request:
+  #  branches: [ main ]
+  #  paths-ignore:
+  #    - '.github/ISSUE_TEMPLATE/**'
+  #    - 'README.md'
+  #    - 'docs/**'
   workflow_dispatch:
 
 jobs:
