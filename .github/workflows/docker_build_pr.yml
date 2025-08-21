@@ -79,6 +79,11 @@ jobs:
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           current-platform: "linux/amd64"
 
+  test-arm64-dummy:
+    runs-on: ARM64
+    steps:
+      - run: echo "Runner is working"
+      
   test-arm64:
     needs: [build-and-push, start-arm64-runner]
     runs-on: [self-hosted, ARM64]
