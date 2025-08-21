@@ -143,6 +143,8 @@ jobs:
             echo "JOBSTATUS=failure" >> "$GITHUB_ENV"
             exit 1
           fi
+      - name: checkout
+        uses: actions/checkout@v2
       - name: Publish slack message
         if: always()
         uses: ./.github/action_templates/slack
