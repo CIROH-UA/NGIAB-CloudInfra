@@ -57,13 +57,10 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
         if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA') || 
             (startsWith(github.ref, 'refs/heads/main') && github.event_name != 'pull_request')
-      - name: Wait for runner to register
+      - name: wait runner up
+        shell: bash
         run: |
-          curl -s -H "Authorization: token $GH_TOKEN" \
-            https://api.github.com/repos/${{ github.repository }}/actions/runners \
-            | jq '.runners[] | select(.status=="online")'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          sleep 60
   
   test-amd64:
     needs: build-and-push
