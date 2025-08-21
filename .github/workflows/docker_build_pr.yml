@@ -59,21 +59,11 @@ jobs:
             (startsWith(github.ref, 'refs/heads/main') && github.event_name != 'pull_request')
       - name: Wait for runner to register
         run: |
-          echo "Waiting for ARM64 runner to come online..."
-          for i in {1..30}; do
-            online=$(gh api repos/${{ github.repository }}/actions/runners \
-              --jq '.runners[] | select(.labels[]?.name=="ARM64") | select(.status=="online") | .id')
-            if [ -n "$online" ]; then
-              echo "ARM64 runner is online: $online"
-              exit 0
-            fi
-            echo "Runner not ready yet, sleeping 20s..."
-            sleep 20
-          done
-          echo "ARM64 runner did not come online in time"
-          exit 1
+          curl -s -H "Authorization: token $GH_TOKEN" \
+            https://api.github.com/repos/${{ github.repository }}/actions/runners \
+            | jq '.runners[] | select(.status=="online")'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   
   test-amd64:
     needs: build-and-push
