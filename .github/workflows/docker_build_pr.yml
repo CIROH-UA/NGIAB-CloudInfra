@@ -96,8 +96,14 @@ jobs:
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           current-platform: "linux/arm64"
       
-      - name: Stop ARM64 self-hosted runner
-        if: always()   # make sure shutdown happens even if tests fail
+  stop-arm64-runner:
+    needs: test-arm64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: npm install @aws-sdk/client-lambda
+  
+      - name: Stop ARM64 Runner via Lambda
         run: |
           node -e "
             const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda');
@@ -114,7 +120,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ env.AWS_REGION }}
-  
+    
   # Optional: Job to check if both tests passed
   test-summary:
     needs: [test-amd64, test-arm64]
