@@ -60,7 +60,7 @@ jobs:
       - name: wait runner up
         shell: bash
         run: |
-          sleep 60
+          sleep 120
   
   test-amd64:
     needs: build-and-push
@@ -78,11 +78,6 @@ jobs:
           test-data-url-2: "https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-007/AWI_16_2863657_007.tar.gz"
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           current-platform: "linux/amd64"
-
-  test-arm64-dummy:
-    runs-on: ARM64
-    steps:
-      - run: echo "Runner is working"
       
   test-arm64:
     needs: [build-and-push, start-arm64-runner]
