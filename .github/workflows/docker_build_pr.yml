@@ -9,6 +9,10 @@ on:
 env:
   AWS_REGION: us-east-1
 
+permissions:
+  contents: read
+  actions: write
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
