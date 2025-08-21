@@ -81,7 +81,7 @@ jobs:
       
   test-arm64:
     needs: [build-and-push, start-arm64-runner]
-    runs-on: [self-hosted, ARM64]
+    runs-on: ARM64
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
