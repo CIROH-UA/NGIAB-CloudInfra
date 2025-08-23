@@ -1,6 +1,10 @@
 name: Build Pull Request Test Image
 
 on:
+  push:
+    branches: [ main ]
+    paths:
+      - docker/**
   pull_request:
     branches:
       - main
@@ -25,8 +29,9 @@ jobs:
         with:
           dockerfile-tag: ${{ github.event.pull_request.number }}
           docker-tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/ciroh-ngen-image-dev:${{ github.event.pull_request.number }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/ngiab-dev:${{ github.event.pull_request.number }}
+            ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('{0}/ciroh-ngen-image:latest', secrets.DOCKERHUB_USERNAME) || '' }}
+            ${{ github.event_name == 'pull_request' && format('{0}/ciroh-ngen-image-dev:{1}', secrets.DOCKERHUB_USERNAME, github.event.pull_request.number) || '' }}
+            ${{ github.event_name == 'pull_request' && format('{0}/ngiab-dev:{1}', secrets.DOCKERHUB_USERNAME, github.event.pull_request.number) || '' }}
           slack-title: Pull request built ${{ github.event.pull_request.title }}
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
