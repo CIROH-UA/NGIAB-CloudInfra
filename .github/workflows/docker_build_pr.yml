@@ -32,11 +32,9 @@ jobs:
             ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('{0}/ciroh-ngen-image:latest', secrets.DOCKERHUB_USERNAME) || '' }}
             ${{ github.event_name == 'pull_request' && format('{0}/ciroh-ngen-image-dev:{1}', secrets.DOCKERHUB_USERNAME, github.event.pull_request.number) || '' }}
             ${{ github.event_name == 'pull_request' && format('{0}/ngiab-dev:{1}', secrets.DOCKERHUB_USERNAME, github.event.pull_request.number) || '' }}
-          slack-title: Pull request built ${{ github.event.pull_request.title }}
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
           buildcloud-endpoint: ${{ secrets.BUILDCLOUD_ENDPOINT }}
-          slack-webhook-url: ${{ secrets.SLACK_APP_WEBHOOK_URL }}
   start-arm64-runner:
     runs-on: ubuntu-latest
     steps:

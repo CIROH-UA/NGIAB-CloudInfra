@@ -1,5 +1,5 @@
 name: 'Docker Build and Push'
-description: 'Build and push Docker images with Slack notification'
+description: 'Build and push Docker images'
 
 inputs:
   dockerfile-tag:
@@ -7,9 +7,6 @@ inputs:
     required: true
   docker-tags:
     description: 'Newline-separated list of Docker tags'
-    required: true
-  slack-title:
-    description: 'Title for Slack notification'
     required: true
   dockerhub-username:
     description: 'DockerHub username'
@@ -19,9 +16,6 @@ inputs:
     required: true
   buildcloud-endpoint:
     description: 'Buildcloud endpoint'
-    required: true
-  slack-webhook-url:
-    description: 'Slack webhook URL'
     required: true
 
 runs:
@@ -52,13 +46,3 @@ runs:
         platforms: linux/amd64,linux/arm64
         push: true
         tags: ${{ inputs.docker-tags }}
-
-    - name: Slack Notification
-      uses: rtCamp/action-slack-notify@v2
-      env:
-        SLACK_CHANNEL: ngen-github-ci
-        SLACK_COLOR: ${{ job.status }}
-        SLACK_ICON: https://avatars.githubusercontent.com/u/119541160?s=48&v=4
-        SLACK_TITLE: ${{ inputs.slack-title }}
-        SLACK_USERNAME: Github Action Result
-        SLACK_WEBHOOK: ${{ inputs.slack-webhook-url }}
