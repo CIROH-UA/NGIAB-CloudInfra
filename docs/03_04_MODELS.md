@@ -53,7 +53,7 @@ Library file path: `/dmod/shared_libs/libtopmodelbmi.so.1.0.0`
 > *Fork developed by [Jonathan Frame](https://github.com/jmframe)*
 
 LSTM networks are a type of recurrent neural network used in deep learning.
-This LSTM module is specifically tailored for generalize streamflow prediction within CONUS.
+This LSTM module is specifically tailored for generalized streamflow prediction within CONUS.
 
 Python class: `lstm.bmi_LSTM` <!-- TODO: verify -->
 

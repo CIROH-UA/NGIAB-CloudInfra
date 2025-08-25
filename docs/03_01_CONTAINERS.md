@@ -28,6 +28,13 @@ When NGIAB starts up, you will be asked whether you'd like to run in "Serial" or
 
 > The "Run Bash Shell" and "Interactive-Shell" options provide CLI access to the container, allowing its contents to be explored if needed. In practice, this is rarely useful outside of development and debugging.
 
+> **`guide.sh` flags:**  
+> `-d [path]`: Designates the provided path as the data directory to import into the visualizer.  
+> `-h`: Displays usage information, then exits.  
+> `-i [image]`: Specifies which Docker image of NGIAB to run.  
+> `-r`: Retains previous console output when launching the script.  
+> `-t [tag]`: Specifies which Docker image tag of NGIAB to run.  
+
 ### Running the container manually
 For most purposes, the `latest` tag will always be the most appropriate option, offering builds for both AMD64 and ARM64 architectures. However, if you find that Docker is pulling the wrong architecture for your system, then `latest-amd64` and `latest-arm64` are available as aliases.
 
@@ -62,6 +69,14 @@ After `guide.sh` completes an NGIAB run, it will optionally ask to run the TEEHR
 
 Once run, `runTeehr.sh` will prompt for a data path and an image tag. If the script is being run immediately after an NGIAB execution, both the most recent path and recommended tag will most likely be correct. From there, execution will begin automatically.
 
+> **`runTeehr.sh` flags:**  
+> `-d [path]`: Designates the provided path as the data directory to evaluate.  
+> `-h`: Displays usage information, then exits.  
+> `-i [image]`: Specifies which Docker image of the TEEHR container to run.  
+> `-r`: Retains previous console output when launching the script.  
+> `-t [tag]`: Specifies which Docker image tag of the TEEHR container to run.  
+> `-y`: Launches the evaluation workflow immediately, skipping the initial confirmation prompt.  
+
 ### Running the container manually
 The TEEHR integration offers both `latest` and `x86` tags, which support ARM64 and AMD64 systems, respectively. Be sure to choose the appropriate tag for your system's architecture.
 
@@ -93,6 +108,15 @@ Once run, `viewOnTethys.sh` will prompt for a data path and an image tag. If the
 
 For more information on using the visualizer, please see the [ngiab-client](https://github.com/CIROH-UA/ngiab-client) repository.
 <!-- TODO: Update link target once visualizer docs are ready -->
+
+> **`viewOnTethys.sh` flags:**  
+> `-d [path]`: Designates the provided path as the data directory to import into the visualizer.  
+> `-h`: Displays usage information, then exits.  
+> `-i [image]`: Specifies which Docker image of the visualizer to run.  
+> `-n`: Launches the visualizer immediately without importing a data directory.  
+> `-r`: Retains previous console output when launching the script.  
+> `-t [tag]`: Specifies which Docker image tag of the visualizer to run.  
+> `-y`: Immediately requests to import a data directory.  
 
 ### Running the container manually
 Due to the complexity of launching the Data Visualizer, launching it without using a guide script is not currently recommended. If necessary, please reference `viewOnTethys.sh` for more details on this process. 

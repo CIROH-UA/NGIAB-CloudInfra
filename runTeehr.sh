@@ -51,9 +51,15 @@ set -e
 
 # Constants
 CONFIG_FILE="$HOME/.host_data_path.conf"
-DATA_FOLDER_PATH=""
 IMAGE_NAME="awiciroh/ngiab-teehr"
 TEEHR_CONTAINER_PREFIX="teehr-evaluation"
+
+# Parameters
+DATA_FOLDER_PATH="" # Path to the model run being evaluated.
+FORCED_IMAGE_TAG="" # If non-empty, overrides the normal tag selection process.
+DO_STARTUP_PROMPT=true # If false, skips the "Would you like to run a TEEHR evaluation?" prompt.
+CLEAR_CONSOLE=true # If true, clears the console when starting execution.
+FLAGS_USED=false # Backwards compatibility. If false, uses the first argument as the data directory path.
 
 # Function for animated loading with gradient colors
 show_loading() {
@@ -77,17 +83,17 @@ show_loading() {
 print_section_header() {
     local title=$1
     local width=70
-    local padding=$(( (width - ${#title}) / 2 ))
+    local right_padding=$(( (width - ${#title}) / 2 ))
+    local left_padding=$(( (width - ${#title}) % 2 + right_padding ))
     
     # Create a more visually appealing section header with light blue background
     echo -e "\n\033[48;5;117m$(printf "%${width}s" " ")\033[0m"
-    echo -e "\033[48;5;117m$(printf "%${padding}s" " ")${BBlack}${title}$(printf "%${padding}s" " ")\033[0m"
+    echo -e "\033[48;5;117m$(printf "%${left_padding}s" " ")${BBlack}${title}$(printf "%${right_padding}s" " ")\033[0m"
     echo -e "\033[48;5;117m$(printf "%${width}s" " ")\033[0m\n"
 }
 
 # Welcome banner with improved design - fixed formatting
 print_welcome_banner() {
-    clear
     echo -e "\n\n"
     echo -e "\033[38;5;39m  ╔══════════════════════════════════════════════════════════════════════════════════════════╗\033[0m"
     echo -e "\033[38;5;39m  ║                                                                                          ║\033[0m"
@@ -200,52 +206,98 @@ check_and_read_config() {
 }
 
 # Handle path from arguments or config
-check_last_path() {
-    if [[ -z "$1" ]]; then
+handle_data_path() {
+    if [[ -z "$DATA_FOLDER_PATH" ]]; then
         check_and_read_config
     else
-        DATA_FOLDER_PATH="$1"
         check_if_data_folder_exists
     fi
 }
 
-# Main script execution
-print_welcome_banner
 
-# Check if data path is provided as argument
-check_last_path "$1"
+print_usage() {
+    echo -e "${BYellow}Usage: ${BCyan}runTeehr.sh [arg ...]${Color_Off}"
+    echo -e "${BYellow}Options:${Color_Off}"
+    echo -e "${BCyan}  -d [path]:${Color_Off} Designates the provided path as the data directory to evaluate."
+    echo -e "${BCyan}  -h:${Color_Off} Displays usage information, then exits."
+    echo -e "${BCyan}  -i [image]:${Color_Off} Specifies which Docker image of the TEEHR container to run."
+    echo -e "${BCyan}  -r:${Color_Off} Retains previous console output when launching the script."
+    echo -e "${BCyan}  -t [tag]:${Color_Off} Specifies which Docker image tag of the TEEHR container to run."
+    echo -e "${BCyan}  -y:${Color_Off} Launches the evaluation workflow immediately, skipping the initial confirmation prompt."
+}
+
+
+# Pre-script execution
+while getopts 'd:hrt:y' flag; do
+    case "${flag}" in
+        d) DATA_FOLDER_PATH="${OPTARG}" ;;
+        h) print_usage
+           exit 1 ;;
+        r) CLEAR_CONSOLE=false ;;
+        i) IMAGE_NAME="${OPTARG}" ;;
+        t) FORCED_IMAGE_TAG="${OPTARG}" ;;
+        y) DO_STARTUP_PROMPT=false ;;
+        *) echo -e "${CROSS_MARK} ${BRed}ERROR: Unrecognized flag.${Color_Off}"
+           print_usage
+           exit 1 ;;
+    esac
+    FLAGS_USED=true
+done
+
+# Backwards compatibility: If no flags provided, first argument should be used as data path
+if [ "$FLAGS_USED" == false ] && [ -n "$1" ]; then
+    DATA_FOLDER_PATH="$1"
+fi
+
+
+# Main script execution
+
+$CLEAR_CONSOLE && clear
+print_welcome_banner
 
 print_section_header "TEEHR EVALUATION SETUP"
 
 echo -e "${INFO_MARK} ${BWhite}TEEHR will evaluate model outputs against observations${Color_Off}"
 echo -e "  ${ARROW} Learn more: ${UBlue}https://rtiinternational.github.io/ngiab-teehr/${Color_Off}\n"
 
-echo -e "${ARROW} ${BWhite}Would you like to run a TEEHR evaluation on your model outputs?${Color_Off}"
-read -erp "  Run evaluation? [Y/n]: " run_teehr_choice
+if [ "$DO_STARTUP_PROMPT" == true ]; then
+    echo -e "${ARROW} ${BWhite}Would you like to run a TEEHR evaluation on your model outputs?${Color_Off}"
+    read -erp "  Run evaluation? [Y/n]: " run_teehr_choice
+else
+    run_teehr_choice="y"
+fi
 
 # Default to 'y' if input is empty
 if [[ -z "$run_teehr_choice" ]]; then
     run_teehr_choice="y"
 fi
 
+# Check data directory validity as appropriate
+handle_data_path
+
 # Execute the TEEHR evaluation if requested
 if [[ "$run_teehr_choice" =~ ^[Yy] ]]; then
+
+    if [[ -z "$FORCED_IMAGE_TAG" ]]; then
     # Detect platform architecture for default tag
-    if uname -a | grep -q 'arm64\|aarch64'; then
-        default_tag="latest" # ARM64 architecture
+        if uname -a | grep -q 'arm64\|aarch64'; then
+            default_tag="latest" # ARM64 architecture
+        else
+            default_tag="x86"    # x86 architecture
+        fi
+        
+        echo -e "\n${ARROW} ${BWhite}System architecture detected: ${BCyan}$(uname -m)${Color_Off}"
+        echo -e "  ${INFO_MARK} Recommended image tag: ${BCyan}$default_tag${Color_Off}"
+        read -erp "$(echo -ne "  ${ARROW} Specify TEEHR image tag [default: $default_tag]: ")" teehr_image_tag
+
+        if [[ -z "$teehr_image_tag" ]]; then
+            teehr_image_tag="$default_tag"
+            echo -e "  ${CHECK_MARK} ${BGreen}Using default tag: $default_tag${Color_Off}"
+        else
+            echo -e "  ${CHECK_MARK} ${BGreen}Using specified tag: $teehr_image_tag${Color_Off}"
+        fi
     else
-        default_tag="x86"    # x86 architecture
-    fi
-    
-    echo -e "\n${ARROW} ${BWhite}System architecture detected: ${BCyan}$(uname -m)${Color_Off}"
-    echo -e "  ${INFO_MARK} Recommended image tag: ${BCyan}$default_tag${Color_Off}"
-    echo -ne "  ${ARROW} Specify TEEHR image tag [default: $default_tag]: "
-    read -e teehr_image_tag
-    
-    if [[ -z "$teehr_image_tag" ]]; then
-        teehr_image_tag="$default_tag"
-        echo -e "  ${CHECK_MARK} ${BGreen}Using default tag: $default_tag${Color_Off}"
-    else
+        teehr_image_tag="$FORCED_IMAGE_TAG"
         echo -e "  ${CHECK_MARK} ${BGreen}Using specified tag: $teehr_image_tag${Color_Off}"
     fi
 
@@ -306,7 +358,7 @@ if [[ "$run_teehr_choice" =~ ^[Yy] ]]; then
     echo -e "\n${INFO_MARK} You can visualize these results using the Tethys platform"
     echo -e "  ${ARROW} Run ${UBlue}./viewOnTethys.sh $DATA_FOLDER_PATH${Color_Off} to start visualization"
 else
-    echo -e "\n${INFO_MARK} ${BCyan}Skipping TEEHR evaluation.${Color_Off}"
+    echo -e "\n${INFO_MARK} ${BCyan}Cancelling TEEHR evaluation.${Color_Off}"
 fi
 
 echo -e "\n${BG_Blue}${BWhite} Thank you for using NGIAB! ${Color_Off}"

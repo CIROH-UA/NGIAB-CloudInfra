@@ -54,11 +54,19 @@ TETHYS_SCRIPT="./viewOnTethys.sh"
 TEEHR_SCRIPT="./runTeehr.sh"
 
 # Container and image constants
+NGEN_IMAGE_NAME="awiciroh/ciroh-ngen-image"
+NGEN_IMAGE_TAG="latest"
+# (The rest of these are solely used to manage shutdowns)
 DOCKER_NETWORK="tethys-network"
 TETHYS_CONTAINER_NAME="tethys-ngen-portal"
 TETHYS_IMAGE_NAME="awiciroh/tethys-ngiab"
 TEEHR_IMAGE_NAME="awiciroh/ngiab-teehr"
-NGEN_IMAGE_NAME="awiciroh/ciroh-ngen-image"
+
+# Parameters
+DATA_FOLDER_PATH="" # Path to the model run being evaluated.
+DO_STARTUP_PROMPT=true # If false, skips the "Would you like to run a TEEHR evaluation?" prompt.
+FLAGS_USED=false # Backwards compatibility. If false, uses the first argument as the data directory path.
+CUSTOM_TAG_USED=false # Used to provide direct feedback if a custom tag is used.
 
 # Function for animated loading with gradient colors
 show_loading() {
@@ -82,17 +90,17 @@ show_loading() {
 print_section_header() {
     local title=$1
     local width=70
-    local padding=$(( (width - ${#title}) / 2 ))
+    local right_padding=$(( (width - ${#title}) / 2 ))
+    local left_padding=$(( (width - ${#title}) % 2 + right_padding ))
     
     # Create a more visually appealing section header with light blue background
     echo -e "\n\033[48;5;117m$(printf "%${width}s" " ")\033[0m"
-    echo -e "\033[48;5;117m$(printf "%${padding}s" " ")${BBlack}${title}$(printf "%${padding}s" " ")\033[0m"
+    echo -e "\033[48;5;117m$(printf "%${left_padding}s" " ")${BBlack}${title}$(printf "%${right_padding}s" " ")\033[0m"
     echo -e "\033[48;5;117m$(printf "%${width}s" " ")\033[0m\n"
 }
 
 # Welcome banner with improved design
 print_welcome_banner() {
-    clear
     echo -e "\n\n"
     echo -e "\033[38;5;39m  ╔══════════════════════════════════════════════════════════════════════════════════════════╗\033[0m"
     echo -e "\033[38;5;39m  ║                                                                                          ║\033[0m"
@@ -158,6 +166,44 @@ handle_sigint() {
 trap handle_sigint SIGINT
 trap clean_up_resources EXIT
 
+
+print_usage() {
+    echo -e "${BYellow}Usage: ${BCyan}guide.sh [arg ...]${Color_Off}"
+    echo -e "${BYellow}Options:${Color_Off}"
+    echo -e "${BCyan}  -d [path]:${Color_Off} Designates the provided path as the data directory to import into the visualizer."
+    echo -e "${BCyan}  -h:${Color_Off} Displays usage information, then exits."
+    echo -e "${BCyan}  -i [image]:${Color_Off} Specifies which Docker image of NGIAB to run."
+    echo -e "${BCyan}  -r:${Color_Off} Retains previous console output when launching the script."
+    echo -e "${BCyan}  -t [tag]:${Color_Off} Specifies which Docker image tag of NGIAB to run."
+}
+
+
+# Pre-script execution
+while getopts 'd:hi:rt:' flag; do
+    case "${flag}" in
+        d) HOST_DATA_PATH="${OPTARG}" ;;
+        h) print_usage
+           exit 1 ;;
+        i) NGEN_IMAGE_NAME="${OPTARG}" ;;
+        r) CLEAR_CONSOLE=false ;;
+        t) NGEN_IMAGE_TAG="${OPTARG}"
+           CUSTOM_TAG_USED=true ;;
+        *) echo -e "${CROSS_MARK} ${BRed}ERROR: Unrecognized flag.${Color_Off}"
+           print_usage
+           exit 1 ;;
+    esac
+    FLAGS_USED=true
+done
+
+# For consistency with other scripts: if no flags provided, first argument should be used as data path
+if [ "$FLAGS_USED" == false ] && [ -n "$1" ]; then
+    DATA_FOLDER_PATH="$1"
+fi
+
+
+## Main execution
+
+$CLEAR_CONSOLE && clear
 print_welcome_banner
 
 # Input data section with improved descriptions
@@ -171,25 +217,28 @@ echo -e "          \033[38;5;117m└─ Model parameters, simulation period, and
 echo -e "\n  ${ARROW} \033[38;5;205moutputs/\033[0m - Target directory for simulation results"
 echo -e "          \033[38;5;117m└─ Flow estimates, water levels, and diagnostic information\033[0m"
 
-echo -e "\n${INFO_MARK} ${BWhite}Please specify a directory containing these components below.${Color_Off}\n"
+# If no path provided as an argument...
+if [ -z "$HOST_DATA_PATH" ]; then
+    echo -e "\n${INFO_MARK} ${BWhite}Please specify a directory containing these components below.${Color_Off}\n"
 
-# Path selection with improved user experience and fixed formatting
-if [ -f "$CONFIG_FILE" ]; then
-    LAST_PATH=$(cat "$CONFIG_FILE")
-    echo -e "${INFO_MARK} Last used data directory: ${BBlue}$LAST_PATH${Color_Off}"
-    echo -ne "  ${ARROW} Use the same path? [Y/n]: "
-    read -e use_last_path
-    if [[ "$use_last_path" != [Nn]* ]]; then
-        HOST_DATA_PATH=$LAST_PATH
-        echo -e "  ${CHECK_MARK} Using previously configured path"
+    # Path selection with improved user experience and fixed formatting
+    if [ -f "$CONFIG_FILE" ]; then
+        LAST_PATH=$(cat "$CONFIG_FILE")
+        echo -e "${INFO_MARK} Last used data directory: ${BBlue}$LAST_PATH${Color_Off}"
+        echo -ne "  ${ARROW} Use the same path? [Y/n]: "
+        read -e use_last_path
+        if [[ "$use_last_path" != [Nn]* ]]; then
+            HOST_DATA_PATH=$LAST_PATH
+            echo -e "  ${CHECK_MARK} Using previously configured path"
+        else
+            echo -ne "  ${ARROW} Enter your input data directory path: "
+            read -e HOST_DATA_PATH
+        fi
     else
+        echo -e "${INFO_MARK} ${BYellow}No previous configuration found${Color_Off}"
         echo -ne "  ${ARROW} Enter your input data directory path: "
         read -e HOST_DATA_PATH
     fi
-else
-    echo -e "${INFO_MARK} ${BYellow}No previous configuration found${Color_Off}"
-    echo -ne "  ${ARROW} Enter your input data directory path: "
-    read -e HOST_DATA_PATH
 fi
 
 # Handle paths with special characters properly
@@ -374,10 +423,11 @@ else
     handle_error "Docker not found. This script requires Docker to run the NextGen model."
 fi
 
-IMAGE_NAME=$NGEN_IMAGE_NAME:latest
-
 # Model run options with improved visuals
 print_section_header "MODEL EXECUTION OPTIONS"
+
+IMAGE_NAME="$NGEN_IMAGE_NAME:$NGEN_IMAGE_TAG"
+$CUSTOM_TAG_USED && echo -e "  ${CHECK_MARK} Using specified tag: ${BGreen}$IMAGE_NAME${Color_Off}\n"
 
 echo -e "${ARROW} ${BWhite}Please select an option to proceed:${Color_Off}\n"
 options=("Run NextGen using existing local docker image" "Update to latest docker image and run" "Exit")
@@ -457,8 +507,15 @@ if [ $Final_Outputs_Count -gt 0 ]; then
                 chmod +x "$TEEHR_SCRIPT"
             fi
             
+            # Disable clearing console if needed
+            if [ "$CLEAR_CONSOLE" == true ]; then
+                teehr_call="$TEEHR_SCRIPT -y -d $HOST_DATA_PATH"
+            else
+                teehr_call="$TEEHR_SCRIPT -y -r -d $HOST_DATA_PATH"
+            fi
+
             # Call the runTeehr.sh script with the data path
-            if ! "$TEEHR_SCRIPT" "$HOST_DATA_PATH"; then
+            if ! bash -c "$teehr_call"; then
                 echo -e "\n${WARNING_MARK} ${BRed}Failed to run TEEHR evaluation.${Color_Off}"
                 echo -e "  ${INFO_MARK} Check that the runTeehr.sh script is properly configured."
             fi
@@ -519,9 +576,16 @@ if [ $Final_Outputs_Count -gt 0 ]; then
             if [ ! -x "$TETHYS_SCRIPT" ]; then
                 chmod +x "$TETHYS_SCRIPT"
             fi
-            
+
+            # Disable clearing console if needed
+            if [ "$CLEAR_CONSOLE" == true ]; then
+                tethys_call="$TETHYS_SCRIPT -d $HOST_DATA_PATH"
+            else
+                tethys_call="$TETHYS_SCRIPT -r -d $HOST_DATA_PATH"
+            fi
+
             # Call the viewOnTethys.sh script with the data path
-            if ! "$TETHYS_SCRIPT" "$HOST_DATA_PATH"; then
+            if ! bash -c "$tethys_call"; then
                 echo -e "\n${WARNING_MARK} ${BRed}Failed to launch Tethys visualization.${Color_Off}"
                 echo -e "  ${INFO_MARK} Check that the viewOnTethys.sh script is properly configured."
             fi
@@ -542,7 +606,7 @@ print_section_header "SESSION COMPLETE"
 
 # Create a fancy box for the thank you message
 echo -e "\033[38;5;39m  ┌────────────────────────────────────────────────────────────┐\033[0m"
-echo -e "\033[38;5;39m  │\033[48;5;39m\033[1;37m  Thank you for using NGIAB!                                  \033[0m\033[38;5;39m  │\033[0m"
+echo -e "\033[38;5;39m  │\033[48;5;39m\033[1;37m  Thank you for using NGIAB!                               \033[0m\033[38;5;39m  │\033[0m"
 echo -e "\033[38;5;39m  └────────────────────────────────────────────────────────────┘\033[0m\n"
 
 echo -e "${INFO_MARK} ${BWhite}Your simulation results are available at:${Color_Off}"
