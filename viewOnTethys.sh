@@ -674,23 +674,25 @@ print_usage() {
     echo -e "${BYellow}Options:${Color_Off}"
     echo -e "${BCyan}  -d [path]:${Color_Off} Designates the provided path as the data directory to import into the visualizer."
     echo -e "${BCyan}  -h:${Color_Off} Displays usage information, then exits."
-    echo -e "${BCyan}  -i:${Color_Off} Immediately requests to import a data directory."
+    echo -e "${BCyan}  -i [image]:${Color_Off} Specifies which Docker image of the visualizer to run."
     echo -e "${BCyan}  -n:${Color_Off} Launches the visualizer immediately without importing a data directory."
     echo -e "${BCyan}  -r:${Color_Off} Retains previous console output when launching the script."
     echo -e "${BCyan}  -t [tag]:${Color_Off} Specifies which Docker image tag of the visualizer to run."
+    echo -e "${BCyan}  -y:${Color_Off} Immediately requests to import a data directory."
 }
 
 
 # Pre-script execution
-while getopts 'd:hinrt:' flag; do
+while getopts 'd:hi:nrt:y' flag; do
     case "${flag}" in
-        d) DATA_FOLDER_PATH="${OPTARG}";;
+        d) DATA_FOLDER_PATH="${OPTARG}" ;;
         h) print_usage
            exit 1 ;;
-        i) IMPORT_GAGE="yes" ;;
+        i) TETHYS_REPO="${OPTARG}" ;;
         n) IMPORT_GAGE="no";;
         r) CLEAR_CONSOLE=false ;;
         t) TETHYS_TAG="${OPTARG}" ;;
+        y) IMPORT_GAGE="yes" ;;
         *) echo -e "${CROSS_MARK} ${BRed}ERROR: Unrecognized flag.${Color_Off}"
            print_usage
            exit 1 ;;

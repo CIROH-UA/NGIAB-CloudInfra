@@ -172,17 +172,19 @@ print_usage() {
     echo -e "${BYellow}Options:${Color_Off}"
     echo -e "${BCyan}  -d [path]:${Color_Off} Designates the provided path as the data directory to import into the visualizer."
     echo -e "${BCyan}  -h:${Color_Off} Displays usage information, then exits."
+    echo -e "${BCyan}  -i [image]:${Color_Off} Specifies which Docker image of NGIAB to run."
     echo -e "${BCyan}  -r:${Color_Off} Retains previous console output when launching the script."
     echo -e "${BCyan}  -t [tag]:${Color_Off} Specifies which Docker image tag of NGIAB to run."
 }
 
 
 # Pre-script execution
-while getopts 'd:hrt:' flag; do
+while getopts 'd:hi:rt:' flag; do
     case "${flag}" in
         d) HOST_DATA_PATH="${OPTARG}" ;;
         h) print_usage
            exit 1 ;;
+        i) NGEN_IMAGE_NAME="${OPTARG}" ;;
         r) CLEAR_CONSOLE=false ;;
         t) NGEN_IMAGE_TAG="${OPTARG}"
            CUSTOM_TAG_USED=true ;;
