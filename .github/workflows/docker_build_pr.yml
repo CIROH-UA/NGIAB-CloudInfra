@@ -58,8 +58,6 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ env.AWS_REGION }}
-        if: startsWith(github.event.pull_request.head.repo.full_name, 'CIROH-UA') || 
-            (startsWith(github.ref, 'refs/heads/main') && github.event_name != 'pull_request')
       - name: wait runner up
         shell: bash
         run: |
@@ -147,7 +145,7 @@ jobs:
             exit 1
           fi
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4.2.2
       - name: Publish slack message
         if: always()
         uses: ./.github/action_templates/slack

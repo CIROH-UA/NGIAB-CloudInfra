@@ -21,7 +21,7 @@ runs:
     - name: send slack message
       uses: slackapi/slack-github-action@v2.1.1
       with:
-        webhook: ${{ inputs.slack-webhook-url}}
+        webhook: ${{ inputs.slack-webhook-url }}
         webhook-type: incoming-webhook
         payload: |
           {

@@ -50,7 +50,7 @@ runs:
       shell: bash
       run: |
         echo "Pulling image for ${{ inputs.current-platform }}..."
-        docker pull awiciroh/${{ inputs.image-name }}:${{ inputs.tag-name }}
+        docker pull ${{ inputs.dockerhub-username }}/${{ inputs.image-name }}:${{ inputs.tag-name }}
         
     - name: Run Docker container test 1
       shell: bash
@@ -58,7 +58,7 @@ runs:
         echo "Running test 1 (AWI-10154200-lstm) on ${{ inputs.current-platform }}..."
         docker run --rm \
           -v "$(pwd)/AWI-10154200-lstm:/ngen/ngen/data" \
-          awiciroh/${{ inputs.image-name }}:${{ inputs.tag-name }} \
+          ${{ inputs.dockerhub-username }}/${{ inputs.image-name }}:${{ inputs.tag-name }} \
           /ngen/ngen/data auto
           
     - name: Run Docker container test 2
@@ -67,14 +67,14 @@ runs:
         echo "Running test 2 (AWI_16_2863657_007) on ${{ inputs.current-platform }}..."
         docker run --rm \
           -v "$(pwd)/AWI_16_2863657_007:/ngen/ngen/data" \
-          awiciroh/${{ inputs.image-name }}:${{ inputs.tag-name }} \
+          ${{ inputs.dockerhub-username }}/${{ inputs.image-name }}:${{ inputs.tag-name }} \
           /ngen/ngen/data auto
           
     - name: Verify platform architecture
       shell: bash
       run: |
         echo "Verifying container architecture..."
-        docker run --rm --entrypoint="/bin/bash" awiciroh/${{ inputs.image-name }}:${{ inputs.tag-name }} -c "uname -m"
+        docker run --rm --entrypoint="/bin/bash" ${{ inputs.dockerhub-username }}/${{ inputs.image-name }}:${{ inputs.tag-name }} -c "uname -m"
         
     - name: Cleanup test data
       if: always()
