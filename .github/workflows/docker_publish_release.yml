@@ -20,8 +20,14 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/ciroh-ngen-image:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/ngiab:${{ github.event.release.tag_name }}
             ${{ secrets.DOCKERHUB_USERNAME }}/ngiab:latest
-          slack-title: Build and Release
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
           buildcloud-endpoint: ${{ secrets.BUILDCLOUD_ENDPOINT }}
-          slack-webhook-url: ${{ secrets.SLACK_APP_WEBHOOK_URL }}
+      - name: Publish slack message
+        if: always()
+        uses: ./.github/action_templates/slack
+        with:
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          job-status: "success"
+          pull_request_url: ${{ github.event.pull_request.html_url }}
+          head_commit_url: ${{ github.event.head_commit.url }}
