@@ -1,0 +1,85 @@
+name: 'Multi-Platform Docker Test'
+description: 'Download test data and run Docker image on multiple platforms using native runners'
+inputs:
+  image-name:
+    description: 'Docker image name'
+    required: true
+  tag-name:
+    description: 'Docker image tag'
+    required: true
+  test-data-url-1:
+    description: 'URL to download first test data (AWI-10154200-lstm)'
+    required: true
+    default: 'https://example.com/AWI-10154200-lstm.tar.gz'
+  test-data-url-2:
+    description: 'URL to download second test data (AWI_16_2863657_007)'
+    required: true
+    default: 'https://example.com/AWI_16_2863657_007.tar.gz'
+  dockerhub-username:
+    description: 'DockerHub username for image pulling'
+    required: true
+  current-platform:
+    description: 'Current platform (linux/amd64 or linux/arm64)'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Download test data 1
+      shell: bash
+      run: |
+        echo "Downloading first test data for ${{ inputs.current-platform }}..."
+        wget -O AWI-10154200-lstm.tar.gz "${{ inputs.test-data-url-1 }}"
+        
+    - name: Download test data 2
+      shell: bash
+      run: |
+        echo "Downloading second test data for ${{ inputs.current-platform }}..."
+        wget -O AWI_16_2863657_007.tar.gz "${{ inputs.test-data-url-2 }}"
+        
+    - name: Extract test data
+      shell: bash
+      run: |
+        echo "Extracting test data..."
+        tar -xf AWI-10154200-lstm.tar.gz
+        tar -xf AWI_16_2863657_007.tar.gz
+        ls -la AWI-10154200-lstm/
+        ls -la AWI_16_2863657_007/
+        
+    - name: Pull Docker image for current platform
+      shell: bash
+      run: |
+        echo "Pulling image for ${{ inputs.current-platform }}..."
+        docker pull ${{ inputs.dockerhub-username }}/${{ inputs.image-name }}:${{ inputs.tag-name }}
+        
+    - name: Run Docker container test 1
+      shell: bash
+      run: |
+        echo "Running test 1 (AWI-10154200-lstm) on ${{ inputs.current-platform }}..."
+        docker run --rm \
+          -v "$(pwd)/AWI-10154200-lstm:/ngen/ngen/data" \
+          ${{ inputs.dockerhub-username }}/${{ inputs.image-name }}:${{ inputs.tag-name }} \
+          /ngen/ngen/data auto
+          
+    - name: Run Docker container test 2
+      shell: bash
+      run: |
+        echo "Running test 2 (AWI_16_2863657_007) on ${{ inputs.current-platform }}..."
+        docker run --rm \
+          -v "$(pwd)/AWI_16_2863657_007:/ngen/ngen/data" \
+          ${{ inputs.dockerhub-username }}/${{ inputs.image-name }}:${{ inputs.tag-name }} \
+          /ngen/ngen/data auto
+          
+    - name: Verify platform architecture
+      shell: bash
+      run: |
+        echo "Verifying container architecture..."
+        docker run --rm --entrypoint="/bin/bash" ${{ inputs.dockerhub-username }}/${{ inputs.image-name }}:${{ inputs.tag-name }} -c "uname -m"
+        
+    - name: Cleanup test data
+      if: always()
+      shell: bash
+      run: |
+        echo "Cleaning up test data..."
+        rm -rf AWI-10154200-lstm*
+        rm -rf AWI_16_2863657_007*

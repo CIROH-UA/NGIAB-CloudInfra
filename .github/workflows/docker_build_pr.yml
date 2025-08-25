@@ -1,0 +1,156 @@
+name: Build Pull Request Test Image
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - docker/**
+  pull_request:
+    branches:
+      - main
+    paths:
+      - docker/**
+env:
+  AWS_REGION: us-east-1
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Build and Push Docker
+        uses: ./.github/actions/docker-build
+        with:
+          dockerfile-tag: ${{ github.event.pull_request.number }}
+          docker-tags: |
+            ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('{0}/ciroh-ngen-image:latest', secrets.DOCKERHUB_USERNAME) || '' }}
+            ${{ github.event_name == 'pull_request' && format('{0}/ciroh-ngen-image-dev:{1}', secrets.DOCKERHUB_USERNAME, github.event.pull_request.number) || '' }}
+            ${{ github.event_name == 'pull_request' && format('{0}/ngiab-dev:{1}', secrets.DOCKERHUB_USERNAME, github.event.pull_request.number) || '' }}
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+          buildcloud-endpoint: ${{ secrets.BUILDCLOUD_ENDPOINT }}
+  start-arm64-runner:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: npm install @aws-sdk/client-lambda
+     
+      - name: Start ARM64 Runner via Lambda
+        run: |
+          node -e "
+              const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda');
+              const client = new LambdaClient({ region: process.env.AWS_REGION });
+              const command = new InvokeCommand({ FunctionName: 'StartCirohRunner' });
+              client.send(command).then(res => {
+                console.log('Lambda invoked. StatusCode:', res.StatusCode);
+              }).catch(err => {
+                console.error('Error invoking Lambda:', err);
+                process.exit(1);
+              });
+          "
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+      - name: wait runner up
+        shell: bash
+        run: |
+          sleep 120
+  
+  test-amd64:
+    needs: build-and-push
+    runs-on: ubuntu-latest  # Native AMD64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+        
+      - name: Test AMD64 Docker Image
+        uses: ./.github/actions/docker-test
+        with:
+          image-name: "ngiab-dev"
+          tag-name: ${{ github.event.pull_request.number }}
+          test-data-url-1: "https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-010-lstm/AWI-10154200-lstm.tar.gz"
+          test-data-url-2: "https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-007/AWI_16_2863657_007.tar.gz"
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          current-platform: "linux/amd64"
+      
+  test-arm64:
+    needs: [build-and-push, start-arm64-runner]
+    runs-on: [self-hosted, ARM64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+        
+      - name: Test ARM64 Docker Image
+        uses: ./.github/actions/docker-test
+        with:
+          image-name: "ngiab-dev"
+          tag-name: ${{ github.event.pull_request.number }}
+          test-data-url-1: "https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-010-lstm/AWI-10154200-lstm.tar.gz"
+          test-data-url-2: "https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-007/AWI_16_2863657_007.tar.gz"
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          current-platform: "linux/arm64"
+      
+  stop-arm64-runner:
+    needs: test-arm64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: npm install @aws-sdk/client-lambda
+  
+      - name: Stop ARM64 Runner via Lambda
+        run: |
+          node -e "
+            const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda');
+            const client = new LambdaClient({ region: process.env.AWS_REGION });
+            const command = new InvokeCommand({ FunctionName: 'StopCirohRunner' });
+            client.send(command).then(res => {
+              console.log('Lambda invoked. StatusCode:', res.StatusCode);
+            }).catch(err => {
+              console.error('Error invoking Lambda:', err);
+              process.exit(1);
+            });
+          "
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+    
+  # Optional: Job to check if both tests passed
+  test-summary:
+    needs: [test-amd64, test-arm64]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Test Results Summary
+        shell: bash
+        run: |
+          echo "AMD64 Test: ${{ needs.test-amd64.result }}"
+          echo "ARM64 Test: ${{ needs.test-arm64.result }}"
+          
+          if [[ "${{ needs.test-amd64.result }}" == "success" && "${{ needs.test-arm64.result }}" == "success" ]]; then
+            echo "✅ All platform tests passed!"
+            echo "PR #${{ github.event.pull_request.number }} ready for review"
+            echo "JOBSTATUS=success" >> "$GITHUB_ENV"
+          else
+            echo "❌ Some platform tests failed"
+            echo "PR #${{ github.event.pull_request.number }} needs attention"
+            echo "JOBSTATUS=failure" >> "$GITHUB_ENV"
+            exit 1
+          fi
+      - name: checkout
+        uses: actions/checkout@v4.2.2
+      - name: Publish slack message
+        if: always()
+        uses: ./.github/action_templates/slack
+        with:
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          job-status: ${{ env.JOBSTATUS }}
+          pull_request_url: ${{ github.event.pull_request.html_url }}
+          head_commit_url: ${{ github.event.head_commit.url }}
