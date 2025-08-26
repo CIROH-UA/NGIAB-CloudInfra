@@ -73,8 +73,8 @@ jobs:
       - name: Test AMD64 Docker Image
         uses: ./.github/actions/docker-test
         with:
-          image-name: "ngiab-dev"
-          tag-name: ${{ github.event.pull_request.number }}
+          image-name: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'ciroh-ngen-image' || 'ngiab-dev' }}
+          tag-name: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'latest' || github.event.pull_request.number }}
           test-data-url-1: "https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-010-lstm/AWI-10154200-lstm.tar.gz"
           test-data-url-2: "https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-007/AWI_16_2863657_007.tar.gz"
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -90,8 +90,8 @@ jobs:
       - name: Test ARM64 Docker Image
         uses: ./.github/actions/docker-test
         with:
-          image-name: "ngiab-dev"
-          tag-name: ${{ github.event.pull_request.number }}
+          image-name: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'ciroh-ngen-image' || 'ngiab-dev' }}
+          tag-name: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'latest' || github.event.pull_request.number }}
           test-data-url-1: "https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-010-lstm/AWI-10154200-lstm.tar.gz"
           test-data-url-2: "https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-007/AWI_16_2863657_007.tar.gz"
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -145,6 +145,7 @@ jobs:
             exit 1
           fi
       - name: checkout
+        if: always()
         uses: actions/checkout@v4.2.2
       - name: Publish slack message
         if: always()
