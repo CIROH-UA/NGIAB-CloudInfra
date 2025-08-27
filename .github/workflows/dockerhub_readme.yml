@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'README.md'
+  workflow_dispatch:
 jobs:
   update-dockerhub-description:
     runs-on: ubuntu-latest
@@ -18,4 +19,4 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: ${{ secrets.DOCKERHUB_USERNAME }}/ciroh-ngen-image
+          repository: awiciroh/ciroh-ngen-image
