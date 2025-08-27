@@ -6,6 +6,9 @@ on:
       - main
     paths:
       - 'README.md'
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 jobs:
   update-dockerhub-description:
