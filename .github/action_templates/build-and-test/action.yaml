@@ -86,9 +86,9 @@ runs:
         rm -rf /home/ubuntu/workspace/AWI_16_2863657_007/*.csv
         rm -rf /home/ubuntu/workspace/AWI_16_2863657_007/*.parquet
         rm -rf /home/ubuntu/workspace/AWI_16_2863657_007/outputs/*/*
-        rm -rf /home/ubuntu/workspace/AWI_16_2863806_008/*.csv
-        rm -rf /home/ubuntu/workspace/AWI_16_2863806_008/*.parquet
-        rm -rf /home/ubuntu/workspace/AWI_16_2863806_008/outputs/*/*
+        rm -rf /home/ubuntu/workspace/AWI-10154200-lstm/*.csv
+        rm -rf /home/ubuntu/workspace/AWI-10154200-lstm/*.parquet
+        rm -rf /home/ubuntu/workspace/AWI-10154200-lstm/outputs/*/*
         docker run --rm -v /home/ubuntu/workspace/AWI_16_2863657_007:/ngen/ngen/data awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}} /ngen/ngen/data auto
-        docker run --rm -v /home/ubuntu/workspace/AWI_16_2863806_008:/ngen/ngen/data awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}} /ngen/ngen/data auto
+        docker run --rm -v /home/ubuntu/workspace/AWI-10154200-lstm:/ngen/ngen/data awiciroh/${{ inputs.image-name}}:${{ env.TAG_NAME}} /ngen/ngen/data auto
       if: inputs.image-name == 'ciroh-ngen-image'

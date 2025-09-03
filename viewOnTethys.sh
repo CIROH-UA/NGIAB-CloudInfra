@@ -54,12 +54,19 @@ CONFIG_FILE="$HOME/.host_data_path.conf"
 DOCKER_NETWORK="tethys-network"
 TETHYS_CONTAINER_NAME="tethys-ngen-portal"
 TETHYS_REPO="awiciroh/tethys-ngiab"
-TETHYS_TAG="latest"
+
 MODELS_RUNS_DIRECTORY="$HOME/ngiab_visualizer"
 DATASTREAM_DIRECTORY="$HOME/.datastream_ngiab"
 VISUALIZER_CONF="$MODELS_RUNS_DIRECTORY/ngiab_visualizer.json"
 TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
 SKIP_DB_SETUP=false
+
+# Parameters
+DATA_FOLDER_PATH="" # If non-empty, gets used as the gage path to import.
+TETHYS_TAG="" # If non-empty, gets used as the image tag.
+IMPORT_GAGE="ask" # "ask"/"yes"/"no"/"done"
+CLEAR_CONSOLE=true # If true, clears the console when starting execution.
+FLAGS_USED=false # Backwards compatibility. If false, uses the first argument as the data directory path.
 
 # Disable error trapping initially so we can catch and report errors
 set +e
@@ -86,23 +93,27 @@ show_loading() {
 print_section_header() {
     local title=$1
     local width=70
-    local padding=$(( (width - ${#title}) / 2 ))
+    local right_padding=$(( (width - ${#title}) / 2 ))
+    local left_padding=$(( (width - ${#title}) % 2 + right_padding ))
     
     # Create a more visually appealing section header with light blue background
     echo -e "\n\033[48;5;117m$(printf "%${width}s" " ")\033[0m"
-    echo -e "\033[48;5;117m$(printf "%${padding}s" " ")${BBlack}${title}$(printf "%${padding}s" " ")\033[0m"
+    echo -e "\033[48;5;117m$(printf "%${left_padding}s" " ")${BBlack}${title}$(printf "%${right_padding}s" " ")\033[0m"
     echo -e "\033[48;5;117m$(printf "%${width}s" " ")\033[0m\n"
 }
 
-# Simple banner without complex formatting
+# Welcome banner with improved design - fixed formatting
 print_welcome_banner() {
-    clear
+    echo -e "\n\n"
+    echo -e "\033[38;5;39m  ╔═══════════════════════════════════════════════════════════════════════════════════╗\033[0m"
+    echo -e "\033[38;5;39m  ║                                                                                   ║\033[0m"
+    echo -e "\033[38;5;39m  ║  \033[1;38;5;231mCIROH: NextGen In A Box (NGIAB) - Tethys\033[38;5;39m                                         ║\033[0m"
+    echo -e "\033[38;5;39m  ║  \033[1;38;5;231mInteractive Model Output Visualization\033[38;5;39m                                           ║\033[0m"
+    echo -e "\033[38;5;39m  ║                                                                                   ║\033[0m"
+    echo -e "\033[38;5;39m  ╚═══════════════════════════════════════════════════════════════════════════════════╝\033[0m"
     echo -e "\n"
-    echo -e "${BBlue}=================================================${Color_Off}"
-    echo -e "${BBlue}|  CIROH: NextGen In A Box (NGIAB) - Tethys     |${Color_Off}"
-    echo -e "${BBlue}|  Interactive Model Output Visualization       |${Color_Off}"
-    echo -e "${BBlue}=================================================${Color_Off}"
-    echo -e "\n${INFO_MARK} ${BWhite}Developed by CIROH${Color_Off}\n"
+    echo -e "  ${INFO_MARK} \033[1;38;5;231mDeveloped by CIROH\033[0m"
+    echo -e "\n"
     sleep 1
 }
 
@@ -222,10 +233,12 @@ create_tethys_docker_network() {
 }
 
 set_tethys_tag() {
-    echo -e "${Color_Off}${BBlue}Specify the Tethys image tag to use: ${Color_Off}"
-    read -erp "$(echo -e "  ${ARROW} Tag (e.g. v0.2.1, default: latest): ")" TETHYS_TAG
     if [[ -z "$TETHYS_TAG" ]]; then
-        TETHYS_TAG="latest"
+        echo -e "${Color_Off}${BBlue}Specify the Tethys image tag to use: ${Color_Off}"
+        read -erp "$(echo -e "  ${ARROW} Tag (e.g. v0.2.1, default: latest): ")" TETHYS_TAG
+        if [[ -z "$TETHYS_TAG" ]]; then
+            TETHYS_TAG="latest"
+        fi
     fi
 }
 
@@ -443,10 +456,7 @@ tear_down() {
     return 0
 }
 
-copy_models_run() {
-    local input_path="$1"
-    local models_dir="$MODELS_RUNS_DIRECTORY"
-
+prompt_fresh_start() {
     # ────────────────────────────────────────────────────────────────────
     # 0. Top-level directory already contains runs?  Ask user what to do.
     # ────────────────────────────────────────────────────────────────────
@@ -466,6 +476,11 @@ copy_models_run() {
             esac
         done
     fi
+}
+
+copy_models_run() {
+    local input_path="$1"
+    local models_dir="$MODELS_RUNS_DIRECTORY"
 
     # ────────────────────────────────────────────────────────────────────
     # 1. Ensure ~/ngiab_visualizer exists & is writable
@@ -482,6 +497,7 @@ copy_models_run() {
     local final_copied_path="$model_run_path"
 
     # 3. Copy / overwrite / duplicate – user-driven
+    overwrite_used=false # Message-passing for add_model_run()
     if [ ! -e "$model_run_path" ]; then
         cp -r "$input_path" "$models_dir/" || {
             echo -e "  ${CROSS_MARK} ${BRed}Copy failed${Color_Off}" >&2 ; return 1 ; }
@@ -497,6 +513,7 @@ copy_models_run() {
                     cp -r "$input_path" "$models_dir/" || {
                         echo -e "  ${CROSS_MARK} ${BRed}Overwrite failed${Color_Off}" >&2 ; return 1 ; }
                     echo -e "  ${CHECK_MARK} ${BCyan}Overwritten${Color_Off} ➜ $model_run_path" >&2
+                    overwrite_used=true
                     break ;;
                 [Dd]* )
                     echo -ne "  ${ARROW} ${BBlue}New directory name:${Color_Off} " >&2
@@ -552,7 +569,30 @@ add_model_run() {
         return 1
     fi
 
-    # ── 3. Append the new record ────────────────────────────────────────
+    # ── 3. If overwriting, discard the previous record ──────────────────
+    if [ ! $overwrite_used ] ; then
+        : # Nothing to do here
+    elif $jq_exec \
+        --arg base_name    "$base_name" \
+        --arg final_path   "$final_path" \
+        --arg current_time "$current_time" \
+        --arg uuid         "$new_uuid" \
+        '
+        del (
+            .model_runs[]
+          | select(.label == $base_name and .path == $final_path)
+        )
+        ' < "$json_file" > "${json_file}.tmp" && \
+       mv -f "${json_file}.tmp" "$json_file"; then
+        ## ► success message
+        echo -e "  ${CHECK_MARK} ${BCyan}Deregistered overwritten model runs from $json_file.${Color_Off}"
+    else
+        ## ► failure message
+        echo -e "  ${WARNING_MARK} ${BYellow}Failed to unregister overwritten model run from $json_file.${Color_Off}"
+        echo -e "    ${INFO_MARK} ${BCyan}This may result in duplicate model run listings, but is otherwise harmless.${Color_Off}"
+    fi
+
+    # ── 4. Append the new record ────────────────────────────────────────
     if $jq_exec \
         --arg base_name    "$base_name" \
         --arg final_path   "$final_path" \
@@ -628,13 +668,69 @@ pause_script_execution() {
     done
 }
 
+
+print_usage() {
+    echo -e "${BYellow}Usage: ${BCyan}viewOnTethys.sh [arg ...]${Color_Off}"
+    echo -e "${BYellow}Options:${Color_Off}"
+    echo -e "${BCyan}  -d [path]:${Color_Off} Designates the provided path as the data directory to import into the visualizer."
+    echo -e "${BCyan}  -h:${Color_Off} Displays usage information, then exits."
+    echo -e "${BCyan}  -i [image]:${Color_Off} Specifies which Docker image of the visualizer to run."
+    echo -e "${BCyan}  -n:${Color_Off} Launches the visualizer immediately without importing a data directory."
+    echo -e "${BCyan}  -r:${Color_Off} Retains previous console output when launching the script."
+    echo -e "${BCyan}  -t [tag]:${Color_Off} Specifies which Docker image tag of the visualizer to run."
+    echo -e "${BCyan}  -y:${Color_Off} Immediately requests to import a data directory."
+}
+
+
+# Pre-script execution
+while getopts 'd:hi:nrt:y' flag; do
+    case "${flag}" in
+        d) DATA_FOLDER_PATH="${OPTARG}" ;;
+        h) print_usage
+           exit 1 ;;
+        i) TETHYS_REPO="${OPTARG}" ;;
+        n) IMPORT_GAGE="no";;
+        r) CLEAR_CONSOLE=false ;;
+        t) TETHYS_TAG="${OPTARG}" ;;
+        y) IMPORT_GAGE="yes" ;;
+        *) echo -e "${CROSS_MARK} ${BRed}ERROR: Unrecognized flag.${Color_Off}"
+           print_usage
+           exit 1 ;;
+    esac
+    FLAGS_USED=true
+done
+
+if [ -n "$DATA_FOLDER_PATH" ] && [ "$IMPORT_GAGE" == "no" ]; then
+    echo -e "${CROSS_MARK} ${BRed}ERROR: Flags -d and -n are incompatible.${Color_Off}"
+    print_usage
+    exit 1
+fi
+
+# Backwards compatibility: If no flags provided, first argument should be used as data path
+if [ "$FLAGS_USED" == false ] && [ -n "$1" ]; then
+    DATA_FOLDER_PATH="$1"
+fi
+
+
 # Main script execution
+$CLEAR_CONSOLE && clear
 print_welcome_banner
 
-# Check if data path is provided as argument
-DATA_FOLDER_PATH="$1"
+# Check if a data path should be added
+while [[ -z "$DATA_FOLDER_PATH" && $IMPORT_GAGE == "ask" ]]; do
+    read -erp "$(echo -e "  ${ARROW} Import a NextGen model run? [Y/n]: ")" import_choice
+    if [[ "$import_choice" =~ ^[Yy] ]]; then
+        IMPORT_GAGE="yes"
+    elif [[ "$import_choice" =~ ^[Nn] ]]; then
+        echo -e "    ${CHECK_MARK} ${BGreen}Skipping NextGen model import.${Color_Off}"
+        IMPORT_GAGE="no"
+    else
+        echo -e "    ${CROSS_MARK} ${BRed}Invalid input.${Color_Off}"
+    fi
+done
 
-if [[ -z "$DATA_FOLDER_PATH" ]]; then
+# Check if data path is provided as argument
+if [[ -z "$DATA_FOLDER_PATH" && $IMPORT_GAGE == "yes" ]]; then
     # If no path provided, check if we have a saved path
     if [ -f "$CONFIG_FILE" ]; then
         LAST_PATH=$(cat "$CONFIG_FILE")
@@ -660,24 +756,30 @@ if [[ -z "$DATA_FOLDER_PATH" ]]; then
 fi
 
 # Validate the directory
-if [ ! -d "$DATA_FOLDER_PATH" ]; then
+if [[ -n "$DATA_FOLDER_PATH" && ! -d "$DATA_FOLDER_PATH" ]]; then
     echo -e "${CROSS_MARK} ${BRed}Directory does not exist: $DATA_FOLDER_PATH${Color_Off}"
     exit 1
 fi
 
 print_section_header "PREPARING VISUALIZATION ENVIRONMENT"
 
-# Copy model data to visualization directory
-final_dir=$(copy_models_run "$DATA_FOLDER_PATH") || {
-    echo -e "${CROSS_MARK} ${BRed}Failed to copy model data. Exiting.${Color_Off}"
-    exit 1
-}
+# If visualization directory is non-empty, offer a fresh start option
+prompt_fresh_start
 
-# Register the model run
-add_model_run "$final_dir" || {
-    echo -e "${CROSS_MARK} ${BRed}Failed to register model run. Exiting.${Color_Off}"
-    exit 1
-}
+# If importing a model run...
+if [ -n "$DATA_FOLDER_PATH" ]; then
+    # Copy model data to visualization directory
+    final_dir=$(copy_models_run "$DATA_FOLDER_PATH") || {
+        echo -e "${CROSS_MARK} ${BRed}Failed to copy model data. Exiting.${Color_Off}"
+        exit 1
+    }
+
+    # Register the model run
+    add_model_run "$final_dir" || {
+        echo -e "${CROSS_MARK} ${BRed}Failed to register model run. Exiting.${Color_Off}"
+        exit 1
+    }
+fi
 
 # Ask what to do with ~/.datastream_ngiab
 manage_datastream_cache

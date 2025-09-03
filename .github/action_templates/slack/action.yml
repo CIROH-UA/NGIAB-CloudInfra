@@ -19,11 +19,11 @@ runs:
   using: "composite"
   steps:
     - name: send slack message
-      uses: slackapi/slack-github-action@v1.24.0
+      uses: slackapi/slack-github-action@v2.1.1
       with:
+        webhook: ${{ inputs.slack-webhook-url }}
+        webhook-type: incoming-webhook
         payload: |
           {
             "text": "GitHub Action build result: ${{ inputs.job-status }}\n${{ inputs.pull_request_url || inputs.head_commit_url }}"
           }
-      env:
-        SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook-url}}

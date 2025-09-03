@@ -159,6 +159,11 @@ RUN mv /ngen/ngen /ngen/ngen_src
 WORKDIR /ngen
 ENTRYPOINT ["./HelloNGEN.sh"]
 
+FROM build_base AS lstm_weights
+RUN git clone --depth=1 --branch example_weights https://github.com/ciroh-ua/lstm.git /lstm_weights
+# replace the relative path with the absolute path in the model config files
+RUN shopt -s globstar
+RUN sed -i 's|\.\.|/ngen/ngen/extern/lstm|g' /lstm_weights/trained_neuralhydrology_models/**/config.yml
 
 
 FROM base AS final
@@ -173,6 +178,8 @@ COPY --from=troute_build /ngen/t-route/src/troute-*/dist/*.whl /tmp/
 RUN ln -s /dmod/bin/ngen /usr/local/bin/ngen
 
 ENV UV_INSTALL_DIR=/root/.cargo/bin
+ENV UV_COMPILE_BYTECODE=1
+
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.cargo/bin:${PATH}"
 RUN uv self update && uv venv && \
@@ -199,6 +206,10 @@ ENV PATH="/ngen/.venv/bin:${PATH}"
 # Install lstm - the extra index url installs cpu-only pytorch which is ~6gb smaller
 COPY --from=ngen_clone /ngen/ngen/extern/lstm/lstm /ngen/ngen/extern/lstm
 RUN uv pip install --no-cache-dir /ngen/ngen/extern/lstm --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Replace the noaa-owp example weights with jmframes
+RUN rm -rf /ngen/ngen/extern/lstm/trained_neuralhydrology_models
+COPY --from=lstm_weights /lstm_weights/trained_neuralhydrology_models /ngen/ngen/extern/lstm/trained_neuralhydrology_models
 
 ## add some metadata to the image
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url

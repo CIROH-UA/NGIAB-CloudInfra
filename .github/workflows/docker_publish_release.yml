@@ -1,0 +1,33 @@
+name: Build and Push Docker Image
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-push-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Build and Push Docker
+        uses: ./.github/actions/docker-build
+        with:
+          dockerfile-tag: ${{ github.event.release.tag_name }}
+          docker-tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/ciroh-ngen-image:${{ github.event.release.tag_name }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/ciroh-ngen-image:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/ngiab:${{ github.event.release.tag_name }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/ngiab:latest
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+          buildcloud-endpoint: ${{ secrets.BUILDCLOUD_ENDPOINT }}
+      - name: Publish slack message
+        if: always()
+        uses: ./.github/action_templates/slack
+        with:
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          job-status: "success"
+          pull_request_url: ${{ github.event.pull_request.html_url }}
+          head_commit_url: ${{ github.event.head_commit.url }}
