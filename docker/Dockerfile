@@ -14,7 +14,12 @@ RUN dnf update -y && \
     vim libgfortran sqlite \
     bzip2 expat udunits2 zlib \
     mpich hdf5 netcdf netcdf-fortran netcdf-cxx netcdf-cxx4-mpich
+# Install UV and setup cargo bin for rust tools (uv and cargo)
 ENV PATH="/root/.cargo/bin:${PATH}"
+ENV UV_INSTALL_DIR=/root/.cargo/bin
+ENV UV_COMPILE_BYTECODE=1
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+RUN uv self update
 
 FROM base AS build_base
 # no dnf update to keep devel packages consistent with versions installed in base
@@ -162,9 +167,14 @@ ENTRYPOINT ["./HelloNGEN.sh"]
 
 FROM build_base AS lstm_weights
 RUN git clone --depth=1 --branch example_weights https://github.com/ciroh-ua/lstm.git /lstm_weights
+# add the rust weight conversion
+RUN uv run --with pyyaml --with numpy --with torch --extra-index-url https://download.pytorch.org/whl/cpu \
+    https://raw.githubusercontent.com/CIROH-UA/bmi-burn-lstm/refs/heads/main/scripts/convert.py \
+    all /lstm_weights/trained_neuralhydrology_models/
 # replace the relative path with the absolute path in the model config files
 RUN shopt -s globstar
 RUN sed -i 's|\.\.|/ngen/ngen/extern/lstm|g' /lstm_weights/trained_neuralhydrology_models/**/config.yml
+
 
 FROM build_base AS burn_lstm
 RUN dnf install -y clang
@@ -187,11 +197,7 @@ COPY --from=troute_build /ngen/t-route/src/troute-*/dist/*.whl /tmp/
 
 RUN ln -s /dmod/bin/ngen /usr/local/bin/ngen
 
-ENV UV_INSTALL_DIR=/root/.cargo/bin
-ENV UV_COMPILE_BYTECODE=1
-
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-RUN uv self update && uv venv && \
+RUN uv venv && \
     uv pip install --no-cache-dir /tmp/*.whl netCDF4==1.6.3
 # Clean up some stuff, this doesn't make the image any smaller
 RUN rm -rf /tmp/*.whl
