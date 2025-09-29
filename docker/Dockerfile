@@ -14,6 +14,7 @@ RUN dnf update -y && \
     vim libgfortran sqlite \
     bzip2 expat udunits2 zlib \
     mpich hdf5 netcdf netcdf-fortran netcdf-cxx netcdf-cxx4-mpich
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 FROM base AS build_base
 # no dnf update to keep devel packages consistent with versions installed in base
@@ -33,7 +34,7 @@ FROM build_base AS boost_build
 RUN wget https://archives.boost.io/release/1.79.0/source/boost_1_79_0.tar.gz
 RUN tar -xzf boost_1_79_0.tar.gz
 WORKDIR /boost_1_79_0
-RUN ./bootstrap.sh && ./b2 && ./b2 headers
+RUN ./bootstrap.sh && ./b2 headers
 ENV BOOST_ROOT=/boost_1_79_0
 
 
@@ -165,6 +166,15 @@ RUN git clone --depth=1 --branch example_weights https://github.com/ciroh-ua/lst
 RUN shopt -s globstar
 RUN sed -i 's|\.\.|/ngen/ngen/extern/lstm|g' /lstm_weights/trained_neuralhydrology_models/**/config.yml
 
+FROM build_base AS burn_lstm
+RUN dnf install -y clang
+WORKDIR /build
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
+RUN git clone --depth=1 https://github.com/aaraney/bmi-rs
+RUN git clone --depth=1 https://github.com/ciroh-ua/bmi-burn-lstm
+WORKDIR /build/bmi-burn-lstm
+RUN cargo build --release
 
 FROM base AS final
 
@@ -181,7 +191,6 @@ ENV UV_INSTALL_DIR=/root/.cargo/bin
 ENV UV_COMPILE_BYTECODE=1
 
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.cargo/bin:${PATH}"
 RUN uv self update && uv venv && \
     uv pip install --no-cache-dir /tmp/*.whl netCDF4==1.6.3
 # Clean up some stuff, this doesn't make the image any smaller
@@ -210,6 +219,9 @@ RUN uv pip install --no-cache-dir /ngen/ngen/extern/lstm --extra-index-url https
 # Replace the noaa-owp example weights with jmframes
 RUN rm -rf /ngen/ngen/extern/lstm/trained_neuralhydrology_models
 COPY --from=lstm_weights /lstm_weights/trained_neuralhydrology_models /ngen/ngen/extern/lstm/trained_neuralhydrology_models
+
+# Copy the rust version of the lstm over.
+COPY --from=burn_lstm /build/bmi-burn-lstm/target/release/libbmi_burn_lstm.so /dmod/shared_libs/libbmi_burn_lstm.so
 
 ## add some metadata to the image
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url
