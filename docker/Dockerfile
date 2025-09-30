@@ -52,7 +52,7 @@ ENV FC=gfortran NETCDF=/usr/lib64/gfortran/modules/
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
 WORKDIR /ngen/
-RUN pip3 install uv && uv venv
+RUN uv venv
 ENV PATH="/ngen/.venv/bin:$PATH"
 ## make sure clone isn't cached if repo is updated
 ADD https://api.github.com/repos/${TROUTE_REPO}/git/refs/heads/${TROUTE_BRANCH} /tmp/version.json
