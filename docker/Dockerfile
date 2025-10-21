@@ -169,7 +169,7 @@ FROM build_base AS lstm_weights
 RUN git clone --depth=1 --branch example_weights https://github.com/ciroh-ua/lstm.git /lstm_weights
 # add the rust weight conversion
 RUN uv run --with pyyaml --with numpy --with torch --extra-index-url https://download.pytorch.org/whl/cpu \
-    https://raw.githubusercontent.com/CIROH-UA/bmi-burn-lstm/refs/heads/main/scripts/convert.py \
+    https://raw.githubusercontent.com/CIROH-UA/rust-lstm-1025/refs/tags/v0.1.0/scripts/convert.py \
     all /lstm_weights/trained_neuralhydrology_models/
 # replace the relative path with the absolute path in the model config files
 RUN shopt -s globstar
@@ -182,8 +182,8 @@ WORKDIR /build
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
 RUN git clone --depth=1 https://github.com/aaraney/bmi-rs
-RUN git clone --depth=1 https://github.com/ciroh-ua/bmi-burn-lstm
-WORKDIR /build/bmi-burn-lstm
+RUN git clone --depth=1 --branch v0.1.0 https://github.com/ciroh-ua/rust-lstm-1025
+WORKDIR /build/rust-lstm-1025
 RUN cargo build --release
 
 FROM base AS final
@@ -227,7 +227,7 @@ RUN rm -rf /ngen/ngen/extern/lstm/trained_neuralhydrology_models
 COPY --from=lstm_weights /lstm_weights/trained_neuralhydrology_models /ngen/ngen/extern/lstm/trained_neuralhydrology_models
 
 # Copy the rust version of the lstm over.
-COPY --from=burn_lstm /build/bmi-burn-lstm/target/release/libbmi_burn_lstm.so /dmod/shared_libs/libbmi_burn_lstm.so
+COPY --from=burn_lstm /build/rust-lstm-1025/target/release/librust_lstm_1025.so /dmod/shared_libs/librust_lstm_1025.so
 
 ## add some metadata to the image
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url
