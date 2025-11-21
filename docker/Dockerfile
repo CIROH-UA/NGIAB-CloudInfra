@@ -31,7 +31,7 @@ RUN dnf install -y epel-release && \
     python3 python3-devel python3-pip \
     expat-devel flex bison udunits2-devel zlib-devel \
     wget mpich-devel hdf5-devel netcdf-devel \
-    netcdf-fortran-devel netcdf-cxx-devel lld
+    netcdf-fortran-devel netcdf-cxx-devel lld clang
 
 
 
@@ -181,8 +181,7 @@ RUN dnf install -y clang
 WORKDIR /build
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
-RUN git clone --depth=1 https://github.com/aaraney/bmi-rs
-RUN git clone --depth=1 --branch v0.1.0 https://github.com/ciroh-ua/rust-lstm-1025
+RUN git clone --depth=1 --branch v0.1.2 https://github.com/ciroh-ua/rust-lstm-1025
 WORKDIR /build/rust-lstm-1025
 RUN cargo build --release
 
@@ -235,4 +234,4 @@ COPY --from=ngen_build /tmp/ngen_url /ngen/ngen_url
 
 RUN echo "export PS1='\u\[\033[01;32m\]@ngiab_dev\[\033[00m\]:\[\033[01;35m\]\W\[\033[00m\]\$ '" >> ~/.bashrc
 
-ENTRYPOINT ["./HelloNGEN.sh"]
+ENTRYPOINT ["/ngen/HelloNGEN.sh"]
