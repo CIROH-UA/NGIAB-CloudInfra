@@ -162,7 +162,7 @@ RUN cmake --build ./extern/summa/ --target all -j
 RUN mkdir -p /dmod/datasets /dmod/datasets/static /dmod/shared_libs /dmod/bin /dmod/utils/ && \
     shopt -s globstar && \
     cp -a ./extern/**/cmake_build/*.so* /dmod/shared_libs/. || true && \
-    cp ./extern/summa/libsummabmi.so /dmod/shared_libs/. || true \
+    cp ./extern/summa/libsummabmi.so /dmod/shared_libs/. || true && \
     cp -a ./extern/noah-owp-modular/**/*.TBL /dmod/datasets/static && \
     cp -a ./cmake_build_parallel/ngen /dmod/bin/ngen-parallel || true && \
     cp -a ./cmake_build_serial/ngen /dmod/bin/ngen-serial || true && \
