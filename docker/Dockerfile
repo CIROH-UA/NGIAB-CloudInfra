@@ -33,16 +33,12 @@ RUN dnf install -y epel-release && \
     wget mpich-devel hdf5-devel netcdf-devel \
     netcdf-fortran-devel netcdf-cxx-devel lld clang
 
-
-
 FROM build_base AS boost_build
 RUN wget https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.gz
 RUN tar -xzf boost_1_86_0.tar.gz
 WORKDIR /boost_1_86_0
 RUN ./bootstrap.sh && ./b2 headers
 ENV BOOST_ROOT=/boost_1_86_0
-
-
 
 FROM boost_build AS troute_prebuild
 WORKDIR /ngen
@@ -92,8 +88,6 @@ RUN git clone --single-branch --branch $NGEN_BRANCH https://github.com/$NGEN_REP
     cd ngen && \
     git submodule update --init --recursive --depth 1
 
-
-
 FROM ngen_clone AS ngen_build
 ENV PATH=${PATH}:/usr/lib64/mpich/bin
 
@@ -137,8 +131,35 @@ RUN cmake -G Ninja -B cmake_build_parallel -S . ${COMMON_BUILD_ARGS} ${MPI_BUILD
 
 
 
-FROM ngen_build AS restructure_files
+FROM ngen_build AS build_summa
 # Setup final directories and permissions
+
+# SUMMA-specific build steps
+ENV FC=/usr/bin/gfortran
+RUN dnf install -y openblas-devel
+# build SUNDIALS
+RUN mkdir ./extern/sun_dir && \
+    cd ./extern/sun_dir && \
+    wget https://github.com/LLNL/sundials/releases/download/v7.5.0/sundials-7.5.0.tar.gz && \
+    tar -xzf sundials-7.5.0.tar.gz && \
+    mv sundials-7.5.0 sundials-software && \
+    rm sundials-7.5.0.tar.gz && \
+    mkdir sundials && \
+    mkdir sundials/builddir sundials/instdir && \
+    cp ../summa/summa/build/cmake_external/build_cmakeSundials.bash ./sundials/builddir
+RUN cd ./extern/sun_dir/sundials/builddir && \
+    ./build_cmakeSundials.bash && \
+    make && \
+    make install
+# set -DUSE_SUNDIALS=OFF if we don't want to build SUMMA with SUNDIALS
+RUN cmake -B ./extern/summa/ -S ./extern/summa/ -DUSE_NEXTGEN=ON -DUSE_SUNDIALS=ON \
+    -DSPECIFY_LAPACK_LINKS=OFF -DCMAKE_BUILD_TYPE=Release \
+    -DNetCDF_F90_INCLUDE_DIR=/usr/lib64/gfortran/modules/ \
+    -DOpenBLAS_INCLUDE_DIR=/usr/include/openblas \
+    -DSUNDIALS_DIR=/ngen/ngen/extern/sun_dir/sundials/instdir/lib64/cmake/sundials/
+RUN cmake --build ./extern/summa/ --target all -j
+
+FROM ngen_build AS restructure_files
 RUN mkdir -p /dmod/datasets /dmod/datasets/static /dmod/shared_libs /dmod/bin /dmod/utils/ && \
     shopt -s globstar && \
     cp -a ./extern/**/cmake_build/*.so* /dmod/shared_libs/. || true && \
@@ -174,7 +195,6 @@ RUN uv run --with pyyaml --with numpy --with torch --extra-index-url https://dow
 # replace the relative path with the absolute path in the model config files
 RUN shopt -s globstar
 RUN sed -i 's|\.\.|/ngen/ngen/extern/lstm|g' /lstm_weights/trained_neuralhydrology_models/**/config.yml
-
 
 FROM build_base AS burn_lstm
 RUN dnf install -y clang
@@ -227,6 +247,11 @@ COPY --from=lstm_weights /lstm_weights/trained_neuralhydrology_models /ngen/ngen
 
 # Copy the rust version of the lstm over.
 COPY --from=burn_lstm /build/rust-lstm-1025/target/release/librust_lstm_1025.so /dmod/shared_libs/librust_lstm_1025.so
+
+# needed for SUMMA
+RUN dnf install -y openblas-devel
+COPY --from=build_summa /ngen/ngen/extern/sun_dir/sundials/instdir/lib64/*.so* /usr/lib64
+COPY --from=build_summa /ngen/ngen/extern/summa/libsummabmi.so /dmod/shared_libs/.
 
 ## add some metadata to the image
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url
