@@ -131,7 +131,7 @@ RUN cmake -G Ninja -B cmake_build_parallel -S . ${COMMON_BUILD_ARGS} ${MPI_BUILD
 
 
 
-FROM ngen_build AS restructure_files
+FROM ngen_build AS build_summa
 # Setup final directories and permissions
 
 # SUMMA-specific build steps
@@ -159,10 +159,10 @@ RUN cmake -B ./extern/summa/ -S ./extern/summa/ -DUSE_NEXTGEN=ON -DUSE_SUNDIALS=
     -DSUNDIALS_DIR=/ngen/ngen/extern/sun_dir/sundials/instdir/lib64/cmake/sundials/
 RUN cmake --build ./extern/summa/ --target all -j
 
+FROM ngen_build AS restructure_files
 RUN mkdir -p /dmod/datasets /dmod/datasets/static /dmod/shared_libs /dmod/bin /dmod/utils/ && \
     shopt -s globstar && \
     cp -a ./extern/**/cmake_build/*.so* /dmod/shared_libs/. || true && \
-    cp ./extern/summa/libsummabmi.so /dmod/shared_libs/. || true && \
     cp -a ./extern/noah-owp-modular/**/*.TBL /dmod/datasets/static && \
     cp -a ./cmake_build_parallel/ngen /dmod/bin/ngen-parallel || true && \
     cp -a ./cmake_build_serial/ngen /dmod/bin/ngen-serial || true && \
@@ -250,7 +250,8 @@ COPY --from=burn_lstm /build/rust-lstm-1025/target/release/librust_lstm_1025.so 
 
 # needed for SUMMA
 RUN dnf install -y openblas-devel
-COPY --from=restructure_files /ngen/ngen/extern/sun_dir/sundials/instdir/lib64/*.so* /usr/lib64
+COPY --from=build_summa /ngen/ngen/extern/sun_dir/sundials/instdir/lib64/*.so* /usr/lib64
+COPY --from=build_summa /ngen/ngen/extern/summa/libsummabmi.so /dmod/shared_libs/.
 
 ## add some metadata to the image
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url
