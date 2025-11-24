@@ -55,6 +55,7 @@ IMAGE_NAME="awiciroh/ngiab-teehr"
 TEEHR_CONTAINER_PREFIX="teehr-evaluation"
 
 # Parameters
+DOCKER_CMD="docker"
 DATA_FOLDER_PATH="" # Path to the model run being evaluated.
 FORCED_IMAGE_TAG="" # If non-empty, overrides the normal tag selection process.
 DO_STARTUP_PROMPT=true # If false, skips the "Would you like to run a TEEHR evaluation?" prompt.
@@ -126,37 +127,41 @@ clean_up_resources() {
     echo -e "\n${ARROW} ${BYellow}Cleaning up resources...${Color_Off}"
     
     # Check if Docker daemon is running
-    if ! docker info >/dev/null 2>&1; then
-        echo -e "  ${CROSS_MARK} ${BRed}Docker daemon is not running, cannot clean up containers.${Color_Off}"
+    if ! ${DOCKER_CMD} info >/dev/null 2>&1; then
+        if [ "${DOCKER_CMD}" == 'docker' ]; then
+            echo -e "  ${CROSS_MARK} ${BRed}Docker daemon is not running, cannot clean up containers.${Color_Off}"
+        else
+            echo -e "  ${CROSS_MARK} ${BRed}Command \"${DOCKER_CMD} info\" failed, container runtime inoperative, cannot clean up containers.${Color_Off}"
+        fi
         return 1
     fi
     
     # Find and stop any running TEEHR containers
-    local running_containers=$(docker ps -q --filter "ancestor=$IMAGE_NAME")
+    local running_containers=$(${DOCKER_CMD} ps -q --filter "ancestor=$IMAGE_NAME")
     if [ -n "$running_containers" ]; then
         echo -e "  ${INFO_MARK} Stopping TEEHR containers..."
-        docker stop $running_containers >/dev/null 2>&1 || true
+        ${DOCKER_CMD} stop $running_containers >/dev/null 2>&1 || true
     fi
     
     # Also check for containers with our prefix
-    local prefix_containers=$(docker ps -q --filter "name=$TEEHR_CONTAINER_PREFIX")
+    local prefix_containers=$(${DOCKER_CMD} ps -q --filter "name=$TEEHR_CONTAINER_PREFIX")
     if [ -n "$prefix_containers" ]; then
         echo -e "  ${INFO_MARK} Stopping additional TEEHR containers..."
-        docker stop $prefix_containers >/dev/null 2>&1 || true
+        ${DOCKER_CMD} stop $prefix_containers >/dev/null 2>&1 || true
     fi
     
     # Remove any stopped containers matching our criteria
-    local all_containers=$(docker ps -a -q --filter "ancestor=$IMAGE_NAME")
+    local all_containers=$(${DOCKER_CMD} ps -a -q --filter "ancestor=$IMAGE_NAME")
     if [ -n "$all_containers" ]; then
         echo -e "  ${INFO_MARK} Removing TEEHR containers..."
-        docker rm $all_containers >/dev/null 2>&1 || true
+        ${DOCKER_CMD} rm $all_containers >/dev/null 2>&1 || true
     fi
     
     # Also remove any with our prefix
-    local all_prefix_containers=$(docker ps -a -q --filter "name=$TEEHR_CONTAINER_PREFIX")
+    local all_prefix_containers=$(${DOCKER_CMD} ps -a -q --filter "name=$TEEHR_CONTAINER_PREFIX")
     if [ -n "$all_prefix_containers" ]; then
         echo -e "  ${INFO_MARK} Removing additional TEEHR containers..."
-        docker rm $all_prefix_containers >/dev/null 2>&1 || true
+        ${DOCKER_CMD} rm $all_prefix_containers >/dev/null 2>&1 || true
     fi
     
     echo -e "  ${CHECK_MARK} ${BGreen}Cleanup completed${Color_Off}"
@@ -220,19 +225,21 @@ print_usage() {
     echo -e "${BYellow}Options:${Color_Off}"
     echo -e "${BCyan}  -d [path]:${Color_Off} Designates the provided path as the data directory to evaluate."
     echo -e "${BCyan}  -h:${Color_Off} Displays usage information, then exits."
-    echo -e "${BCyan}  -i [image]:${Color_Off} Specifies which Docker image of the TEEHR container to run."
+    echo -e "${BCyan}  -i [image]:${Color_Off} Specifies which container image of the TEEHR container to run."
+    echo -e "${BCyan}  -p:${Color_Off} Use Podman instead of Docker."
     echo -e "${BCyan}  -r:${Color_Off} Retains previous console output when launching the script."
-    echo -e "${BCyan}  -t [tag]:${Color_Off} Specifies which Docker image tag of the TEEHR container to run."
+    echo -e "${BCyan}  -t [tag]:${Color_Off} Specifies which container image tag of the TEEHR container to run."
     echo -e "${BCyan}  -y:${Color_Off} Launches the evaluation workflow immediately, skipping the initial confirmation prompt."
 }
 
 
 # Pre-script execution
-while getopts 'd:hrt:y' flag; do
+while getopts 'd:phrt:y' flag; do
     case "${flag}" in
         d) DATA_FOLDER_PATH="${OPTARG}" ;;
         h) print_usage
            exit 1 ;;
+        p) DOCKER_CMD="podman" ;;
         r) CLEAR_CONSOLE=false ;;
         i) IMAGE_NAME="${OPTARG}" ;;
         t) FORCED_IMAGE_TAG="${OPTARG}" ;;
@@ -315,8 +322,8 @@ if [[ "$run_teehr_choice" =~ ^[Yy] ]]; then
                 echo -e "  ${ARROW} ${BYellow}Updating TEEHR image...${Color_Off}"
                 show_loading "Downloading latest TEEHR image" 3
                 
-                if ! docker pull "${IMAGE_NAME}:${teehr_image_tag}"; then
-                    handle_error "Failed to pull Docker image: ${IMAGE_NAME}:${teehr_image_tag}"
+                if ! ${DOCKER_CMD} pull "${IMAGE_NAME}:${teehr_image_tag}"; then
+                    handle_error "Failed to pull container image: ${IMAGE_NAME}:${teehr_image_tag}"
                 fi
                 
                 echo -e "  ${CHECK_MARK} ${BGreen}TEEHR image updated successfully${Color_Off}"
@@ -346,7 +353,7 @@ if [[ "$run_teehr_choice" =~ ^[Yy] ]]; then
     clean_up_resources
     
     # Run the TEEHR container with a name for easier cleanup
-    if ! docker run --name "$CONTAINER_NAME" --rm -v "$DATA_FOLDER_PATH:/app/data" "${IMAGE_NAME}:${teehr_image_tag}"; then
+    if ! ${DOCKER_CMD} run --name "$CONTAINER_NAME" --rm -v "$DATA_FOLDER_PATH:/app/data" "${IMAGE_NAME}:${teehr_image_tag}"; then
         handle_error "TEEHR evaluation failed"
     fi
     
