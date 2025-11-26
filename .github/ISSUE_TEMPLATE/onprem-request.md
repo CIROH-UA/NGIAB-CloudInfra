@@ -10,17 +10,23 @@ assignees: ''
 
 **1.	Requester Information:**
 This should include the name and contact information of the person making the request.
+
 - PI's Full Name: <!-- Respond here! -->
 - PI's Affiliated Institute: <!-- Respond here! -->
 - PI's Affiliated Email Address: <!-- Respond here! -->
 
-**2.	Project Information:** 
-Provide the CIROH project name associated with this research work along with a brief description of the project and its goals. This can help the infrastructure team understand the context and purpose of the requested resources. *Please highlight how this project will be benefit from and/or provide benefit to other resources on the shared infrastructure.*
+- Requester's Full Name: <!-- Respond here! -->
+- Requester's Affiliated Email Address: <!-- Respond here! -->
 
-<!-- Respond here! -->
+
+**2.	Project Information:** 
+Provide CIROH project name associated with this research work along with 
+
+- CIROH Project Number: <!-- Respond here! -->
+- CIROH Project Name: <!-- Respond here! -->
 
 **3.  Project Description:**
-If your project involves developing software or scripts, briefly describe the software you plan to develop.
+Provide a brief description of the project and its goals. This can help the infrastructure team understand the context and purpose of the requested resources. If your project involves developing software or scripts, briefly describe the software you plan to develop.*Please highlight how this project will be benefit from and/or provide benefit to other resources on the shared infrastructure.*
 
 <!-- Respond here! -->
 
