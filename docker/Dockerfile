@@ -89,7 +89,7 @@ FROM troute_prebuild AS ngen_clone
 WORKDIR /ngen
 ## make sure clone isn't cached if repo is updated
 ADD https://api.github.com/repos/${NGEN_REPO}/git/refs/heads/${NGEN_BRANCH} /tmp/version.json
-RUN git clone --single-branch --branch $NGEN_BRANCH https://github.com/$NGEN_REPO.git && \
+RUN git clone --single-branch --branch $NGEN_BRANCH https://github.com/$NGEN_REPO.git ngen && \
     cd ngen && \
     git submodule update --init --recursive --depth 1
 
@@ -245,8 +245,12 @@ COPY --from=lstm_weights /lstm_weights/trained_neuralhydrology_models /ngen/ngen
 COPY --from=burn_lstm /build/rust-lstm-1025/target/release/librust_lstm_1025.so /dmod/shared_libs/librust_lstm_1025.so
 
 # Install dhbv2.0
-COPY --from=dhbv2_weights /dhbv2 /ngen/ngen/extern/dhbv2/
+RUN mkdir -p /ngen/ngen/extern/dhbv2/dhbv2
+COPY --from=dhbv2_weights /build/dhbv2 /ngen/ngen/extern/dhbv2/dhbv2
+
+RUN dnf install -y git
 RUN uv pip install --no-cache-dir /ngen/ngen/extern/dhbv2/dhbv2
+RUN dnf remove -y git && dnf autoremove -y
 
 # Add dhbv2.0 weights
 COPY --from=dhbv2_weights /dhbv2_weights /ngen/ngen/extern/dhbv2/dhbv2/ngen_resources/data/dhbv2/models/hfv2.2_15yr
