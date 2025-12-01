@@ -1,7 +1,8 @@
 FROM rockylinux:9.1 AS base
 ENV TROUTE_REPO=CIROH-UA/t-route
 ENV TROUTE_BRANCH=ngiab
-ENV NGEN_REPO=CIROH-UA/ngen
+# ENV NGEN_REPO=CIROH-UA/ngen
+ENV NGEN_REPO=leoglonz/ciroh-ua-ngen
 ENV NGEN_BRANCH=ngiab
 
 # Install final dependencies to make sure ngen is build and deployed with matching versions
@@ -185,6 +186,21 @@ RUN git clone --depth=1 --branch v0.1.2 https://github.com/ciroh-ua/rust-lstm-10
 WORKDIR /build/rust-lstm-1025
 RUN cargo build --release
 
+
+FROM build_base AS dhbv2_weights
+WORKDIR /build
+RUN git clone --branch ngiab https://github.com/mhpi/dhbv2.git
+
+RUN dnf install -y unzip && \
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip" && \
+    unzip /tmp/awscliv2.zip -d /tmp && \
+    /tmp/aws/install
+
+RUN aws s3 cp s3://mhpi-spatial/mhpi-release/models/4-dhbv_2.zip /tmp/file.zip --no-sign-request && \
+    unzip -o /tmp/file.zip -d /dhbv2_weights && \
+    rm -f /tmp/file.zip
+
+
 FROM base AS final
 
 WORKDIR /ngen
@@ -227,6 +243,13 @@ COPY --from=lstm_weights /lstm_weights/trained_neuralhydrology_models /ngen/ngen
 
 # Copy the rust version of the lstm over.
 COPY --from=burn_lstm /build/rust-lstm-1025/target/release/librust_lstm_1025.so /dmod/shared_libs/librust_lstm_1025.so
+
+# Install dhbv2.0
+COPY --from=dhbv2_weights /dhbv2 /ngen/ngen/extern/dhbv2/
+RUN uv pip install --no-cache-dir /ngen/ngen/extern/dhbv2/dhbv2
+
+# Add dhbv2.0 weights
+COPY --from=dhbv2_weights /dhbv2_weights /ngen/ngen/extern/dhbv2/dhbv2/ngen_resources/data/dhbv2/models/hfv2.2_15yr
 
 ## add some metadata to the image
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url
