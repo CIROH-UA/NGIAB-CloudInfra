@@ -62,6 +62,7 @@ TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
 SKIP_DB_SETUP=false
 
 # Parameters
+DOCKER_CMD="docker"
 DATA_FOLDER_PATH="" # If non-empty, gets used as the gage path to import.
 TETHYS_TAG="" # If non-empty, gets used as the image tag.
 IMPORT_GAGE="ask" # "ask"/"yes"/"no"/"done"
@@ -209,25 +210,29 @@ create_tethys_docker_network() {
     echo -e "${INFO_MARK} Setting up Docker network for Tethys..."
     
     # Check if Docker daemon is running
-    if ! docker info >/dev/null 2>&1; then
-        echo -e "${BRed}Docker daemon is not running or accessible.${Color_Off}"
+    if ! ${DOCKER_CMD} info >/dev/null 2>&1; then
+        if [ "${DOCKER_CMD}" == 'docker' ]; then
+            echo -e "  ${CROSS_MARK} ${BRed}Docker daemon is not running or accessible.${Color_Off}"
+        else
+            echo -e "  ${CROSS_MARK} ${BRed}Command \"${DOCKER_CMD} info\" failed, container runtime inoperative.${Color_Off}"
+        fi
         return 1
     fi
     
     # Check if network already exists
-    if docker network inspect "$DOCKER_NETWORK" >/dev/null 2>&1; then
+    if ${DOCKER_CMD} network inspect "$DOCKER_NETWORK" >/dev/null 2>&1; then
         echo -e "  ${CHECK_MARK} Network ${BCyan}$DOCKER_NETWORK${Color_Off} already exists."
         return 0
     fi
     
     # Create the network
-    if docker network create -d bridge "$DOCKER_NETWORK" >/dev/null 2>&1; then
+    if ${DOCKER_CMD} network create -d bridge "$DOCKER_NETWORK" >/dev/null 2>&1; then
         echo -e "  ${CHECK_MARK} Network ${BCyan}$DOCKER_NETWORK${Color_Off} created successfully."
         # Add a small delay to ensure network is fully created
         sleep 1
         return 0
     else
-        echo -e "  ${CROSS_MARK} ${BRed}Failed to create Docker network.${Color_Off}"
+        echo -e "  ${CROSS_MARK} ${BRed}Failed to create container network.${Color_Off}"
         return 1
     fi
 }
@@ -244,14 +249,18 @@ set_tethys_tag() {
 
 check_for_existing_tethys_image() {
     # First check if Docker is running
-    if ! docker info >/dev/null 2>&1; then
-        echo -e "${BRed}Docker daemon is not running or accessible.${Color_Off}"
+    if ! ${DOCKER_CMD} info >/dev/null 2>&1; then
+        if [ "${DOCKER_CMD}" == 'docker' ]; then
+            echo -e "  ${CROSS_MARK} ${BRed}Docker daemon is not running or accessible.${Color_Off}"
+        else
+            echo -e "  ${CROSS_MARK} ${BRed}Command \"${DOCKER_CMD} info\" failed, container runtime inoperative.${Color_Off}"
+        fi
         return 1
     fi
     
     # Check if the image exists locally
     local image_exists=false
-    if docker image inspect "${TETHYS_REPO}:${TETHYS_TAG}" >/dev/null 2>&1; then
+    if ${DOCKER_CMD} image inspect "${TETHYS_REPO}:${TETHYS_TAG}" >/dev/null 2>&1; then
         image_exists=true
     fi
     
@@ -261,8 +270,8 @@ check_for_existing_tethys_image() {
     else
         echo -e "  ${INFO_MARK} ${BYellow}Tethys image not found locally. Pulling from registry...${Color_Off}"
         show_loading "Downloading Tethys image" 3
-        if ! docker pull "${TETHYS_REPO}:${TETHYS_TAG}"; then
-            echo -e "  ${CROSS_MARK} ${BRed}Failed to pull Docker image: ${TETHYS_REPO}:${TETHYS_TAG}${Color_Off}"
+        if ! ${DOCKER_CMD} pull "${TETHYS_REPO}:${TETHYS_TAG}"; then
+            echo -e "  ${CROSS_MARK} ${BRed}Failed to pull container image: ${TETHYS_REPO}:${TETHYS_TAG}${Color_Off}"
             return 1
         fi
         echo -e "  ${CHECK_MARK} ${BGreen}Tethys image downloaded successfully${Color_Off}"
@@ -312,7 +321,7 @@ wait_container_healthy() {
     echo -e "${INFO_MARK} ${BWhite} Waiting for container: $container_name to become healthy. This can take a couple of minutes...${Color_Off}"
     while true; do
         # Update the health status
-        container_health_status=$(docker inspect -f '{{.State.Health.Status}}' "$container_name" 2>/dev/null)
+        container_health_status=$(${DOCKER_CMD} inspect -f '{{.State.Health.Status}}' "$container_name" 2>/dev/null)
 
         if [ $? -ne 0 ]; then
             echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} Failed to get health status for container $container_name. Ensure the container exists and has a health check. ${Color_Off}"
@@ -343,16 +352,16 @@ run_tethys() {
     echo -e "${ARROW} ${BWhite}Launching Tethys container...${Color_Off}"
 
     # First, make sure any existing Tethys containers are stopped
-    if docker ps -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
+    if ${DOCKER_CMD} ps -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
         echo -e "  ${INFO_MARK} ${BYellow}Tethys container is already running. Stopping it first...${Color_Off}"
-        docker stop "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1
+        ${DOCKER_CMD} stop "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1
         sleep 3
     fi
 
     # Final check - if container still exists, force removal
-    if docker ps -a -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
+    if ${DOCKER_CMD} ps -a -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
         echo -e "  ${WARNING_MARK} ${BYellow}Forcibly removing container...${Color_Off}"
-        docker rm -f "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1 || true
+        ${DOCKER_CMD} rm -f "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1 || true
         sleep 2
     fi
 
@@ -364,8 +373,8 @@ run_tethys() {
     echo -e "  ${INFO_MARK} ${BYellow}Starting Tethys container...${Color_Off}"
 
     # Launch container with explicit error handling
-    echo -e "  ${INFO_MARK} Running docker command..."
-    docker run --rm -d \
+    echo -e "  ${INFO_MARK} Running ${DOCKER_CMD} command..."
+    ${DOCKER_CMD} run --rm -d \
         -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer" \
         -v "$DATASTREAM_DIRECTORY:$TETHYS_PERSIST_PATH/.datastream_ngiab" \
         -p "$nginx_tethys_port:$nginx_tethys_port" \
@@ -394,15 +403,19 @@ run_tethys() {
 # ──────────────────────────────────────────────────────────────────────
 select_tethys_image_source() {
     # Bail out early if Docker is unavailable
-    if ! docker info >/dev/null 2>&1; then
-        echo -e "  ${CROSS_MARK} ${BRed}Docker daemon not running.${Color_Off}"
+    if ! ${DOCKER_CMD} info >/dev/null 2>&1; then
+        if [ "${DOCKER_CMD}" == 'docker' ]; then
+            echo -e "  ${CROSS_MARK} ${BRed}Docker daemon is not running or accessible.${Color_Off}"
+        else
+            echo -e "  ${CROSS_MARK} ${BRed}Command \"${DOCKER_CMD} info\" failed, container runtime inoperative.${Color_Off}"
+        fi
         return 1
     fi
 
     local image_ref="${TETHYS_REPO}:${TETHYS_TAG}"
 
     # Does the image already exist locally?
-    if docker image inspect "$image_ref" >/dev/null 2>&1; then
+    if ${DOCKER_CMD} image inspect "$image_ref" >/dev/null 2>&1; then
         echo -e "  ${INFO_MARK} Found local image ${BCyan}$image_ref${Color_Off}"
         while true; do
             echo -ne "  ${ARROW} Use local copy (L) or Pull latest from registry (P)? [L/P]: "
@@ -413,7 +426,7 @@ select_tethys_image_source() {
                 [Pp]* )
                     echo -e "  ${INFO_MARK} ${BYellow}Pulling image – this may take a moment…${Color_Off}"
                     show_loading "Downloading Tethys image" 3
-                    docker pull "$image_ref" && return 0
+                    ${DOCKER_CMD} pull "$image_ref" && return 0
                     echo -e "  ${CROSS_MARK} ${BRed}Failed to pull $image_ref${Color_Off}"
                     return 1 ;;
                 * )
@@ -424,7 +437,7 @@ select_tethys_image_source() {
         # No local image – pull automatically
         echo -e "  ${INFO_MARK} ${BYellow}Image not found locally – pulling $image_ref…${Color_Off}"
         show_loading "Downloading Tethys image" 3
-        docker pull "$image_ref" && return 0
+        ${DOCKER_CMD} pull "$image_ref" && return 0
         echo -e "  ${CROSS_MARK} ${BRed}Failed to pull $image_ref${Color_Off}"
         return 1
     fi
@@ -434,22 +447,26 @@ tear_down() {
     echo -e "\n${ARROW} ${BYellow}Cleaning up resources...${Color_Off}"
     
     # Check if Docker daemon is running
-    if ! docker info >/dev/null 2>&1; then
-        echo -e "  ${CROSS_MARK} ${BRed}Docker daemon is not running, cannot clean up containers.${Color_Off}"
+    if ! ${DOCKER_CMD} info >/dev/null 2>&1; then
+        if [ "${DOCKER_CMD}" == 'docker' ]; then
+            echo -e "  ${CROSS_MARK} ${BRed}Docker daemon is not running or accessible.${Color_Off}"
+        else
+            echo -e "  ${CROSS_MARK} ${BRed}Command \"${DOCKER_CMD} info\" failed, container runtime inoperative.${Color_Off}"
+        fi
         return 1
     fi
     
     # Stop the Tethys container if it's running
-    if docker ps -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
+    if ${DOCKER_CMD} ps -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
         echo -e "  ${INFO_MARK} Stopping Tethys container..."
-        docker stop "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1
+        ${DOCKER_CMD} stop "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1
         sleep 2
     fi
     
     # Remove the Docker network if it exists
-    if docker network inspect "$DOCKER_NETWORK" >/dev/null 2>&1; then
-        echo -e "  ${INFO_MARK} Removing Docker network..."
-        docker network rm "$DOCKER_NETWORK" >/dev/null 2>&1 || true
+    if ${DOCKER_CMD} network inspect "$DOCKER_NETWORK" >/dev/null 2>&1; then
+        echo -e "  ${INFO_MARK} Removing container network..."
+        ${DOCKER_CMD} network rm "$DOCKER_NETWORK" >/dev/null 2>&1 || true
     fi
     
     echo -e "  ${CHECK_MARK} ${BGreen}Cleanup completed${Color_Off}"
@@ -557,15 +574,15 @@ add_model_run() {
     local jq_exec
     if command -v jq >/dev/null 2>&1; then
         jq_exec="jq"
-    elif command -v docker >/dev/null 2>&1; then
+    elif command -v ${DOCKER_CMD} >/dev/null 2>&1; then
         local jq_image="ghcr.io/jqlang/jq:latest"
-        docker image inspect "$jq_image" >/dev/null 2>&1 || {
+        ${DOCKER_CMD} image inspect "$jq_image" >/dev/null 2>&1 || {
             echo -e "  ${INFO_MARK} ${BYellow}Pulling jq helper image…${Color_Off}"
-            docker pull "$jq_image" >/dev/null
+            ${DOCKER_CMD} pull "$jq_image" >/dev/null
         }
-        jq_exec="docker run --rm -i $jq_image"
+        jq_exec="${DOCKER_CMD} run --rm -i $jq_image"
     else
-        echo -e "  ${CROSS_MARK} ${BRed}jq is required, but neither jq nor Docker is available.${Color_Off}"
+        echo -e "  ${CROSS_MARK} ${BRed}jq is required, but neither jq nor ${DOCKER_CMD^} is available.${Color_Off}"
         return 1
     fi
 
@@ -674,22 +691,24 @@ print_usage() {
     echo -e "${BYellow}Options:${Color_Off}"
     echo -e "${BCyan}  -d [path]:${Color_Off} Designates the provided path as the data directory to import into the visualizer."
     echo -e "${BCyan}  -h:${Color_Off} Displays usage information, then exits."
-    echo -e "${BCyan}  -i [image]:${Color_Off} Specifies which Docker image of the visualizer to run."
+    echo -e "${BCyan}  -i [image]:${Color_Off} Specifies which container image of the visualizer to run."
     echo -e "${BCyan}  -n:${Color_Off} Launches the visualizer immediately without importing a data directory."
+    echo -e "${BCyan}  -p:${Color_Off} Use Podman instead of Docker."
     echo -e "${BCyan}  -r:${Color_Off} Retains previous console output when launching the script."
-    echo -e "${BCyan}  -t [tag]:${Color_Off} Specifies which Docker image tag of the visualizer to run."
+    echo -e "${BCyan}  -t [tag]:${Color_Off} Specifies which container image tag of the visualizer to run."
     echo -e "${BCyan}  -y:${Color_Off} Immediately requests to import a data directory."
 }
 
 
 # Pre-script execution
-while getopts 'd:hi:nrt:y' flag; do
+while getopts 'd:hi:nprt:y' flag; do
     case "${flag}" in
         d) DATA_FOLDER_PATH="${OPTARG}" ;;
         h) print_usage
            exit 1 ;;
         i) TETHYS_REPO="${OPTARG}" ;;
         n) IMPORT_GAGE="no";;
+        p) DOCKER_CMD="podman" ;;
         r) CLEAR_CONSOLE=false ;;
         t) TETHYS_TAG="${OPTARG}" ;;
         y) IMPORT_GAGE="yes" ;;

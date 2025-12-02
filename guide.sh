@@ -54,6 +54,7 @@ TETHYS_SCRIPT="./viewOnTethys.sh"
 TEEHR_SCRIPT="./runTeehr.sh"
 
 # Container and image constants
+DOCKER_CMD="docker"
 NGEN_IMAGE_NAME="awiciroh/ciroh-ngen-image"
 NGEN_IMAGE_TAG="latest"
 # (The rest of these are solely used to manage shutdowns)
@@ -173,18 +174,20 @@ print_usage() {
     echo -e "${BCyan}  -d [path]:${Color_Off} Designates the provided path as the data directory to import into the visualizer."
     echo -e "${BCyan}  -h:${Color_Off} Displays usage information, then exits."
     echo -e "${BCyan}  -i [image]:${Color_Off} Specifies which Docker image of NGIAB to run."
+    echo -e "${BCyan}  -p:${Color_Off} Use Podman instead of Docker."
     echo -e "${BCyan}  -r:${Color_Off} Retains previous console output when launching the script."
     echo -e "${BCyan}  -t [tag]:${Color_Off} Specifies which Docker image tag of NGIAB to run."
 }
 
 
 # Pre-script execution
-while getopts 'd:hi:rt:' flag; do
+while getopts 'd:phi:rt:' flag; do
     case "${flag}" in
         d) HOST_DATA_PATH="${OPTARG}" ;;
         h) print_usage
            exit 1 ;;
         i) NGEN_IMAGE_NAME="${OPTARG}" ;;
+        p) DOCKER_CMD="podman" ;;
         r) CLEAR_CONSOLE=false ;;
         t) NGEN_IMAGE_TAG="${OPTARG}"
            CUSTOM_TAG_USED=true ;;
@@ -415,12 +418,12 @@ echo -e "  ${INFO_MARK} Operating System: ${BCyan}$os_name${Color_Off}"
 echo -e "  ${INFO_MARK} Architecture: ${BCyan}$system_arch${Color_Off}"
 
 # Docker detection with better error handling
-echo -e "\n${ARROW} ${BWhite}Checking for Docker:${Color_Off}"
-if command -v docker >/dev/null 2>&1; then
-    docker_version=$(docker --version | cut -d' ' -f3 | sed 's/,//')
-    echo -e "  ${CHECK_MARK} Docker detected (version: ${BGreen}$docker_version${Color_Off})"
+echo -e "\n${ARROW} ${BWhite}Checking for ${DOCKER_CMD^}:${Color_Off}"
+if command -v $DOCKER_CMD >/dev/null 2>&1; then
+    docker_version=$($DOCKER_CMD --version | cut -d' ' -f3 | sed 's/,//')
+    echo -e "  ${CHECK_MARK} $DOCKER_CMD detected (version: ${BGreen}$docker_version${Color_Off})"
 else
-    handle_error "Docker not found. This script requires Docker to run the NextGen model."
+    handle_error "$DOCKER_CMD not found. This script requires Docker or Podman to run the NextGen model."
 fi
 
 # Model run options with improved visuals
@@ -430,18 +433,18 @@ IMAGE_NAME="$NGEN_IMAGE_NAME:$NGEN_IMAGE_TAG"
 $CUSTOM_TAG_USED && echo -e "  ${CHECK_MARK} Using specified tag: ${BGreen}$IMAGE_NAME${Color_Off}\n"
 
 echo -e "${ARROW} ${BWhite}Please select an option to proceed:${Color_Off}\n"
-options=("Run NextGen using existing local docker image" "Update to latest docker image and run" "Exit")
+options=("Run NextGen using existing local container image" "Update to latest container image and run" "Exit")
 select option in "${options[@]}"; do
     case $option in
-        "Run NextGen using existing local docker image")
-            echo -e "\n${CHECK_MARK} ${BGreen}Using existing Docker image${Color_Off}"
+        "Run NextGen using existing local container image")
+            echo -e "\n${CHECK_MARK} ${BGreen}Using existing container image${Color_Off}"
             break
             ;;
-        "Update to latest docker image and run")
-            echo -e "\n${ARROW} ${BYellow}Updating Docker image...${Color_Off}"
+        "Update to latest container image and run")
+            echo -e "\n${ARROW} ${BYellow}Updating container image...${Color_Off}"
             show_loading "Downloading latest NextGen image" 3
             docker pull $IMAGE_NAME
-            echo -e "${CHECK_MARK} ${BGreen}Docker image updated successfully${Color_Off}"
+            echo -e "${CHECK_MARK} ${BGreen}Container image updated successfully${Color_Off}"
             break
             ;;
         "Exit")
@@ -459,13 +462,14 @@ print_section_header "RUNNING NEXTGEN MODEL SIMULATION"
 echo -e "${ARROW} ${BWhite}Preparing to run NextGen model...${Color_Off}"
 echo -e "  ${INFO_MARK} ${BCyan}Local directory: ${BWhite}$HOST_DATA_PATH${Color_Off}"
 echo -e "  ${INFO_MARK} ${BCyan}Container directory: ${BWhite}/ngen/ngen/data${Color_Off}"
-echo -e "  ${INFO_MARK} ${BCyan}Docker image: ${BWhite}$IMAGE_NAME${Color_Off}"
+echo -e "  ${INFO_MARK} ${BCyan}Container image: ${BWhite}$IMAGE_NAME${Color_Off}"
 
 # Pause for visual confirmation
 sleep 2
 
 echo -e "\n${ARROW} ${BYellow}Launching NextGen container...${Color_Off}"
-docker run --rm -it -v "$HOST_DATA_PATH:/ngen/ngen/data" "$IMAGE_NAME" /ngen/ngen/data/
+echo $DOCKER_CMD run --rm -it -v "$HOST_DATA_PATH:/ngen/ngen/data" "$IMAGE_NAME" /ngen/ngen/data/
+$DOCKER_CMD run --rm -it -v "$HOST_DATA_PATH:/ngen/ngen/data" "$IMAGE_NAME" /ngen/ngen/data/
 
 # Final output count with improved presentation
 print_section_header "SIMULATION RESULTS"
@@ -546,7 +550,7 @@ if [ $Final_Outputs_Count -gt 0 ]; then
             print_section_header "RUNNING TEEHR EVALUATION"
             
             echo -e "${ARROW} ${BYellow}Launching TEEHR evaluation...${Color_Off}\n"
-            docker run -v "$HOST_DATA_PATH:/app/data" "$IMAGE_NAME:$teehr_image_tag"
+            $DOCKER_CMD run -v "$HOST_DATA_PATH:/app/data" "$IMAGE_NAME:$teehr_image_tag"
             
             echo -e "\n${BG_Green}${BWhite} TEEHR EVALUATION COMPLETE ${Color_Off}"
             echo -e "${INFO_MARK} ${BCyan}Results have been saved to your output directory${Color_Off}"
