@@ -428,17 +428,3 @@ assignees: ''
 
 
 ---
-
-**13. For CIROH/NGIAB Team Use Only**
-
-#### Review Status
-
-- [ ] Initial review completed
-- [ ] Technical feasibility assessed
-- [ ] Integration plan developed
-- [ ] Assigned to developer: _______________
-- [ ] Target milestone: _______________
-
-#### Notes
-
-> [Internal notes from review team]
