@@ -149,7 +149,7 @@ assignees: ''
   
   > Example:
   > - Precipitation (mm/hr)
-  > - Temperature (°C)
+  > - Temperature (deg C)
   > - Soil moisture (-)
 
 - [ ] **Sample Input Data Provided:**
