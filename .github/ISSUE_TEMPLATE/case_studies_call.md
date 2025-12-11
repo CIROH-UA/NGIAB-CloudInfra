@@ -1,6 +1,6 @@
 ---
 name: Cloud Resources Request Form
-about: PI leading CIROH projects may use this form to request cloud computing resources (AWS or Google Cloud) or APIs access. Access is available to all consortium members and partners.
+about: PI leading CIROH projects may use this form to request cloud computing resources (AWS or Google Cloud) or API access. Access is available to all consortium members and partners.
 title: ''
 labels: infrastructure
 assignees: ''
