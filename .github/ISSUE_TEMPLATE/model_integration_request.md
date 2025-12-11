@@ -224,7 +224,7 @@ assignees: ''
   
   > Example:
   > - NSE: 0.85
-  > - RMSE: 2.3 m³/s
+  > - RMSE: 2.3 m^3/s
   > - Bias: -5%
 
 ---
