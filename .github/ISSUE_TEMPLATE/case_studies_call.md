@@ -113,5 +113,5 @@ Only required for AWS and GCP access. Ignore for others.
  <!-- Respond here! -->
  
 **9.	Approval:** 
-Our current process is to get the request approved from management, and it might take 2-3 weeks before we can give you access. 
+Requests require management approval, which typically takes 2-3 weeks to process before access is granted.
 <!-- Respond here! -->
