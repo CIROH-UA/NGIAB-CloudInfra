@@ -426,8 +426,6 @@ assignees: ''
 - [ ] I am authorized to submit this model for integration
 - [ ] I agree to provide reasonable support during integration
 
-**Signature:** _______________  
-**Date:** _______________
 
 ---
 
