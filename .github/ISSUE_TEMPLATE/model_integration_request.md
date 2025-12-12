@@ -241,7 +241,7 @@ assignees: ''
 
 - [ ] **Special Container Requirements:**
   
-  > [List any special needs like GPU support, large memory, etc.]
+  > [List any special needs like GPU support, large memory, specific base images, or changes needed to the Dockerfile]
 
 #### HPC/Singularity Considerations
 
@@ -328,6 +328,8 @@ assignees: ''
   - [ ] Grid-based (specify resolution): _______________
   - [ ] Point-based
   - [ ] Other: _______________
+        
+- [ ] **Required Input Variables:** (List all required input variables with units)
 
 #### NextGen Framework Integration
 
@@ -381,6 +383,8 @@ assignees: ''
 - [ ] **Example Use Cases:**
   
   > [Describe 1-2 specific scenarios where this model would be valuable]
+
+#### Model runtime cost (e.g., time/memory/cpu cost to forward for X catchments and T timesteps) 
 
 #### Additional Notes
 
