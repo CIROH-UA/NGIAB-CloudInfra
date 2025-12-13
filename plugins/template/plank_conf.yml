@@ -1,0 +1,8 @@
+# plank_conf.yml
+
+# Name of this plank. Required.
+plank_name: template
+
+# The name of the target plankset. Required.
+# Used as a compatibility check for improved error messaging.
+plankset_name: NGIAB_CloudInfra

@@ -21,6 +21,9 @@ ENV UV_COMPILE_BYTECODE=1
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 RUN uv self update
 
+#@plankgap after_base
+
+
 FROM base AS build_base
 # no dnf update to keep devel packages consistent with versions installed in base
 RUN echo "max_parallel_downloads=10" >> /etc/dnf/dnf.conf
@@ -32,6 +35,8 @@ RUN dnf install -y epel-release && \
     expat-devel flex bison udunits2-devel zlib-devel \
     wget mpich-devel hdf5-devel netcdf-devel \
     netcdf-fortran-devel netcdf-cxx-devel lld clang
+    
+#@plankgap after_build_base
 
 
 
@@ -83,6 +88,9 @@ RUN uv pip install --no-build-isolation --config-setting='--build-option=--use-c
 RUN uv build --wheel --no-build-isolation --config-setting='--build-option=--use-cython' src/troute-routing/
 RUN uv build --wheel --no-build-isolation src/troute-config/
 RUN uv build --wheel --no-build-isolation src/troute-nwm/
+
+#@plankgap after_troute_build
+
 
 FROM troute_prebuild AS ngen_clone
 WORKDIR /ngen
@@ -136,6 +144,8 @@ RUN cmake -G Ninja -B cmake_build_parallel -S . ${COMMON_BUILD_ARGS} ${MPI_BUILD
     cmake --build cmake_build_parallel --target all -- -j $(nproc)
 
 
+#@plankgap after_ngen_build
+
 
 FROM ngen_build AS restructure_files
 # Setup final directories and permissions
@@ -150,6 +160,8 @@ RUN mkdir -p /dmod/datasets /dmod/datasets/static /dmod/shared_libs /dmod/bin /d
     cd /dmod/bin && \
     (stat ngen-parallel && ln -s ngen-parallel ngen) || (stat ngen-serial && ln -s ngen-serial ngen)
 
+
+#@plankgap after_restructure_files
 
 
 FROM restructure_files AS dev
@@ -185,7 +197,7 @@ RUN git clone --depth=1 --branch v0.1.2 https://github.com/ciroh-ua/rust-lstm-10
 WORKDIR /build/rust-lstm-1025
 RUN cargo build --release
 
-FROM base AS final
+FROM base AS prefinal
 
 WORKDIR /ngen
 
@@ -231,6 +243,10 @@ COPY --from=burn_lstm /build/rust-lstm-1025/target/release/librust_lstm_1025.so 
 ## add some metadata to the image
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url
 COPY --from=ngen_build /tmp/ngen_url /ngen/ngen_url
+
+#@plankgap after_prefinal
+
+FROM prefinal AS final
 
 RUN echo "export PS1='\u\[\033[01;32m\]@ngiab_dev\[\033[00m\]:\[\033[01;35m\]\W\[\033[00m\]\$ '" >> ~/.bashrc
 

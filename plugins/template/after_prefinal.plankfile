@@ -1,0 +1,3 @@
+# An empty template! Place Dockerfile code in here.
+# This plankfile should be used to move your build files to their
+# final locations in the finished image.

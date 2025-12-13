@@ -56,6 +56,7 @@ TEEHR_SCRIPT="./runTeehr.sh"
 # Container and image constants
 NGEN_IMAGE_NAME="awiciroh/ciroh-ngen-image"
 NGEN_IMAGE_TAG="latest"
+NGEN_IMAGE_DEV_TAG="local"
 # (The rest of these are solely used to manage shutdowns)
 DOCKER_NETWORK="tethys-network"
 TETHYS_CONTAINER_NAME="tethys-ngen-portal"
@@ -430,10 +431,10 @@ IMAGE_NAME="$NGEN_IMAGE_NAME:$NGEN_IMAGE_TAG"
 $CUSTOM_TAG_USED && echo -e "  ${CHECK_MARK} Using specified tag: ${BGreen}$IMAGE_NAME${Color_Off}\n"
 
 echo -e "${ARROW} ${BWhite}Please select an option to proceed:${Color_Off}\n"
-options=("Run NextGen using existing local docker image" "Update to latest docker image and run" "Exit")
+options=("Run NextGen using existing download of docker image" "Update to latest docker image and run" "Run NextGen using local development image (advanced)" "Exit")
 select option in "${options[@]}"; do
     case $option in
-        "Run NextGen using existing local docker image")
+        "Run NextGen using existing download of docker image")
             echo -e "\n${CHECK_MARK} ${BGreen}Using existing Docker image${Color_Off}"
             break
             ;;
@@ -442,6 +443,12 @@ select option in "${options[@]}"; do
             show_loading "Downloading latest NextGen image" 3
             docker pull $IMAGE_NAME
             echo -e "${CHECK_MARK} ${BGreen}Docker image updated successfully${Color_Off}"
+            break
+            ;;
+        "Run NextGen using local development image (advanced)")
+            echo -e "\n${CHECK_MARK} ${BGreen}Using local development Docker image${Color_Off}"
+            echo -e "\n${INFO_MARK} ${BBlue}If running the local development image fails, try rebuilding it using `dev.sh`.${Color_Off}"
+            NGEN_IMAGE_TAG=$NGEN_IMAGE_DEV_TAG
             break
             ;;
         "Exit")

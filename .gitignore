@@ -4,6 +4,12 @@
 # Local .terraform directories
 **/.terraform/*
 
+# dev.sh configuration
+conf_dev.yml
+plugins/*
+!plugins/template/
+!plugins/plankset_conf.yml
+
 # .tfstate files
 *.tfstate
 *.tfstate.*

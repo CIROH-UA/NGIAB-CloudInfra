@@ -1,0 +1,29 @@
+# plankset_conf.yml
+# Configuration for the set of plug-ins applied by dev.sh.
+
+# Name of this plankset.
+# Required.
+plankset_name: NGIAB_CloudInfra
+
+# Whether to separate new plank content into distinct build stages.
+# If true, then each build stage may have only one plankgap,
+# and only at the end of the build stage.
+# Required.
+apply_nested_stages: true
+
+# The location of the target dockerfile to modify.
+# Required.
+target_path: "../docker/Dockerfile"
+
+# The destination to write the modified dockerfile to.
+# Required.
+destination_path: "./Dockerfile"
+
+# Which directory to read the planks from.
+# Required. ("./" strongly recommended.)
+planks_path: "./"
+
+# Which plank ids from the directory to exclude, as a YAML list.
+# If not set, defaults to an empty list.
+exclude:
+- template
