@@ -138,11 +138,11 @@ WORKDIR /ngen/ngen
 
 ENV FC=/usr/bin/gfortran
 WORKDIR /sundials
-ENV sundials_version=7.5.0
-RUN wget https://github.com/LLNL/sundials/releases/download/v${sundials_version}/sundials-${sundials_version}.tar.gz && \
-    tar -xzf sundials-${sundials_version}.tar.gz && \
-    rm sundials-${sundials_version}.tar.gz
-RUN cmake -G Ninja -B build_sundials sundials-${sundials_version} -DEXAMPLES_ENABLE_C=OFF -DEXAMPLES_ENABLE_F2003=OFF -DBUILD_FORTRAN_MODULE_INTERFACE=ON -DCMAKE_Fortran_COMPILER=gfortran -DCMAKE_INSTALL_PREFIX=/sundials/install && cmake --build build_sundials --target all -- -j $(nproc) && cmake --build build_sundials --target install
+ENV SUNDIALS_VERSION=7.5.0
+RUN wget https://github.com/LLNL/sundials/releases/download/v${SUNDIALS_VERSION}/sundials-${SUNDIALS_VERSION}.tar.gz && \
+    tar -xzf sundials-${SUNDIALS_VERSION}.tar.gz && \
+    rm sundials-${SUNDIALS_VERSION}.tar.gz
+RUN cmake -G Ninja -B build_sundials sundials-${SUNDIALS_VERSION} -DEXAMPLES_ENABLE_C=OFF -DEXAMPLES_ENABLE_F2003=OFF -DBUILD_FORTRAN_MODULE_INTERFACE=ON -DCMAKE_Fortran_COMPILER=gfortran -DCMAKE_INSTALL_PREFIX=/sundials/install && cmake --build build_sundials --target all -- -j $(nproc) && cmake --build build_sundials --target install
 
 
 FROM build_sundials AS build_summa
