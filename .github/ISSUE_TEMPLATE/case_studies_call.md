@@ -19,7 +19,7 @@ This should include the name and contact information of the person making the re
 **2.	Project Information:** 
 Provide CIROH project name associated with this research work along with 
 
-- CIROH Project Number: <!-- Respond here! -->
+- CIROH Project Number (as per smartsheet): <!-- Respond here! -->
 - CIROH Project Name: <!-- Respond here! -->
 
 **3.  Project Description:**
