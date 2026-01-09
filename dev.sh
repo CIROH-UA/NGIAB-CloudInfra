@@ -44,6 +44,10 @@ ARROW="${LORANGE}→${Color_Off}"
 INFO_MARK="${LBLUE}ℹ${Color_Off}"
 WARNING_MARK="${BYellow}⚠${Color_Off}"
 
+# Docker image names
+PLANKS_IMAGE="Sheargrub/planks_docker"
+PLANKS_TAG="dev"
+
 # Fix for missing environment variables that might cause display issues
 export TERM=xterm-256color
 
@@ -131,19 +135,10 @@ apply_repos() {
 }
 
 rebuild_local_image() {
-    if [ ! -f ./plugins/planks_docker ]; then
-        echo -e "${ARROW_MARK} ${BYellow}Planks for Docker not installed. Downloading and building...${Color_Off}"
-        git clone https://github.com/Sheargrub/planks_docker.git
-        cd planks_docker
-        cargo build --release
-        cd ..
-        mv planks_docker/target/release/planks_docker plugins/planks_docker
-        rm -rf planks_docker
-        echo -e "${CHECK_MARK} ${BGREEN}Done!${Color_Off}"
-    fi
+    # TODO: Image selection logic
 
     echo -e "${ARROW_MARK} ${BYellow}Running Planks for Docker to apply plug-ins...${Color_Off}"
-    ./plugins/planks_docker ./plugins/plankset_conf.yml
+    docker run --rm -it -v "$(pwd):/host_data/" "$PLANKS_IMAGE:$PLANKS_TAG"
     echo -e "${CHECK_MARK} ${BGreen}Plug-ins applied!${Color_Off}"
 
     echo -e "${ARROW_MARK} ${BYellow}Applying development repos for ngen and t-route...${Color_Off}"
