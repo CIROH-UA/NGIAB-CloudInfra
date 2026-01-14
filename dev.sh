@@ -45,8 +45,8 @@ INFO_MARK="${LBLUE}ℹ${Color_Off}"
 WARNING_MARK="${BYellow}⚠${Color_Off}"
 
 # Docker image names
-PLANKS_IMAGE="Sheargrub/planks_docker"
-PLANKS_TAG="dev"
+PLANKS_IMAGE="sheargrub/planks_docker"
+PLANKS_TAG="v1.0"
 
 # Fix for missing environment variables that might cause display issues
 export TERM=xterm-256color
@@ -138,7 +138,7 @@ rebuild_local_image() {
     # TODO: Image selection logic
 
     echo -e "${ARROW_MARK} ${BYellow}Running Planks for Docker to apply plug-ins...${Color_Off}"
-    docker run --rm -it -v "$(pwd):/host_data/" "$PLANKS_IMAGE:$PLANKS_TAG"
+    docker run --rm -it -v "$(pwd):/host_data/" "$PLANKS_IMAGE:$PLANKS_TAG" "/host_data/plugins/plankset_conf.yml"
     echo -e "${CHECK_MARK} ${BGreen}Plug-ins applied!${Color_Off}"
 
     echo -e "${ARROW_MARK} ${BYellow}Applying development repos for ngen and t-route...${Color_Off}"
