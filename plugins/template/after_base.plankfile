@@ -1,2 +1,2 @@
 # An empty template! Place Dockerfile code in here.
-# This plankfile is a good place to import global dependencies.
+# This plankfile is a good place to define environment variables or import global dependencies.
