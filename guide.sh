@@ -449,6 +449,7 @@ select option in "${options[@]}"; do
             echo -e "\n${CHECK_MARK} ${BGreen}Using local development Docker image${Color_Off}"
             echo -e "\n${INFO_MARK} ${BBlue}If running the local development image fails, try rebuilding it using `dev.sh`.${Color_Off}"
             NGEN_IMAGE_TAG=$NGEN_IMAGE_DEV_TAG
+            IMAGE_NAME="$NGEN_IMAGE_NAME:$NGEN_IMAGE_TAG"
             break
             ;;
         "Exit")
