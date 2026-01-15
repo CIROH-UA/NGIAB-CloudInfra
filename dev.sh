@@ -109,22 +109,22 @@ init_conf_dev() {
 
 apply_ngen_repo() {
     name=$(awk '/NGEN_DEV_REPO/ {print $2}' conf_dev.yml)
-    sed -i "s?ENV NGEN_REPO=CIROH-UA/ngen?ENV NGEN_REPO=${name}?" ./plugins/Dockerfile
+    sed -i "" -e "s?ENV NGEN_REPO=CIROH-UA/ngen?ENV NGEN_REPO=${name}?" ./plugins/Dockerfile
 }
 
 apply_ngen_branch() {
     name=$(awk '/NGEN_DEV_BRANCH/ {print $2}' conf_dev.yml)
-    sed -i "s?ENV NGEN_BRANCH=ngiab?ENV NGEN_BRANCH=${name}?" ./plugins/Dockerfile
+    sed -i "" -e "s?ENV NGEN_BRANCH=ngiab?ENV NGEN_BRANCH=${name}?" ./plugins/Dockerfile
 }
 
 apply_troute_repo() {
     name=$(awk '/TROUTE_DEV_REPO/ {print $2}' conf_dev.yml)
-    sed -i "s?ENV TROUTE_REPO=CIROH-UA/t-route?ENV TROUTE_REPO=${name}?" ./plugins/Dockerfile
+    sed -i "" -e "s?ENV TROUTE_REPO=CIROH-UA/t-route?ENV TROUTE_REPO=${name}?" ./plugins/Dockerfile
 }
 
 apply_troute_branch() {
     name=$(awk '/TROUTE_DEV_BRANCH/ {print $2}' conf_dev.yml)
-    sed -i "s?ENV TROUTE_BRANCH=ngiab?ENV TROUTE_BRANCH=${name}?" ./plugins/Dockerfile
+    sed -i "" -e "s?ENV TROUTE_BRANCH=ngiab?ENV TROUTE_BRANCH=${name}?" ./plugins/Dockerfile
 }
 
 apply_repos() {
@@ -164,7 +164,7 @@ create_new_plugin() {
     done
     
     cp -r ./plugins/template ./plugins/$plugin_name
-    sed -i "s?plank_name: template?plank_name: ${plugin_name}?" ./plugins/$plugin_name/plank_conf.yml
+    sed -i "" -e "s?plank_name: template?plank_name: ${plugin_name}?" ./plugins/$plugin_name/plank_conf.yml
 
     echo -e "  ${CHECK_MARK} ${BGreen}New plug-in '$plugin_name' created from template!${Color_Off}"
 }
@@ -175,8 +175,8 @@ set_ngen_repo() {
     echo -ne "  ${ARROW} Enter your preferred branch: "
     read -e ngen_branch
 
-    sed -i "/NGEN_DEV_REPO:/d" ./conf_dev.yml
-    sed -i "/NGEN_DEV_BRANCH:/d" ./conf_dev.yml
+    sed -i "" -e "/NGEN_DEV_REPO:/d" ./conf_dev.yml
+    sed -i "" -e "/NGEN_DEV_BRANCH:/d" ./conf_dev.yml
     echo "" >> conf_dev.yml
     echo "NGEN_DEV_REPO: ${ngen_repo}" >> conf_dev.yml
     echo "NGEN_DEV_BRANCH: ${ngen_branch}" >> conf_dev.yml
@@ -196,8 +196,8 @@ set_troute_repo() {
     echo -ne "  ${ARROW} Enter your preferred branch: "
     read -e troute_branch
 
-    sed -i "/TROUTE_DEV_REPO:/d" ./conf_dev.yml
-    sed -i "/TROUTE_DEV_BRANCH:/d" ./conf_dev.yml
+    sed -i "" -e "/TROUTE_DEV_REPO:/d" ./conf_dev.yml
+    sed -i "" -e "/TROUTE_DEV_BRANCH:/d" ./conf_dev.yml
     echo "" >> conf_dev.yml
     echo "TROUTE_DEV_REPO: ${troute_repo}" >> conf_dev.yml
     echo "TROUTE_DEV_BRANCH: ${troute_branch}" >> conf_dev.yml
