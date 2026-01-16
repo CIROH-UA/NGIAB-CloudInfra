@@ -36,11 +36,13 @@ RUN dnf install -y epel-release && \
 
 
 FROM build_base AS boost_build
-RUN wget https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.gz
-RUN tar -xzf boost_1_86_0.tar.gz
-WORKDIR /boost_1_86_0
-RUN ./bootstrap.sh && ./b2 headers
+ARG BOOST_VERSION=1.86.0
+ARG BOOST_FOLDER=boost_${BOOST_VERSION//./_}
 ENV BOOST_ROOT=/boost_1_86_0
+
+ADD --unpack https://archives.boost.io/release/${BOOST_VERSION}/source/${BOOST_FOLDER}.tar.gz /
+WORKDIR /${BOOST_FOLDER}
+RUN ./bootstrap.sh && ./b2 headers
 
 
 
