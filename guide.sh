@@ -428,7 +428,7 @@ fi
 print_section_header "MODEL EXECUTION OPTIONS"
 
 IMAGE_NAME="$NGEN_IMAGE_NAME:$NGEN_IMAGE_TAG"
-$CUSTOM_TAG_USED && echo -e "  ${CHECK_MARK} Using specified tag: ${BGreen}$IMAGE_NAME${Color_Off}\n"
+[ $CUSTOM_TAG_USED == true ] && echo -e "  ${CHECK_MARK} Using specified tag: ${BGreen}$IMAGE_NAME${Color_Off}\n"
 
 echo -e "${ARROW} ${BWhite}Please select an option to proceed:${Color_Off}\n"
 options=("Run NextGen using existing download of docker image" "Update to latest docker image and run" "Run NextGen using local development image (advanced)" "Exit")
