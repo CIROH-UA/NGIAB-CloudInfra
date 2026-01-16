@@ -1,8 +1,8 @@
+ARG TROUTE_REPO=CIROH-UA/t-route
+ARG TROUTE_BRANCH=ngiab
+ARG NGEN_REPO=CIROH-UA/ngen
+ARG NGEN_BRANCH=ngiab
 FROM rockylinux:9.1 AS base
-ENV TROUTE_REPO=CIROH-UA/t-route
-ENV TROUTE_BRANCH=ngiab
-ENV NGEN_REPO=CIROH-UA/ngen
-ENV NGEN_BRANCH=ngiab
 
 # Install final dependencies to make sure ngen is build and deployed with matching versions
 # Needed here for build caching
@@ -45,6 +45,8 @@ ENV BOOST_ROOT=/boost_1_86_0
 
 
 FROM boost_build AS troute_prebuild
+ARG TROUTE_REPO
+ARG TROUTE_BRANCH
 WORKDIR /ngen
 # troute looks for netcdf.mod in the wrong place unless we set this
 ENV FC=gfortran NETCDF=/usr/lib64/gfortran/modules/
@@ -57,14 +59,14 @@ ENV PATH="/ngen/.venv/bin:$PATH"
 ## make sure clone isn't cached if repo is updated
 ADD https://api.github.com/repos/${TROUTE_REPO}/git/refs/heads/${TROUTE_BRANCH} /tmp/version.json
 # install requirements like this so the troute clone can run in parallel with ngen download and build
-RUN uv pip install -r https://raw.githubusercontent.com/$TROUTE_REPO/refs/heads/$TROUTE_BRANCH/requirements.txt
+RUN uv pip install -r https://raw.githubusercontent.com/${TROUTE_REPO}/refs/heads/${TROUTE_BRANCH}/requirements.txt
 # this installs numpy 1.26.4 but the produced wheels install a non pinned version
 
 
 
 FROM troute_prebuild AS troute_build
 WORKDIR /ngen/t-route
-RUN git clone --depth 1 --single-branch --branch $TROUTE_BRANCH https://github.com/$TROUTE_REPO.git .
+RUN git clone --depth 1 --single-branch --branch ${TROUTE_BRANCH} https://github.com/${TROUTE_REPO}.git .
 # build and save a link to the repo used
 RUN echo $(git remote get-url origin | sed 's/\.git$//' | awk '{print $0 "/tree/" }' | tr -d '\n' && git rev-parse HEAD) >> /tmp/troute_url
 RUN git submodule update --init --depth 1
@@ -86,9 +88,11 @@ RUN uv build --wheel --no-build-isolation src/troute-nwm/
 
 FROM troute_prebuild AS ngen_clone
 WORKDIR /ngen
+ARG NGEN_REPO
+ARG NGEN_BRANCH
 ## make sure clone isn't cached if repo is updated
 ADD https://api.github.com/repos/${NGEN_REPO}/git/refs/heads/${NGEN_BRANCH} /tmp/version.json
-RUN git clone --single-branch --branch $NGEN_BRANCH https://github.com/$NGEN_REPO.git && \
+RUN git clone --single-branch --branch $NGEN_BRANCH https://github.com/${NGEN_REPO}.git && \
     cd ngen && \
     git submodule update --init --recursive --depth 1
 
