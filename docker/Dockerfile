@@ -68,10 +68,9 @@ RUN uv pip install -r https://raw.githubusercontent.com/${TROUTE_REPO}/refs/head
 
 FROM troute_prebuild AS troute_build
 WORKDIR /ngen/t-route
-RUN git clone --depth 1 --single-branch --branch ${TROUTE_BRANCH} https://github.com/${TROUTE_REPO}.git .
+ADD https://github.com/${TROUTE_REPO}.git#${TROUTE_BRANCH} /ngen/t-route
 # build and save a link to the repo used
 RUN echo $(git remote get-url origin | sed 's/\.git$//' | awk '{print $0 "/tree/" }' | tr -d '\n' && git rev-parse HEAD) >> /tmp/troute_url
-RUN git submodule update --init --depth 1
 RUN uv pip install build wheel
 
 # disable everything except the kernel builds
@@ -88,20 +87,13 @@ RUN uv build --wheel --no-build-isolation --config-setting='--build-option=--use
 RUN uv build --wheel --no-build-isolation src/troute-config/
 RUN uv build --wheel --no-build-isolation src/troute-nwm/
 
-FROM troute_prebuild AS ngen_clone
+FROM troute_prebuild AS ngen_build
 WORKDIR /ngen
 ARG NGEN_REPO
 ARG NGEN_BRANCH
-## make sure clone isn't cached if repo is updated
-ADD https://api.github.com/repos/${NGEN_REPO}/git/refs/heads/${NGEN_BRANCH} /tmp/version.json
-RUN git clone --single-branch --branch $NGEN_BRANCH https://github.com/${NGEN_REPO}.git && \
-    cd ngen && \
-    git submodule update --init --recursive --depth 1
-
-
-
-FROM ngen_clone AS ngen_build
 ENV PATH=${PATH}:/usr/lib64/mpich/bin
+
+ADD https://github.com/${NGEN_REPO}.git#${NGEN_BRANCH} /ngen/ngen
 
 WORKDIR /ngen/ngen
 RUN echo $(git remote get-url origin | sed 's/\.git$//' | awk '{print $0 "/tree/" }' | tr -d '\n' && git rev-parse HEAD) >> /tmp/ngen_url
@@ -172,7 +164,7 @@ WORKDIR /ngen
 ENTRYPOINT ["./HelloNGEN.sh"]
 
 FROM build_base AS lstm_weights
-RUN git clone --depth=1 --branch example_weights https://github.com/ciroh-ua/lstm.git /lstm_weights
+ADD https://github.com/ciroh-ua/lstm.git#example_weights /lstm_weights
 # add the rust weight conversion
 RUN uv run --with pyyaml --with numpy --with torch --extra-index-url https://download.pytorch.org/whl/cpu \
     https://raw.githubusercontent.com/CIROH-UA/rust-lstm-1025/refs/tags/v0.1.0/scripts/convert.py \
@@ -187,7 +179,7 @@ RUN dnf install -y clang
 WORKDIR /build
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
-RUN git clone --depth=1 --branch v0.1.2 https://github.com/ciroh-ua/rust-lstm-1025
+ADD https://github.com/ciroh-ua/rust-lstm-1025.git#v0.1.2 /build/rust-lstm-1025
 WORKDIR /build/rust-lstm-1025
 RUN cargo build --release
 
@@ -224,7 +216,7 @@ RUN uv pip install numpy==$(/dmod/bin/ngen --info | grep -e 'NumPy Version: ' | 
 ENV PATH="/ngen/.venv/bin:${PATH}"
 
 # Install lstm - the extra index url installs cpu-only pytorch which is ~6gb smaller
-COPY --from=ngen_clone /ngen/ngen/extern/lstm/lstm /ngen/ngen/extern/lstm
+COPY --from=ngen_build /ngen/ngen/extern/lstm/lstm /ngen/ngen/extern/lstm
 RUN uv pip install --no-cache-dir /ngen/ngen/extern/lstm --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Replace the noaa-owp example weights with jmframes
