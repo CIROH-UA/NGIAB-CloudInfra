@@ -31,14 +31,15 @@ RUN dnf install -y epel-release && \
     python3 python3-devel python3-pip \
     expat-devel flex bison udunits2-devel zlib-devel \
     wget mpich-devel hdf5-devel netcdf-devel \
-    netcdf-fortran-devel netcdf-cxx-devel lld clang
+    netcdf-fortran-devel netcdf-cxx-devel lld clang \
+    netcdf-cxx4-mpich-devel
 
 
 
 FROM build_base AS boost_build
 ARG BOOST_VERSION=1.86.0
 ARG BOOST_FOLDER=boost_${BOOST_VERSION//./_}
-ENV BOOST_ROOT=/boost_1_86_0
+ENV BOOST_ROOT=/${BOOST_FOLDER}
 
 ADD --unpack https://archives.boost.io/release/${BOOST_VERSION}/source/${BOOST_FOLDER}.tar.gz /
 WORKDIR /${BOOST_FOLDER}
@@ -61,7 +62,8 @@ ENV PATH="/ngen/.venv/bin:$PATH"
 ## make sure clone isn't cached if repo is updated
 ADD https://api.github.com/repos/${TROUTE_REPO}/git/refs/heads/${TROUTE_BRANCH} /tmp/version.json
 # install requirements like this so the troute clone can run in parallel with ngen download and build
-RUN uv pip install -r https://raw.githubusercontent.com/${TROUTE_REPO}/refs/heads/${TROUTE_BRANCH}/requirements.txt
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install -r https://raw.githubusercontent.com/${TROUTE_REPO}/refs/heads/${TROUTE_BRANCH}/requirements.txt
 # this installs numpy 1.26.4 but the produced wheels install a non pinned version
 
 
@@ -71,21 +73,22 @@ WORKDIR /ngen/t-route
 ADD https://github.com/${TROUTE_REPO}.git#${TROUTE_BRANCH} /ngen/t-route
 # build and save a link to the repo used
 RUN echo $(git remote get-url origin | sed 's/\.git$//' | awk '{print $0 "/tree/" }' | tr -d '\n' && git rev-parse HEAD) >> /tmp/troute_url
-RUN uv pip install build wheel
 
 # disable everything except the kernel builds
 RUN sed -i 's/build_[a-z]*=/#&/' compiler.sh
-
 RUN ./compiler.sh no-e
 
 # install / build using UV because it's so much faster
 # no build isolation needed because of cython namespace issues
-RUN uv pip install --config-setting='--build-option=--use-cython' src/troute-network/
-RUN uv build --wheel --config-setting='--build-option=--use-cython' src/troute-network/
-RUN uv pip install --no-build-isolation --config-setting='--build-option=--use-cython' src/troute-routing/
-RUN uv build --wheel --no-build-isolation --config-setting='--build-option=--use-cython' src/troute-routing/
-RUN uv build --wheel --no-build-isolation src/troute-config/
-RUN uv build --wheel --no-build-isolation src/troute-nwm/
+RUN --mount=type=cache,target=/root/.cache/uv <<EOF
+    uv pip install build wheel
+    uv pip install --config-setting='--build-option=--use-cython' src/troute-network/
+    uv build --wheel --config-setting='--build-option=--use-cython' src/troute-network/
+    uv pip install --no-build-isolation --config-setting='--build-option=--use-cython' src/troute-routing/
+    uv build --wheel --no-build-isolation --config-setting='--build-option=--use-cython' src/troute-routing/
+    uv build --wheel --no-build-isolation src/troute-config/
+    uv build --wheel --no-build-isolation src/troute-nwm/
+EOF
 
 FROM troute_prebuild AS ngen_build
 WORKDIR /ngen
@@ -99,8 +102,7 @@ WORKDIR /ngen/ngen
 RUN echo $(git remote get-url origin | sed 's/\.git$//' | awk '{print $0 "/tree/" }' | tr -d '\n' && git rev-parse HEAD) >> /tmp/ngen_url
 
 # Define common build arguments
-ARG COMMON_BUILD_ARGS="-DNGEN_WITH_EXTERN_ALL=ON \
-    -DNGEN_WITH_NETCDF:BOOL=ON \
+ARG COMMON_BUILD_ARGS="-DNGEN_WITH_NETCDF:BOOL=ON \
     -DNGEN_WITH_BMI_C:BOOL=ON \
     -DNGEN_WITH_BMI_FORTRAN:BOOL=ON \
     -DNGEN_WITH_PYTHON:BOOL=ON \
@@ -113,60 +115,57 @@ ARG COMMON_BUILD_ARGS="-DNGEN_WITH_EXTERN_ALL=ON \
     -DCMAKE_INSTALL_PREFIX=. \
     -DCMAKE_CXX_FLAGS='-fuse-ld=lld'"
 # lld is the linker, it's faster than the default
+ARG SERIAL_BUILD_ARGS="${COMMON_BUILD_ARGS} \
+    -DNGEN_WITH_EXTERN_ALL=ON \
+    -DNGEN_WITH_MPI:BOOL=OFF"
 
-
-# Build Ngen serial
-RUN cmake -G Ninja -B cmake_build_serial -S . ${COMMON_BUILD_ARGS} -DNGEN_WITH_MPI:BOOL=OFF && \
-    cmake --build cmake_build_serial --target all -- -j $(nproc)
-
-ARG MPI_BUILD_ARGS="-DNGEN_WITH_MPI:BOOL=ON \
+# build args using $(arch) are in RUN below so they're evaulated properly
+ARG PARALLEL_BUILD_ARGS="${COMMON_BUILD_ARGS} \
+    -DNGEN_WITH_MPI:BOOL=ON \
     -DNetCDF_ROOT=/usr/lib64/mpich \
     -DCMAKE_PREFIX_PATH=/usr/lib64/mpich \
-    -DCMAKE_LIBRARY_PATH=/usr/lib64/mpich/lib"
-# the two in the command below can't be here because the $() isn't evaulated properly
+    -DCMAKE_LIBRARY_PATH=/usr/lib64/mpich/lib \
+    -DNGEN_WITH_EXTERN_ALL=OFF"
 
+# Build Ngen serial
+RUN --mount=type=cache,id=${SERIAL_BUILD_ARGS},target=/ngen/ngen/cmake_build_serial \
+    <<EOF
+    cmake -G Ninja -B cmake_build_serial -S . ${SERIAL_BUILD_ARGS}
+    cmake --build cmake_build_serial --target all -- -j $(nproc)
+    cp cmake_build_serial/ngen /tmp/ngen-serial
+EOF
 
-# Install the mpi enabled netcdf library and build Ngen parallel with it
-RUN dnf install -y netcdf-cxx4-mpich-devel
-RUN cmake -G Ninja -B cmake_build_parallel -S . ${COMMON_BUILD_ARGS} ${MPI_BUILD_ARGS} \
+# Build Ngen parallel
+RUN --mount=type=cache,id=${PARALLEL_BUILD_ARGS},target=/ngen/ngen/cmake_build_parallel \
+    <<EOF
+    cmake -G Ninja -B cmake_build_parallel -S . ${PARALLEL_BUILD_ARGS} \
     -DNetCDF_CXX_INCLUDE_DIR=/usr/include/mpich-$(arch) \
-    -DNetCDF_INCLUDE_DIR=/usr/include/mpich-$(arch) && \
+    -DNetCDF_INCLUDE_DIR=/usr/include/mpich-$(arch)
     cmake --build cmake_build_parallel --target all -- -j $(nproc)
+    cp cmake_build_parallel/ngen /tmp/ngen-parallel
+    cp cmake_build_parallel/partitionGenerator /tmp/partitionGenerator
+EOF
 
-
-
-FROM ngen_build AS restructure_files
 # Setup final directories and permissions
-RUN mkdir -p /dmod/datasets /dmod/datasets/static /dmod/shared_libs /dmod/bin /dmod/utils/ && \
-    shopt -s globstar && \
-    cp -a ./extern/**/cmake_build/*.so* /dmod/shared_libs/. || true && \
-    cp -a ./extern/noah-owp-modular/**/*.TBL /dmod/datasets/static && \
-    cp -a ./cmake_build_parallel/ngen /dmod/bin/ngen-parallel || true && \
-    cp -a ./cmake_build_serial/ngen /dmod/bin/ngen-serial || true && \
-    cp -a ./cmake_build_parallel/partitionGenerator /dmod/bin/partitionGenerator || true && \
-    cp -ar ./utilities/* /dmod/utils/ && \
-    cd /dmod/bin && \
-    (stat ngen-parallel && ln -s ngen-parallel ngen) || (stat ngen-serial && ln -s ngen-serial ngen)
-
-
-
-FROM restructure_files AS dev
-
-COPY  HelloNGEN.sh /ngen/HelloNGEN.sh
-# Set up library path
-RUN echo "/dmod/shared_libs/" >> /etc/ld.so.conf.d/ngen.conf && ldconfig -v
-# Add mpirun to path
-ENV PATH=$PATH:/usr/lib64/mpich/bin
-# Set permissions
-RUN chmod a+x /dmod/bin/* /ngen/HelloNGEN.sh
-RUN mv /ngen/ngen /ngen/ngen_src
-WORKDIR /ngen
-ENTRYPOINT ["./HelloNGEN.sh"]
+RUN --mount=type=cache,id=${PARALLEL_BUILD_ARGS},target=/ngen/ngen/cmake_build_parallel \
+    --mount=type=cache,id=${SERIAL_BUILD_ARGS},target=/ngen/ngen/cmake_build_serial \
+    <<EOF
+    mkdir -p /dmod/datasets /dmod/datasets/static /dmod/shared_libs /dmod/bin /dmod/utils/
+    shopt -s globstar
+    cp -a ./extern/**/cmake_build/*.so* /dmod/shared_libs/.
+    cp -a ./extern/noah-owp-modular/**/*.TBL /dmod/datasets/static
+    cp -a ./cmake_build_parallel/ngen /dmod/bin/ngen-parallel
+    cp -a ./cmake_build_serial/ngen /dmod/bin/ngen-serial
+    cp -a ./cmake_build_parallel/partitionGenerator /dmod/bin/partitionGenerator
+    cp -ar ./utilities/* /dmod/utils/
+    ln -s /dmod/bin/ngen-parallel /dmod/bin/ngen
+EOF
 
 FROM build_base AS lstm_weights
 ADD https://github.com/ciroh-ua/lstm.git#example_weights /lstm_weights
 # add the rust weight conversion
-RUN uv run --with pyyaml --with numpy --with torch --extra-index-url https://download.pytorch.org/whl/cpu \
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv run --with pyyaml --with numpy --with torch --extra-index-url https://download.pytorch.org/whl/cpu \
     https://raw.githubusercontent.com/CIROH-UA/rust-lstm-1025/refs/tags/v0.1.0/scripts/convert.py \
     all /lstm_weights/trained_neuralhydrology_models/
 # replace the relative path with the absolute path in the model config files
@@ -175,7 +174,6 @@ RUN sed -i 's|\.\.|/ngen/ngen/extern/lstm|g' /lstm_weights/trained_neuralhydrolo
 
 
 FROM build_base AS burn_lstm
-RUN dnf install -y clang
 WORKDIR /build
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
@@ -189,13 +187,12 @@ WORKDIR /ngen
 
 # Copy necessary files from build stages
 COPY  HelloNGEN.sh /ngen/HelloNGEN.sh
-COPY --from=restructure_files /dmod /dmod
+COPY --from=ngen_build /dmod /dmod
 COPY --from=troute_build /ngen/t-route/src/troute-*/dist/*.whl /tmp/
 
 RUN ln -s /dmod/bin/ngen /usr/local/bin/ngen
-
-RUN uv venv && \
-    uv pip install --no-cache-dir /tmp/*.whl netCDF4==1.6.3
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv venv && uv pip install /tmp/*.whl netCDF4==1.6.3
 # Clean up some stuff, this doesn't make the image any smaller
 RUN rm -rf /tmp/*.whl
 # DONT ADD THE VENV TO THE PATH YET
@@ -209,7 +206,8 @@ RUN chmod a+x /dmod/bin/* /ngen/HelloNGEN.sh
 
 # Only here after everything else is done will the ngen binary work and provide --info
 #                                                             This mess is parsing the version number
-RUN uv pip install numpy==$(/dmod/bin/ngen --info | grep -e 'NumPy Version: ' | cut -d ':' -f 2 | uniq | xargs)
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install numpy==$(/dmod/bin/ngen --info | grep -e 'NumPy Version: ' | cut -d ':' -f 2 | uniq | xargs)
 
 # now that the only version of numpy is the one that NGen expects,
 # we can add the venv to the path so ngen can find it
@@ -217,7 +215,8 @@ ENV PATH="/ngen/.venv/bin:${PATH}"
 
 # Install lstm - the extra index url installs cpu-only pytorch which is ~6gb smaller
 COPY --from=ngen_build /ngen/ngen/extern/lstm/lstm /ngen/ngen/extern/lstm
-RUN uv pip install --no-cache-dir /ngen/ngen/extern/lstm --extra-index-url https://download.pytorch.org/whl/cpu
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install /ngen/ngen/extern/lstm --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Replace the noaa-owp example weights with jmframes
 RUN rm -rf /ngen/ngen/extern/lstm/trained_neuralhydrology_models
