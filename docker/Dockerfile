@@ -73,7 +73,6 @@ WORKDIR /ngen/t-route
 ADD https://github.com/${TROUTE_REPO}.git#${TROUTE_BRANCH} /ngen/t-route
 # build and save a link to the repo used
 RUN echo $(git remote get-url origin | sed 's/\.git$//' | awk '{print $0 "/tree/" }' | tr -d '\n' && git rev-parse HEAD) >> /tmp/troute_url
-
 # disable everything except the kernel builds
 RUN sed -i 's/build_[a-z]*=/#&/' compiler.sh
 RUN ./compiler.sh no-e
@@ -179,7 +178,10 @@ RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
 ADD https://github.com/ciroh-ua/rust-lstm-1025.git#v0.1.2 /build/rust-lstm-1025
 WORKDIR /build/rust-lstm-1025
-RUN cargo build --release
+RUN --mount=type=cache,target=/build/rust-lstm-1025/target/ \
+    --mount=type=cache,target=/usr/local/cargo/git/db \
+    --mount=type=cache,target=/usr/local/cargo/registry/ \
+    cargo build --release && cp ./target/release/librust_lstm_1025.so /tmp/librust_lstm_1025.so
 
 FROM base AS final
 
@@ -223,7 +225,7 @@ RUN rm -rf /ngen/ngen/extern/lstm/trained_neuralhydrology_models
 COPY --from=lstm_weights /lstm_weights/trained_neuralhydrology_models /ngen/ngen/extern/lstm/trained_neuralhydrology_models
 
 # Copy the rust version of the lstm over.
-COPY --from=burn_lstm /build/rust-lstm-1025/target/release/librust_lstm_1025.so /dmod/shared_libs/librust_lstm_1025.so
+COPY --from=burn_lstm /tmp/librust_lstm_1025.so /dmod/shared_libs/librust_lstm_1025.so
 
 ## add some metadata to the image
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url
