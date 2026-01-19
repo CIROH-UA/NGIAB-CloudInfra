@@ -11,9 +11,8 @@ RUN echo "max_parallel_downloads=10" >> /etc/dnf/dnf.conf && \
     dnf install -y epel-release && \
     dnf config-manager --set-enabled crb && \
     dnf install -y \
-    vim libgfortran sqlite bzip2 expat udunits2 zlib \
-    hdf5 netcdf netcdf-fortran netcdf-cxx \
-    mpich netcdf-cxx4-mpich
+    vim libgfortran sqlite udunits2 zlib \
+    hdf5 netcdf mpich netcdf-fortran netcdf-cxx4
 
 # Install UV and setup cargo bin for rust tools (uv and cargo)
 ENV PATH="/root/.cargo/bin:${PATH}"
@@ -29,12 +28,10 @@ RUN echo "max_parallel_downloads=10" >> /etc/dnf/dnf.conf
 RUN dnf install -y epel-release && \
     dnf config-manager --set-enabled crb && \
     dnf install -y \
-    sudo gcc gcc-c++ make cmake ninja-build tar git gcc-gfortran libgfortran sqlite sqlite-devel \
-    python3 python3-devel python3-pip \
-    expat-devel flex bison udunits2-devel zlib-devel \
-    wget mpich-devel hdf5-devel netcdf-devel \
-    netcdf-fortran-devel netcdf-cxx-devel lld clang \
-    netcdf-cxx4-mpich-devel
+    git sqlite-devel python3-devel python3-pip \
+    cmake ninja-build lld clang \
+    udunits2-devel mpich-devel \
+    netcdf-fortran-devel netcdf-cxx-devel netcdf-cxx4-mpich-devel
 
 # ============================================================================
 FROM build_base AS boost_build
@@ -208,7 +205,6 @@ RUN echo "/dmod/shared_libs/" >> /etc/ld.so.conf.d/ngen.conf && ldconfig -v
 
 # Add mpirun to path
 ENV PATH=$PATH:/usr/lib64/mpich/bin
-
 # Only here after everything else is done will the ngen binary work and provide --info
 #                                                             This mess is parsing the version number
 RUN --mount=type=cache,target=/root/.cache/uv \
