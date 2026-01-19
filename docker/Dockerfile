@@ -2,18 +2,19 @@ ARG TROUTE_REPO=CIROH-UA/t-route
 ARG TROUTE_BRANCH=ngiab
 ARG NGEN_REPO=CIROH-UA/ngen
 ARG NGEN_BRANCH=ngiab
-FROM rockylinux:9.1 AS base
 
-# Install final dependencies to make sure ngen is build and deployed with matching versions
-# Needed here for build caching
-RUN echo "max_parallel_downloads=10" >> /etc/dnf/dnf.conf
-RUN dnf update -y && \
+# ============================================================================
+FROM rockylinux:9.1 AS base
+# Install final dependencies to make sure ngen is built and deployed with matching versions
+RUN echo "max_parallel_downloads=10" >> /etc/dnf/dnf.conf && \
+    dnf update -y && \
     dnf install -y epel-release && \
     dnf config-manager --set-enabled crb && \
     dnf install -y \
-    vim libgfortran sqlite \
-    bzip2 expat udunits2 zlib \
-    mpich hdf5 netcdf netcdf-fortran netcdf-cxx netcdf-cxx4-mpich
+    vim libgfortran sqlite bzip2 expat udunits2 zlib \
+    hdf5 netcdf netcdf-fortran netcdf-cxx \
+    mpich netcdf-cxx4-mpich
+
 # Install UV and setup cargo bin for rust tools (uv and cargo)
 ENV PATH="/root/.cargo/bin:${PATH}"
 ENV UV_INSTALL_DIR=/root/.cargo/bin
@@ -21,6 +22,7 @@ ENV UV_COMPILE_BYTECODE=1
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 RUN uv self update
 
+# ============================================================================
 FROM base AS build_base
 # no dnf update to keep devel packages consistent with versions installed in base
 RUN echo "max_parallel_downloads=10" >> /etc/dnf/dnf.conf
@@ -34,8 +36,7 @@ RUN dnf install -y epel-release && \
     netcdf-fortran-devel netcdf-cxx-devel lld clang \
     netcdf-cxx4-mpich-devel
 
-
-
+# ============================================================================
 FROM build_base AS boost_build
 ARG BOOST_VERSION=1.86.0
 ARG BOOST_FOLDER=boost_${BOOST_VERSION//./_}
@@ -45,8 +46,7 @@ ADD --unpack https://archives.boost.io/release/${BOOST_VERSION}/source/${BOOST_F
 WORKDIR /${BOOST_FOLDER}
 RUN ./bootstrap.sh && ./b2 headers
 
-
-
+# ============================================================================
 FROM boost_build AS troute_prebuild
 ARG TROUTE_REPO
 ARG TROUTE_BRANCH
@@ -66,8 +66,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install -r https://raw.githubusercontent.com/${TROUTE_REPO}/refs/heads/${TROUTE_BRANCH}/requirements.txt
 # this installs numpy 1.26.4 but the produced wheels install a non pinned version
 
-
-
+# ============================================================================
 FROM troute_prebuild AS troute_build
 WORKDIR /ngen/t-route
 ADD https://github.com/${TROUTE_REPO}.git#${TROUTE_BRANCH} /ngen/t-route
@@ -89,6 +88,7 @@ RUN --mount=type=cache,target=/root/.cache/uv <<EOF
     uv build --wheel --no-build-isolation src/troute-nwm/
 EOF
 
+# ============================================================================
 FROM troute_prebuild AS ngen_build
 WORKDIR /ngen
 ARG NGEN_REPO
@@ -160,6 +160,7 @@ RUN --mount=type=cache,id=${PARALLEL_BUILD_ARGS},target=/ngen/ngen/cmake_build_p
     ln -s /dmod/bin/ngen-parallel /dmod/bin/ngen
 EOF
 
+# ============================================================================
 FROM build_base AS lstm_weights
 ADD https://github.com/ciroh-ua/lstm.git#example_weights /lstm_weights
 # add the rust weight conversion
@@ -171,7 +172,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 RUN shopt -s globstar
 RUN sed -i 's|\.\.|/ngen/ngen/extern/lstm|g' /lstm_weights/trained_neuralhydrology_models/**/config.yml
 
-
+# ============================================================================
 FROM build_base AS burn_lstm
 WORKDIR /build
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
@@ -183,28 +184,30 @@ RUN --mount=type=cache,target=/build/rust-lstm-1025/target/ \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
     cargo build --release && cp ./target/release/librust_lstm_1025.so /tmp/librust_lstm_1025.so
 
+# ============================================================================
 FROM base AS final
 
 WORKDIR /ngen
 
-# Copy necessary files from build stages
-COPY  HelloNGEN.sh /ngen/HelloNGEN.sh
-COPY --from=ngen_build /dmod /dmod
-COPY --from=troute_build /ngen/t-route/src/troute-*/dist/*.whl /tmp/
+## add some metadata to the image
+COPY --from=troute_build /tmp/troute_url /ngen/troute_url
+COPY --from=ngen_build /tmp/ngen_url /ngen/ngen_url
 
-RUN ln -s /dmod/bin/ngen /usr/local/bin/ngen
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv venv && uv pip install /tmp/*.whl netCDF4==1.6.3
-# Clean up some stuff, this doesn't make the image any smaller
-RUN rm -rf /tmp/*.whl
+    --mount=type=bind,from=troute_build,source=/ngen/t-route/src,target=/troute-src \
+    uv venv && \
+    uv pip install /troute-src/troute-*/dist/*.whl netCDF4==1.6.3
 # DONT ADD THE VENV TO THE PATH YET
 
+# Copy over ngen build artifacts
+COPY --from=ngen_build /dmod /dmod
+RUN ln -s /dmod/bin/ngen /usr/local/bin/ngen
+RUN chmod a+x /dmod/bin/*
 # Set up library path
 RUN echo "/dmod/shared_libs/" >> /etc/ld.so.conf.d/ngen.conf && ldconfig -v
 
 # Add mpirun to path
 ENV PATH=$PATH:/usr/lib64/mpich/bin
-RUN chmod a+x /dmod/bin/* /ngen/HelloNGEN.sh
 
 # Only here after everything else is done will the ngen binary work and provide --info
 #                                                             This mess is parsing the version number
@@ -216,20 +219,17 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 ENV PATH="/ngen/.venv/bin:${PATH}"
 
 # Install lstm - the extra index url installs cpu-only pytorch which is ~6gb smaller
-COPY --from=ngen_build /ngen/ngen/extern/lstm/lstm /ngen/ngen/extern/lstm
+COPY --from=ngen_build --exclude=trained_neuralhydrology_models /ngen/ngen/extern/lstm/lstm /ngen/ngen/extern/lstm
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install /ngen/ngen/extern/lstm --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Replace the noaa-owp example weights with jmframes
-RUN rm -rf /ngen/ngen/extern/lstm/trained_neuralhydrology_models
 COPY --from=lstm_weights /lstm_weights/trained_neuralhydrology_models /ngen/ngen/extern/lstm/trained_neuralhydrology_models
 
 # Copy the rust version of the lstm over.
 COPY --from=burn_lstm /tmp/librust_lstm_1025.so /dmod/shared_libs/librust_lstm_1025.so
 
-## add some metadata to the image
-COPY --from=troute_build /tmp/troute_url /ngen/troute_url
-COPY --from=ngen_build /tmp/ngen_url /ngen/ngen_url
+COPY --chmod=+x HelloNGEN.sh /ngen/HelloNGEN.sh
 
 RUN echo "export PS1='\u\[\033[01;32m\]@ngiab_dev\[\033[00m\]:\[\033[01;35m\]\W\[\033[00m\]\$ '" >> ~/.bashrc
 
