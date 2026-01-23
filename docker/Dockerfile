@@ -228,6 +228,15 @@ COPY --from=lstm_weights /lstm_weights/trained_neuralhydrology_models /ngen/ngen
 # Copy the rust version of the lstm over.
 COPY --from=burn_lstm /build/rust-lstm-1025/target/release/librust_lstm_1025.so /dmod/shared_libs/librust_lstm_1025.so
 
+# Install dhbv and weights
+COPY --from=ngen_clone /ngen/ngen/extern/dhbv2/dhbv2 /ngen/ngen/extern/dhbv2
+RUN dnf -y install git gcc python3-devel gcc-c++ awscli unzip
+RUN uv pip install /ngen/ngen/extern/dhbv2 --python-version 3.9
+RUN aws s3 cp s3://mhpi-spatial/mhpi-release/models/owp/dhbv_2_mts.zip ./temp/ --no-sign-request
+RUN unzip ./temp/dhbv_2_mts.zip -d ./temp
+RUN mv ./temp/dhbv_2_mts/ /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/
+RUN rm -r ./temp
+
 ## add some metadata to the image
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url
 COPY --from=ngen_build /tmp/ngen_url /ngen/ngen_url
