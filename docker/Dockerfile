@@ -13,7 +13,7 @@ RUN dnf update -y && \
     dnf install -y \
     vim libgfortran sqlite \
     bzip2 expat udunits2 zlib \
-    mpich hdf5 netcdf netcdf-fortran netcdf-cxx netcdf-cxx4-mpich
+    mpich hdf5 netcdf netcdf-fortran netcdf-cxx netcdf-cxx4-mpich python3
 # Install UV and setup cargo bin for rust tools (uv and cargo)
 ENV PATH="/root/.cargo/bin:${PATH}"
 ENV UV_INSTALL_DIR=/root/.cargo/bin
@@ -28,7 +28,7 @@ RUN dnf install -y epel-release && \
     dnf config-manager --set-enabled crb && \
     dnf install -y \
     sudo gcc gcc-c++ make cmake ninja-build tar git gcc-gfortran libgfortran sqlite sqlite-devel \
-    python3 python3-devel python3-pip \
+    python3-devel python3-pip \
     expat-devel flex bison udunits2-devel zlib-devel \
     wget mpich-devel hdf5-devel netcdf-devel \
     netcdf-fortran-devel netcdf-cxx-devel lld clang
@@ -119,7 +119,7 @@ ARG COMMON_BUILD_ARGS="-DNGEN_WITH_EXTERN_ALL=ON \
 
 # Build Ngen serial
 RUN cmake -G Ninja -B cmake_build_serial -S . ${COMMON_BUILD_ARGS} -DNGEN_WITH_MPI:BOOL=OFF && \
-    cmake --build cmake_build_serial --target all -- -j $(nproc)
+    cmake --build cmake_build_serial --target all -- -j 4
 
 ARG MPI_BUILD_ARGS="-DNGEN_WITH_MPI:BOOL=ON \
     -DNetCDF_ROOT=/usr/lib64/mpich \
@@ -133,7 +133,7 @@ RUN dnf install -y netcdf-cxx4-mpich-devel
 RUN cmake -G Ninja -B cmake_build_parallel -S . ${COMMON_BUILD_ARGS} ${MPI_BUILD_ARGS} \
     -DNetCDF_CXX_INCLUDE_DIR=/usr/include/mpich-$(arch) \
     -DNetCDF_INCLUDE_DIR=/usr/include/mpich-$(arch) && \
-    cmake --build cmake_build_parallel --target all -- -j $(nproc)
+    cmake --build cmake_build_parallel --target all -- -j 4
 
 
 
@@ -185,6 +185,51 @@ RUN git clone --depth=1 --branch v0.1.2 https://github.com/ciroh-ua/rust-lstm-10
 WORKDIR /build/rust-lstm-1025
 RUN cargo build --release
 
+
+FROM build_base AS dhbv2
+WORKDIR /tmp/build
+
+RUN mkdir /wheels
+# build wheels to avoid having to build with gcc/g++ during final image build
+# Build and repair dmg
+RUN git clone https://github.com/mhpi/generic_deltamodel.git dmg && \
+    cd dmg && \
+    uv venv && \
+    uv pip install pip wheel setuptools && \
+    uv run python3 -m pip wheel . -w /wheels
+
+# Build and repair hydrodl2
+# numpy 2.0 wheel needs to be removed because dhbv2 requires numpy ~=1.0
+RUN rm /wheels/numpy-2.0.2-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+RUN git clone https://github.com/mhpi/hydrodl2.git hydrodl2 && \
+    cd hydrodl2 && \
+    uv venv && \
+    uv pip install pip wheel setuptools && \
+    uv run python3 -m pip wheel . -w /wheels
+
+# Copy and patch dhbv2
+RUN git clone https://github.com/mhpi/dhbv2.git dhbv2 && \
+    cd dhbv2 && \
+    uv venv && \
+    uv pip install pip wheel setuptools "netcdf4==1.6.3" && \
+    uv run python3 -m pip wheel . -w /wheels
+# remove numpy 2.0 wheel again
+RUN rm /wheels/numpy-2.0.2-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+
+WORKDIR dhbv2
+
+# Patch pyproject.toml to use regular package names instead of git URLs
+RUN sed -i 's|"dmg @ git+https://github.com/mhpi/generic_deltamodel.git@master"|"dmg"|' pyproject.toml && \
+    sed -i 's|"hydrodl2 @ git+https://github.com/mhpi/hydrodl2.git@master"|"hydrodl2"|' pyproject.toml
+
+# Build dhbv2
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv build
+
+# Copy dhbv2 wheel to /wheels
+RUN cp dist/*.whl /wheels/
+
+
 FROM base AS final
 
 WORKDIR /ngen
@@ -228,14 +273,21 @@ COPY --from=lstm_weights /lstm_weights/trained_neuralhydrology_models /ngen/ngen
 # Copy the rust version of the lstm over.
 COPY --from=burn_lstm /build/rust-lstm-1025/target/release/librust_lstm_1025.so /dmod/shared_libs/librust_lstm_1025.so
 
-# Install dhbv and weights
-COPY --from=ngen_clone /ngen/ngen/extern/dhbv2/dhbv2 /ngen/ngen/extern/dhbv2
-RUN dnf -y install git gcc python3-devel gcc-c++ awscli unzip
-RUN uv pip install /ngen/ngen/extern/dhbv2 --python-version 3.9
-RUN aws s3 cp s3://mhpi-spatial/mhpi-release/models/owp/dhbv_2_mts.zip ./temp/ --no-sign-request
-RUN unzip ./temp/dhbv_2_mts.zip -d ./temp
-RUN mv ./temp/dhbv_2_mts/ /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/
-RUN rm -r ./temp
+# Install dhbv wheels
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,from=dhbv2,source=/wheels,target=/tmp/wheels \
+    uv pip install /tmp/wheels/*.whl --extra-index-url https://download.pytorch.org/whl/cpu
+
+# the incorrect netcdf4 and pydantic versions cause t-route issues
+RUN uv pip uninstall netcdf4 && uv pip install netCDF4==1.6.3
+RUN uv pip uninstall pydantic && uv pip install 'pydantic<2'
+
+# download dhbv2 weights
+RUN yum install -y unzip --allowerasing && \
+    curl -L https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2_mts.zip -o /tmp/model.zip && \
+    mkdir -p /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/ && \
+    unzip /tmp/model.zip -d /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/ && \
+    rm /tmp/model.zip
 
 ## add some metadata to the image
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url
