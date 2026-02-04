@@ -119,7 +119,7 @@ ARG COMMON_BUILD_ARGS="-DNGEN_WITH_EXTERN_ALL=ON \
 
 # Build Ngen serial
 RUN cmake -G Ninja -B cmake_build_serial -S . ${COMMON_BUILD_ARGS} -DNGEN_WITH_MPI:BOOL=OFF && \
-    cmake --build cmake_build_serial --target all -- -j $(nproc)
+    cmake --build cmake_build_serial --target all -- -j 4
 
 ARG MPI_BUILD_ARGS="-DNGEN_WITH_MPI:BOOL=ON \
     -DNetCDF_ROOT=/usr/lib64/mpich \
@@ -133,7 +133,7 @@ RUN dnf install -y netcdf-cxx4-mpich-devel
 RUN cmake -G Ninja -B cmake_build_parallel -S . ${COMMON_BUILD_ARGS} ${MPI_BUILD_ARGS} \
     -DNetCDF_CXX_INCLUDE_DIR=/usr/include/mpich-$(arch) \
     -DNetCDF_INCLUDE_DIR=/usr/include/mpich-$(arch) && \
-    cmake --build cmake_build_parallel --target all -- -j $(nproc)
+    cmake --build cmake_build_parallel --target all -- -j 4
 
 
 
@@ -213,8 +213,11 @@ RUN git clone https://github.com/mhpi/dhbv2.git dhbv2 && \
     uv venv && \
     uv pip install pip wheel setuptools "netcdf4==1.6.3" && \
     uv run python3 -m pip wheel . -w /wheels
-# remove numpy 2.0 wheel again
+# remove duplicate wheels again
 RUN rm /wheels/numpy-2.0.2-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+RUN rm /wheels/tqdm-4.67.1-py3-none-any.whl
+RUN rm /wheels/uv-0.9.28-py3-none-manylinux_2_28_aarch64.whl
+RUN rm /wheels/wcwidth-0.5.3-py3-none-any.whl
 
 WORKDIR dhbv2
 
