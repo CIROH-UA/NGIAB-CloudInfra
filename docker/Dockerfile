@@ -200,7 +200,7 @@ RUN git clone https://github.com/mhpi/generic_deltamodel.git dmg && \
 
 # Build and repair hydrodl2
 # numpy 2.0 wheel needs to be removed because dhbv2 requires numpy ~=1.0
-RUN rm /wheels/numpy-2.0.2-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+RUN rm /wheels/numpy-2*.whl
 RUN git clone https://github.com/mhpi/hydrodl2.git hydrodl2 && \
     cd hydrodl2 && \
     uv venv && \
@@ -214,10 +214,10 @@ RUN git clone https://github.com/mhpi/dhbv2.git dhbv2 && \
     uv pip install pip wheel setuptools "netcdf4==1.6.3" && \
     uv run python3 -m pip wheel . -w /wheels
 # remove duplicate wheels again
-RUN rm /wheels/numpy-2.0.2-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
-RUN rm /wheels/tqdm-4.67.1-py3-none-any.whl
-RUN rm /wheels/uv-0.9.28-py3-none-manylinux_2_28_aarch64.whl
-RUN rm /wheels/wcwidth-0.5.3-py3-none-any.whl
+RUN rm /wheels/numpy-2*.whl
+RUN rm /wheels/tqdm*.whl
+RUN rm /wheels/uv*.whl
+RUN rm /wheels/wcwidth*.whl
 
 WORKDIR dhbv2
 
