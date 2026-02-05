@@ -13,7 +13,7 @@ RUN dnf update -y && \
     dnf install -y \
     vim libgfortran sqlite \
     bzip2 expat udunits2 zlib \
-    mpich hdf5 netcdf netcdf-fortran netcdf-cxx netcdf-cxx4-mpich python3
+    mpich hdf5 netcdf netcdf-fortran netcdf-cxx netcdf-cxx4-mpich python3.11
 # Install UV and setup cargo bin for rust tools (uv and cargo)
 ENV PATH="/root/.cargo/bin:${PATH}"
 ENV UV_INSTALL_DIR=/root/.cargo/bin
@@ -28,7 +28,7 @@ RUN dnf install -y epel-release && \
     dnf config-manager --set-enabled crb && \
     dnf install -y \
     sudo gcc gcc-c++ make cmake ninja-build tar git gcc-gfortran libgfortran sqlite sqlite-devel \
-    python3-devel python3-pip \
+    python3.11-devel python3.11-pip \
     expat-devel flex bison udunits2-devel zlib-devel \
     wget mpich-devel hdf5-devel netcdf-devel \
     netcdf-fortran-devel netcdf-cxx-devel lld clang
@@ -48,11 +48,11 @@ FROM boost_build AS troute_prebuild
 WORKDIR /ngen
 # troute looks for netcdf.mod in the wrong place unless we set this
 ENV FC=gfortran NETCDF=/usr/lib64/gfortran/modules/
-# it also tries to use python instead of python3
-RUN ln -s /usr/bin/python3 /usr/bin/python
+# it also tries to use python instead of python3.11
+RUN ln -s /usr/bin/python3.11 /usr/bin/python
 
 WORKDIR /ngen/
-RUN uv venv
+RUN uv venv -p 3.11
 ENV PATH="/ngen/.venv/bin:$PATH"
 ## make sure clone isn't cached if repo is updated
 ADD https://api.github.com/repos/${TROUTE_REPO}/git/refs/heads/${TROUTE_BRANCH} /tmp/version.json
@@ -83,6 +83,8 @@ RUN uv pip install --no-build-isolation --config-setting='--build-option=--use-c
 RUN uv build --wheel --no-build-isolation --config-setting='--build-option=--use-cython' src/troute-routing/
 RUN uv build --wheel --no-build-isolation src/troute-config/
 RUN uv build --wheel --no-build-isolation src/troute-nwm/
+
+RUN mkdir /wheels && cp /ngen/t-route/src/troute-*/dist/*.whl /wheels/
 
 FROM troute_prebuild AS ngen_clone
 WORKDIR /ngen
@@ -188,66 +190,47 @@ RUN cargo build --release
 
 FROM build_base AS dhbv2
 WORKDIR /tmp/build
-
+RUN --mount=type=cache,target=/root/.cache/uv \
+    rm -rf /root/.cache/uv/*
 RUN mkdir /wheels
-# build wheels to avoid having to build with gcc/g++ during final image build
 # Build and repair dmg
-RUN git clone https://github.com/mhpi/generic_deltamodel.git dmg && \
+ADD --keep-git-dir https://github.com/mhpi/generic_deltamodel.git#320a041ef3a7bd0ed312ae84c5edd5c0dba4cab9 dmg
+RUN --mount=type=cache,target=/root/.cache/uv \
     cd dmg && \
-    uv venv && \
-    uv pip install pip wheel setuptools && \
-    uv run python3 -m pip wheel . -w /wheels
+    uv build --wheel && \
+    cp dist/*.whl /wheels/
 
 # Build and repair hydrodl2
-# numpy 2.0 wheel needs to be removed because dhbv2 requires numpy ~=1.0
-RUN rm /wheels/numpy-2*.whl
-RUN git clone https://github.com/mhpi/hydrodl2.git hydrodl2 && \
+ADD --keep-git-dir https://github.com/mhpi/hydrodl2.git#bc5fab694f503ff10f6476b92478e8830080b5e7 hydrodl2
+RUN --mount=type=cache,target=/root/.cache/uv \
     cd hydrodl2 && \
-    uv venv && \
-    uv pip install pip wheel setuptools && \
-    uv run python3 -m pip wheel . -w /wheels
+    uv build --wheel && \
+    cp dist/*.whl /wheels/
 
 # Copy and patch dhbv2
-RUN git clone https://github.com/mhpi/dhbv2.git dhbv2 && \
-    cd dhbv2 && \
-    uv venv && \
-    uv pip install pip wheel setuptools "netcdf4==1.6.3" && \
-    uv run python3 -m pip wheel . -w /wheels
-# remove duplicate wheels again
-RUN rm /wheels/numpy-2*.whl
-RUN rm /wheels/tqdm*.whl
-RUN rm /wheels/uv*.whl
-RUN rm /wheels/wcwidth*.whl
-
-WORKDIR dhbv2
-
-# Patch pyproject.toml to use regular package names instead of git URLs
-RUN sed -i 's|"dmg @ git+https://github.com/mhpi/generic_deltamodel.git@master"|"dmg"|' pyproject.toml && \
-    sed -i 's|"hydrodl2 @ git+https://github.com/mhpi/hydrodl2.git@master"|"hydrodl2"|' pyproject.toml
-
-# Build dhbv2
+ADD --keep-git-dir https://github.com/mhpi/dhbv2.git#6c762e93c14e976f76fe175bd9b41c9d39ec7dd4 dhbv2
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv build
-
-# Copy dhbv2 wheel to /wheels
-RUN cp dist/*.whl /wheels/
+    cd dhbv2 && \
+    sed -i 's|"dmg @ git+https://github.com/mhpi/generic_deltamodel.git@master"|"dmg"|' pyproject.toml && \
+    sed -i 's|"hydrodl2 @ git+https://github.com/mhpi/hydrodl2.git@master"|"hydrodl2"|' pyproject.toml && \
+    uv build --wheel && \
+    cp dist/*.whl /wheels/
 
 
 FROM base AS final
-
+ARG pinned_python_packages="netCDF4==1.6.3 pydantic<2 pandas<3"
 WORKDIR /ngen
 
 # Copy necessary files from build stages
 COPY  HelloNGEN.sh /ngen/HelloNGEN.sh
 COPY --from=restructure_files /dmod /dmod
-COPY --from=troute_build /ngen/t-route/src/troute-*/dist/*.whl /tmp/
 
 RUN ln -s /dmod/bin/ngen /usr/local/bin/ngen
 
-RUN uv venv && \
-    uv pip install --no-cache-dir /tmp/*.whl netCDF4==1.6.3
-# Clean up some stuff, this doesn't make the image any smaller
-RUN rm -rf /tmp/*.whl
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,from=troute_build,source=/wheels,target=/tmp/wheels \
+    uv venv -p 3.11 && \
+    uv pip install /tmp/wheels/*.whl ${pinned_python_packages}
 # DONT ADD THE VENV TO THE PATH YET
 
 # Set up library path
@@ -259,7 +242,8 @@ RUN chmod a+x /dmod/bin/* /ngen/HelloNGEN.sh
 
 # Only here after everything else is done will the ngen binary work and provide --info
 #                                                             This mess is parsing the version number
-RUN uv pip install numpy==$(/dmod/bin/ngen --info | grep -e 'NumPy Version: ' | cut -d ':' -f 2 | uniq | xargs)
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install numpy==$(/dmod/bin/ngen --info | grep -e 'NumPy Version: ' | cut -d ':' -f 2 | uniq | xargs)
 
 # now that the only version of numpy is the one that NGen expects,
 # we can add the venv to the path so ngen can find it
@@ -267,7 +251,8 @@ ENV PATH="/ngen/.venv/bin:${PATH}"
 
 # Install lstm - the extra index url installs cpu-only pytorch which is ~6gb smaller
 COPY --from=ngen_clone /ngen/ngen/extern/lstm/lstm /ngen/ngen/extern/lstm
-RUN uv pip install --no-cache-dir /ngen/ngen/extern/lstm --extra-index-url https://download.pytorch.org/whl/cpu
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install /ngen/ngen/extern/lstm --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Replace the noaa-owp example weights with jmframes
 RUN rm -rf /ngen/ngen/extern/lstm/trained_neuralhydrology_models
@@ -281,20 +266,14 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,from=dhbv2,source=/wheels,target=/tmp/wheels \
     uv pip install /tmp/wheels/*.whl --extra-index-url https://download.pytorch.org/whl/cpu
 
-# the incorrect netcdf4 and pydantic versions cause t-route issues
-RUN uv pip uninstall netcdf4 && uv pip install netCDF4==1.6.3
-RUN uv pip uninstall pydantic && uv pip install 'pydantic<2'
 
-# download dhbv2 weights
-RUN yum install -y unzip --allowerasing && \
-    curl -L https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2_mts.zip -o /tmp/model.zip && \
-    mkdir -p /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/ && \
-    unzip /tmp/model.zip -d /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/ && \
-    rm /tmp/model.zip
-
+ADD --unpack https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2_mts.tar.gz \
+    /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/
 ## add some metadata to the image
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url
 COPY --from=ngen_build /tmp/ngen_url /ngen/ngen_url
+# finally ensure correct python packages are installed
+RUN uv pip install ${pinned_python_packages}
 
 RUN echo "export PS1='\u\[\033[01;32m\]@ngiab_dev\[\033[00m\]:\[\033[01;35m\]\W\[\033[00m\]\$ '" >> ~/.bashrc
 
