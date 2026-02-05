@@ -194,7 +194,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     rm -rf /root/.cache/uv/*
 RUN mkdir /wheels
 # Build and repair dmg
-ADD --keep-git-dir https://github.com/mhpi/generic_deltamodel.git#997b5a96d0a2da306fac1dbcb39380113436b4ff dmg
+ADD --keep-git-dir https://github.com/mhpi/generic_deltamodel.git#320a041ef3a7bd0ed312ae84c5edd5c0dba4cab9 dmg
 RUN --mount=type=cache,target=/root/.cache/uv \
     cd dmg && \
     uv build --wheel && \
