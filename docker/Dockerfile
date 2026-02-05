@@ -192,8 +192,7 @@ RUN cargo build --release
 
 FROM build_base AS dhbv2
 WORKDIR /tmp/build
-RUN --mount=type=cache,target=/root/.cache/uv \
-    rm -rf /root/.cache/uv/*
+RUN --mount=type=cache,target=/root/.cache/uv
 RUN mkdir /wheels
 # Build and repair dmg
 ADD --keep-git-dir https://github.com/mhpi/generic_deltamodel.git#320a041ef3a7bd0ed312ae84c5edd5c0dba4cab9 dmg
