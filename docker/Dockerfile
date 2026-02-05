@@ -13,7 +13,7 @@ RUN dnf update -y && \
     dnf install -y \
     vim libgfortran sqlite \
     bzip2 expat udunits2 zlib \
-    mpich hdf5 netcdf netcdf-fortran netcdf-cxx netcdf-cxx4-mpich python3
+    mpich hdf5 netcdf netcdf-fortran netcdf-cxx netcdf-cxx4-mpich python3.11
 # Install UV and setup cargo bin for rust tools (uv and cargo)
 ENV PATH="/root/.cargo/bin:${PATH}"
 ENV UV_INSTALL_DIR=/root/.cargo/bin
@@ -28,7 +28,7 @@ RUN dnf install -y epel-release && \
     dnf config-manager --set-enabled crb && \
     dnf install -y \
     sudo gcc gcc-c++ make cmake ninja-build tar git gcc-gfortran libgfortran sqlite sqlite-devel \
-    python3-devel python3-pip \
+    python3.11-devel python3.11-pip \
     expat-devel flex bison udunits2-devel zlib-devel \
     wget mpich-devel hdf5-devel netcdf-devel \
     netcdf-fortran-devel netcdf-cxx-devel lld clang
@@ -48,11 +48,11 @@ FROM boost_build AS troute_prebuild
 WORKDIR /ngen
 # troute looks for netcdf.mod in the wrong place unless we set this
 ENV FC=gfortran NETCDF=/usr/lib64/gfortran/modules/
-# it also tries to use python instead of python3
-RUN ln -s /usr/bin/python3 /usr/bin/python
+# it also tries to use python instead of python3.11
+RUN ln -s /usr/bin/python3.11 /usr/bin/python
 
 WORKDIR /ngen/
-RUN uv venv
+RUN uv venv -p 3.11
 ENV PATH="/ngen/.venv/bin:$PATH"
 ## make sure clone isn't cached if repo is updated
 ADD https://api.github.com/repos/${TROUTE_REPO}/git/refs/heads/${TROUTE_BRANCH} /tmp/version.json
@@ -218,7 +218,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 
 FROM base AS final
-ARG pinned_python_packages="netCDF4==1.6.3 pydantic<2"
+ARG pinned_python_packages="netCDF4==1.6.3 pydantic<2 pandas<3"
 WORKDIR /ngen
 
 # Copy necessary files from build stages
@@ -229,7 +229,7 @@ RUN ln -s /dmod/bin/ngen /usr/local/bin/ngen
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,from=troute_build,source=/wheels,target=/tmp/wheels \
-    uv venv && \
+    uv venv -p 3.11 && \
     uv pip install /tmp/wheels/*.whl ${pinned_python_packages}
 # DONT ADD THE VENV TO THE PATH YET
 
