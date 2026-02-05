@@ -194,21 +194,21 @@ FROM build_base AS dhbv2
 WORKDIR /tmp/build
 RUN mkdir /wheels
 # Build and repair dmg
-ADD --keep-git-dir https://github.com/mhpi/generic_deltamodel.git#320a041ef3a7bd0ed312ae84c5edd5c0dba4cab9 dmg
+ADD --keep-git-dir https://github.com/mhpi/generic_deltamodel.git#ede7a448bff2889cb685bd491ee0d1e64fa54198 dmg
 RUN --mount=type=cache,target=/root/.cache/uv \
     cd dmg && \
     uv build --wheel && \
     cp dist/*.whl /wheels/
 
 # Build and repair hydrodl2
-ADD --keep-git-dir https://github.com/mhpi/hydrodl2.git#bc5fab694f503ff10f6476b92478e8830080b5e7 hydrodl2
+ADD --keep-git-dir https://github.com/mhpi/hydrodl2.git#7267a5a7b8909d0f4ae04d48b38b32a5e88c2146 hydrodl2
 RUN --mount=type=cache,target=/root/.cache/uv \
     cd hydrodl2 && \
     uv build --wheel && \
     cp dist/*.whl /wheels/
 
 # Copy and patch dhbv2
-ADD --keep-git-dir https://github.com/mhpi/dhbv2.git#6c762e93c14e976f76fe175bd9b41c9d39ec7dd4 dhbv2
+ADD --keep-git-dir https://github.com/mhpi/dhbv2.git#39379fd435747a3f765d1a2201d613f9f0087448 dhbv2
 RUN --mount=type=cache,target=/root/.cache/uv \
     cd dhbv2 && \
     sed -i 's|"dmg @ git+https://github.com/mhpi/generic_deltamodel.git@master"|"dmg"|' pyproject.toml && \
@@ -269,6 +269,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 ADD --unpack https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2_mts.tar.gz \
     /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/
+ADD --unpack https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2.tar.gz \
+    /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2/model/
 ## add some metadata to the image
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url
 COPY --from=ngen_build /tmp/ngen_url /ngen/ngen_url
