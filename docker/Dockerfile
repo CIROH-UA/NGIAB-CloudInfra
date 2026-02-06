@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1
+
 FROM rockylinux:9.1 AS base
 ENV TROUTE_REPO=CIROH-UA/t-route
 ENV TROUTE_BRANCH=ngiab
@@ -13,7 +15,7 @@ RUN dnf update -y && \
     dnf install -y \
     vim libgfortran sqlite \
     bzip2 expat udunits2 zlib \
-    mpich hdf5 netcdf netcdf-fortran netcdf-cxx netcdf-cxx4-mpich
+    mpich hdf5 netcdf netcdf-fortran netcdf-cxx netcdf-cxx4-mpich python3.11
 # Install UV and setup cargo bin for rust tools (uv and cargo)
 ENV PATH="/root/.cargo/bin:${PATH}"
 ENV UV_INSTALL_DIR=/root/.cargo/bin
@@ -28,7 +30,7 @@ RUN dnf install -y epel-release && \
     dnf config-manager --set-enabled crb && \
     dnf install -y \
     sudo gcc gcc-c++ make cmake ninja-build tar git gcc-gfortran libgfortran sqlite sqlite-devel \
-    python3 python3-devel python3-pip \
+    python3.11-devel python3.11-pip \
     expat-devel flex bison udunits2-devel zlib-devel \
     wget mpich-devel hdf5-devel netcdf-devel \
     netcdf-fortran-devel netcdf-cxx-devel lld clang
@@ -48,11 +50,11 @@ FROM boost_build AS troute_prebuild
 WORKDIR /ngen
 # troute looks for netcdf.mod in the wrong place unless we set this
 ENV FC=gfortran NETCDF=/usr/lib64/gfortran/modules/
-# it also tries to use python instead of python3
-RUN ln -s /usr/bin/python3 /usr/bin/python
+# it also tries to use python instead of python3.11
+RUN ln -s /usr/bin/python3.11 /usr/bin/python
 
 WORKDIR /ngen/
-RUN uv venv
+RUN uv venv -p 3.11
 ENV PATH="/ngen/.venv/bin:$PATH"
 ## make sure clone isn't cached if repo is updated
 ADD https://api.github.com/repos/${TROUTE_REPO}/git/refs/heads/${TROUTE_BRANCH} /tmp/version.json
@@ -83,6 +85,8 @@ RUN uv pip install --no-build-isolation --config-setting='--build-option=--use-c
 RUN uv build --wheel --no-build-isolation --config-setting='--build-option=--use-cython' src/troute-routing/
 RUN uv build --wheel --no-build-isolation src/troute-config/
 RUN uv build --wheel --no-build-isolation src/troute-nwm/
+
+RUN mkdir /wheels && cp /ngen/t-route/src/troute-*/dist/*.whl /wheels/
 
 FROM troute_prebuild AS ngen_clone
 WORKDIR /ngen
@@ -185,21 +189,48 @@ RUN git clone --depth=1 --branch v0.1.2 https://github.com/ciroh-ua/rust-lstm-10
 WORKDIR /build/rust-lstm-1025
 RUN cargo build --release
 
-FROM base AS final
 
+FROM build_base AS dhbv2
+WORKDIR /tmp/build
+RUN mkdir /wheels
+# Build and repair dmg
+ADD --keep-git-dir https://github.com/mhpi/generic_deltamodel.git#ede7a448bff2889cb685bd491ee0d1e64fa54198 dmg
+RUN --mount=type=cache,target=/root/.cache/uv \
+    cd dmg && \
+    uv build --wheel && \
+    cp dist/*.whl /wheels/
+
+# Build and repair hydrodl2
+ADD --keep-git-dir https://github.com/mhpi/hydrodl2.git#7267a5a7b8909d0f4ae04d48b38b32a5e88c2146 hydrodl2
+RUN --mount=type=cache,target=/root/.cache/uv \
+    cd hydrodl2 && \
+    uv build --wheel && \
+    cp dist/*.whl /wheels/
+
+# Copy and patch dhbv2
+ADD --keep-git-dir https://github.com/mhpi/dhbv2.git#39379fd435747a3f765d1a2201d613f9f0087448 dhbv2
+RUN --mount=type=cache,target=/root/.cache/uv \
+    cd dhbv2 && \
+    sed -i 's|"dmg @ git+https://github.com/mhpi/generic_deltamodel.git@master"|"dmg"|' pyproject.toml && \
+    sed -i 's|"hydrodl2 @ git+https://github.com/mhpi/hydrodl2.git@master"|"hydrodl2"|' pyproject.toml && \
+    uv build --wheel && \
+    cp dist/*.whl /wheels/
+
+
+FROM base AS final
+ARG pinned_python_packages="netCDF4==1.6.3 pydantic<2 pandas<3"
 WORKDIR /ngen
 
 # Copy necessary files from build stages
 COPY  HelloNGEN.sh /ngen/HelloNGEN.sh
 COPY --from=restructure_files /dmod /dmod
-COPY --from=troute_build /ngen/t-route/src/troute-*/dist/*.whl /tmp/
 
 RUN ln -s /dmod/bin/ngen /usr/local/bin/ngen
 
-RUN uv venv && \
-    uv pip install --no-cache-dir /tmp/*.whl netCDF4==1.6.3
-# Clean up some stuff, this doesn't make the image any smaller
-RUN rm -rf /tmp/*.whl
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,from=troute_build,source=/wheels,target=/tmp/wheels \
+    uv venv -p 3.11 && \
+    uv pip install /tmp/wheels/*.whl ${pinned_python_packages}
 # DONT ADD THE VENV TO THE PATH YET
 
 # Set up library path
@@ -211,7 +242,8 @@ RUN chmod a+x /dmod/bin/* /ngen/HelloNGEN.sh
 
 # Only here after everything else is done will the ngen binary work and provide --info
 #                                                             This mess is parsing the version number
-RUN uv pip install numpy==$(/dmod/bin/ngen --info | grep -e 'NumPy Version: ' | cut -d ':' -f 2 | uniq | xargs)
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install numpy==$(/dmod/bin/ngen --info | grep -e 'NumPy Version: ' | cut -d ':' -f 2 | uniq | xargs)
 
 # now that the only version of numpy is the one that NGen expects,
 # we can add the venv to the path so ngen can find it
@@ -219,7 +251,8 @@ ENV PATH="/ngen/.venv/bin:${PATH}"
 
 # Install lstm - the extra index url installs cpu-only pytorch which is ~6gb smaller
 COPY --from=ngen_clone /ngen/ngen/extern/lstm/lstm /ngen/ngen/extern/lstm
-RUN uv pip install --no-cache-dir /ngen/ngen/extern/lstm --extra-index-url https://download.pytorch.org/whl/cpu
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install /ngen/ngen/extern/lstm --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Replace the noaa-owp example weights with jmframes
 RUN rm -rf /ngen/ngen/extern/lstm/trained_neuralhydrology_models
@@ -228,9 +261,21 @@ COPY --from=lstm_weights /lstm_weights/trained_neuralhydrology_models /ngen/ngen
 # Copy the rust version of the lstm over.
 COPY --from=burn_lstm /build/rust-lstm-1025/target/release/librust_lstm_1025.so /dmod/shared_libs/librust_lstm_1025.so
 
+# Install dhbv wheels
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,from=dhbv2,source=/wheels,target=/tmp/wheels \
+    uv pip install /tmp/wheels/*.whl --extra-index-url https://download.pytorch.org/whl/cpu
+
+
+ADD --unpack https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2_mts.tar.gz \
+    /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/
+ADD --unpack https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2.tar.gz \
+    /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2/model/
 ## add some metadata to the image
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url
 COPY --from=ngen_build /tmp/ngen_url /ngen/ngen_url
+# finally ensure correct python packages are installed
+RUN uv pip install ${pinned_python_packages}
 
 RUN echo "export PS1='\u\[\033[01;32m\]@ngiab_dev\[\033[00m\]:\[\033[01;35m\]\W\[\033[00m\]\$ '" >> ~/.bashrc
 
