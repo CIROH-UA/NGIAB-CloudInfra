@@ -1,6 +1,6 @@
 ---
 name: Cloud Resources Request Form
-about: PI leading CIROH projects may use this form to request cloud computing resources (AWS or Google Cloud). Access is available to all consortium members and partners.
+about: PI leading CIROH projects may use this form to request cloud computing resources (AWS or Google Cloud) or API access. Access is available to all consortium members and partners.
 title: ''
 labels: infrastructure
 assignees: ''
@@ -8,18 +8,22 @@ assignees: ''
 
 **1.	Requester Information:**
 This should include the name and contact information of the person making the request.
+
 - PI's Full Name: <!-- Respond here! -->
 - PI's Affiliated Institute: <!-- Respond here! -->
 - PI's Affiliated Email Address: <!-- Respond here! -->
+- Requester's Full Name: <!-- Respond here! -->
+- Requester's Affiliated Email Address: <!-- Respond here! -->
 
 
 **2.	Project Information:** 
-Provide CIROH project name associated with this research work along with a brief description of the project and its goals. This can help the infrastructure team understand the context and purpose of the requested resources. *Please highlight how this project will be benefit from and/or provide benefit to other resources on the shared infrastructure.*
+Provide CIROH project name associated with this research work along with 
 
-<!-- Respond here! -->
+- CIROH Project Number (as per smartsheet): <!-- Respond here! -->
+- CIROH Project Name: <!-- Respond here! -->
 
 **3.  Project Description:**
-If your project involves developing software or scripts, briefly describe the software you plan to develop.
+Provide a brief description of the project and its goals. This can help the infrastructure team understand the context and purpose of the requested resources. If your project involves developing software or scripts, briefly describe the software you plan to develop.*Please highlight how this project will be benefit from and/or provide benefit to other resources on the shared infrastructure.*
 
 <!-- Respond here! -->
 
@@ -29,12 +33,18 @@ Specify the compute, storage, and network resources needed for the project. Be a
 <!-- Respond here! -->
 
 **Options:**
-1. Cloud Provider Options: AWS or Google Cloud
+1. Cloud Provider Options:
+<!-- Please check all required cloud providers/services below using the [x] format. -->
+- [ ] CIROH AWS
+- [ ] CIROH Google Cloud Platform (GCP)
+- [ ] CIROH-2i2c JupyterHub
+- [ ] NWM BigQuery API Access Only
    
-> For detailed information about CIROH cloud accounts:
+> For detailed information about CIROH cloud accounts and APIs:
 > * AWS: [CIROH AWS Account](https://docs.ciroh.org/docs/services/cloudservices/aws/)
 > * Google Cloud: [CIROH Google Account](https://docs.ciroh.org/docs/services/cloudservices/google%20cloud/)
-
+> * CIROH-2i2c JupyterHub: [CIROH-2i2c JupyterHub](https://docs.ciroh.org/docs/services/cloudservices/2i2c/)
+> * NWM BigQuery API: [NWM BigQuery API](https://docs.ciroh.org/docs/products/data-management/bigquery-api/)
 <!-- Respond here! -->
 
 2. Required Services in the Cloud:
@@ -72,16 +82,19 @@ Specify the compute, storage, and network resources needed for the project. Be a
 <!-- If you checked "Others", list them here. -->
 
 **5. Working Group**
-
-Working Group 1/2/3/4 (select one): <!-- Respond here! -->
+Please select the working group associated with this project:
+<!-- Please check one working group below using the [x] format. -->
+- [ ] Hydrologic Modeling and Prediction Working Group
+- [ ] Hydroinformatics Working Group
+- [ ] Community Resources Working Group
+- [ ] Artificial Intelligence Working Group
+- [ ] Model & Forecast Evaluation Working Group
 
 **6.	Timeline** 
 
 Project start date: <!-- Respond here! -->
 
 Project end date: <!-- Respond here! -->
-
-In addition, please indicate the expected timeline for the project and when the resources will be needed. This information can help the infrastructure team plan and allocate resources accordingly.
 
 <!-- Respond here! -->
 
@@ -91,7 +104,8 @@ If there are any specific security or compliance requirements for the project, p
 <!-- Respond here! -->
 
 **8.	Cost Estimation:** 
-Include any cost estimates or requirements for the project. This will help the infrastructure team select the most cost-effective solutions for the project.
+Include any cost estimates or requirements for the project. This will help the infrastructure team select the most cost-effective solutions for the project. 
+Only required for AWS and GCP access. Ignore for others.
 
 > AWS Cost Calculator: https://calculator.aws/#/  
 > Google Cloud Pricing Calculator: https://cloud.google.com/products/calculator
@@ -99,6 +113,5 @@ Include any cost estimates or requirements for the project. This will help the i
  <!-- Respond here! -->
  
 **9.	Approval:** 
-Indicate the necessary approval processes or sign-offs required for the request.
-
+Requests require management approval, which typically takes 2-3 weeks to process before access is granted.
 <!-- Respond here! -->
