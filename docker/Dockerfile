@@ -15,7 +15,9 @@ RUN dnf update -y && \
     dnf install -y \
     vim libgfortran sqlite \
     bzip2 expat udunits2 zlib \
-    mpich hdf5 netcdf netcdf-fortran netcdf-cxx netcdf-cxx4-mpich python3.11
+    mpich hdf5 netcdf netcdf-fortran netcdf-cxx netcdf-cxx4-mpich \
+    openblas-serial python3.11
+
 # Install UV and setup cargo bin for rust tools (uv and cargo)
 ENV PATH="/root/.cargo/bin:${PATH}"
 ENV UV_INSTALL_DIR=/root/.cargo/bin
@@ -33,9 +35,8 @@ RUN dnf install -y epel-release && \
     python3.11-devel python3.11-pip \
     expat-devel flex bison udunits2-devel zlib-devel \
     wget mpich-devel hdf5-devel netcdf-devel \
-    netcdf-fortran-devel netcdf-cxx-devel lld clang
-
-
+    netcdf-fortran-devel netcdf-cxx-devel lld clang \
+    openblas-devel
 
 FROM build_base AS boost_build
 RUN wget https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.gz
@@ -43,8 +44,6 @@ RUN tar -xzf boost_1_86_0.tar.gz
 WORKDIR /boost_1_86_0
 RUN ./bootstrap.sh && ./b2 headers
 ENV BOOST_ROOT=/boost_1_86_0
-
-
 
 FROM boost_build AS troute_prebuild
 WORKDIR /ngen
@@ -96,8 +95,6 @@ RUN git clone --single-branch --branch $NGEN_BRANCH https://github.com/$NGEN_REP
     cd ngen && \
     git submodule update --init --recursive --depth 1
 
-
-
 FROM ngen_clone AS ngen_build
 ENV PATH=${PATH}:/usr/lib64/mpich/bin
 
@@ -141,8 +138,30 @@ RUN cmake -G Ninja -B cmake_build_parallel -S . ${COMMON_BUILD_ARGS} ${MPI_BUILD
 
 
 
+FROM ngen_clone AS build_sundials
+WORKDIR /ngen/ngen
+
+ENV FC=/usr/bin/gfortran
+WORKDIR /sundials
+ENV SUNDIALS_VERSION=7.5.0
+RUN wget https://github.com/LLNL/sundials/releases/download/v${SUNDIALS_VERSION}/sundials-${SUNDIALS_VERSION}.tar.gz && \
+    tar -xzf sundials-${SUNDIALS_VERSION}.tar.gz && \
+    rm sundials-${SUNDIALS_VERSION}.tar.gz
+RUN cmake -G Ninja -B build_sundials sundials-${SUNDIALS_VERSION} -DEXAMPLES_ENABLE_C=OFF -DEXAMPLES_ENABLE_F2003=OFF -DBUILD_FORTRAN_MODULE_INTERFACE=ON -DCMAKE_Fortran_COMPILER=gfortran -DCMAKE_INSTALL_PREFIX=/sundials/install && cmake --build build_sundials --target all -- -j $(nproc) && cmake --build build_sundials --target install
+
+
+FROM build_sundials AS build_summa
+WORKDIR /ngen/ngen/extern/summa
+# build SUMMA with SUNDIALS
+RUN cmake -G Ninja -B build_summa -DUSE_NEXTGEN=ON -DUSE_SUNDIALS=ON \
+    -DSPECIFY_LAPACK_LINKS=OFF -DCMAKE_BUILD_TYPE=Release \
+    -DNetCDF_F90_INCLUDE_DIR=/usr/lib64/gfortran/modules/ \
+    -DOpenBLAS_INCLUDE_DIR=/usr/include/openblas \
+    -DSUNDIALS_DIR=/sundials/build_sundials/
+RUN cmake --build build_summa --target all -- -j $(nproc)
+
+
 FROM ngen_build AS restructure_files
-# Setup final directories and permissions
 RUN mkdir -p /dmod/datasets /dmod/datasets/static /dmod/shared_libs /dmod/bin /dmod/utils/ && \
     shopt -s globstar && \
     cp -a ./extern/**/cmake_build/*.so* /dmod/shared_libs/. || true && \
@@ -153,11 +172,10 @@ RUN mkdir -p /dmod/datasets /dmod/datasets/static /dmod/shared_libs /dmod/bin /d
     cp -ar ./utilities/* /dmod/utils/ && \
     cd /dmod/bin && \
     (stat ngen-parallel && ln -s ngen-parallel ngen) || (stat ngen-serial && ln -s ngen-serial ngen)
-
+COPY --from=build_summa /ngen/ngen/extern/summa/build_summa/*.so /dmod/shared_libs/
 
 
 FROM restructure_files AS dev
-
 COPY  HelloNGEN.sh /ngen/HelloNGEN.sh
 # Set up library path
 RUN echo "/dmod/shared_libs/" >> /etc/ld.so.conf.d/ngen.conf && ldconfig -v
@@ -178,7 +196,6 @@ RUN uv run --with pyyaml --with numpy --with torch --extra-index-url https://dow
 # replace the relative path with the absolute path in the model config files
 RUN shopt -s globstar
 RUN sed -i 's|\.\.|/ngen/ngen/extern/lstm|g' /lstm_weights/trained_neuralhydrology_models/**/config.yml
-
 
 FROM build_base AS burn_lstm
 RUN dnf install -y clang
@@ -261,6 +278,9 @@ COPY --from=lstm_weights /lstm_weights/trained_neuralhydrology_models /ngen/ngen
 # Copy the rust version of the lstm over.
 COPY --from=burn_lstm /build/rust-lstm-1025/target/release/librust_lstm_1025.so /dmod/shared_libs/librust_lstm_1025.so
 
+# needed for SUMMA
+COPY --from=build_sundials /sundials/install/ /sundials
+RUN echo "/sundials/lib64" >> /etc/ld.so.conf.d/sundials.conf && ldconfig -v
 # Install dhbv wheels
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,from=dhbv2,source=/wheels,target=/tmp/wheels \
