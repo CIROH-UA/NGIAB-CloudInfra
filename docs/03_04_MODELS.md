@@ -61,6 +61,7 @@ Python class: `lstm.bmi_lstm.bmi_LSTM`
 
 > *GitHub: [CIROH-UA/rust-lstm](https://github.com/CIROH-UA/rust-lstm)*
 > *Developed / maintained by [Josh Cunningham](https://github.com/JoshCu)*
+
 A Rust implementation of the python lstm BMI (Basic Model Interface) adapter. Provides a drop-in replacement for the implementations found in [CIROH-UA/lstm](https://github.com/CIROH-UA/lstm), [NOAA-OWP/lstm](https://github.com/NOAA-OWP/lstm), and [jmframe/lstm](https://github.com/jmframe/lstm).
 
 ## Differentiable HBV 2.0 (δHBV 2.0)
