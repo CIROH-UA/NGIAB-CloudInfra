@@ -49,7 +49,7 @@ Library file path: `/dmod/shared_libs/libtopmodelbmi.so.1.0.0`
 
 ## Long Short-Term Memory (LSTM)
 
-> *GitHub: [CIROH-UA/lstm](https://github.com/CIROH-UA/lstm)*  
+> *GitHub: [CIROH-UA/lstm](https://github.com/CIROH-UA/lstm)*
 > *Fork developed by [Jonathan Frame](https://github.com/jmframe)*
 
 LSTM networks are a type of recurrent neural network used in deep learning.
@@ -63,6 +63,23 @@ Python class: `lstm.bmi_lstm.bmi_LSTM`
 > *Developed / maintained by [Josh Cunningham](https://github.com/JoshCu)*
 
 A Rust implementation of the python lstm BMI (Basic Model Interface) adapter. Provides a drop-in replacement for the implementations found in [CIROH-UA/lstm](https://github.com/CIROH-UA/lstm), [NOAA-OWP/lstm](https://github.com/NOAA-OWP/lstm), and [jmframe/lstm](https://github.com/jmframe/lstm).
+
+## Differentiable HBV 2.0 (δHBV 2.0)
+
+> *GitHub: [mhpi/dhbv2](https://github.com/mhpi/dhbv2)*
+
+δHBV 2.0 is a differentiable Hydrologiska Byråns Vattenbalansavdelning (HBV) model, using an LSTM and multilayer perceptron (MLP) to learn parameters. Both the daily and hourly variants are included.
+
+Python class (daily): `dhbv2.bmi.DeltaModelBmi`
+Python class (hourly): `dhbv2.mts_bmi.MtsDeltaModelBmi`
+
+## Structure for Unifying Multiple Modeling Alternatives (SUMMA)
+
+> *GitHub: [CH-Earth/summa](https://github.com/CH-Earth/summa)*
+
+SUMMA is a hydrologic modeling framework that can configure a wide range of hydrologic model parameterizations and configurations.
+
+Library file path: `/dmod/shared_libs/libsummabmi.so`
 
 ## Soil Moisture Profiles
 
