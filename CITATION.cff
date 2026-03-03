@@ -58,10 +58,9 @@ preferred-citation:
   - family-names: "Daniel P."
     given-names: "Ames"
   doi: "10.1016/j.envsoft.2025.106666"
-  journal: "Journal Title"
+  journal: "Environmental Modelling & Software"
   month: 9
   start: 106666
-  title: "NextGen In A Box (NGIAB): Open-Source containerization of the NextGen framework to enable community-driven hydrology modeling},
-journal = {Environmental Modelling & Software"
+  title: "NextGen In A Box (NGIAB): Open-Source containerization of the NextGen framework to enable community-driven hydrology modeling"
   volume: 193
   year: 2025
