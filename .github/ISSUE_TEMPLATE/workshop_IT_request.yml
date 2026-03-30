@@ -1,0 +1,322 @@
+name: Workshop Resource Request Form
+description: Request compute resources for a CIROH workshop.
+title: "[Workshop Resource Request]: "
+labels: ["workshop", "infrastructure", "resource-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Workshop Resource Request Form
+        Use this form to request AWS, Google Cloud, CIROH-2i2c JupyterHub, or NSF ACCESS resources for a workshop.
+
+  - type: input
+    id: lead-full-name
+    attributes:
+      label: Full Name
+      placeholder: "e.g. Dr. Jane Doe"
+    validations:
+      required: true
+
+  - type: input
+    id: lead-institute
+    attributes:
+      label: Affiliated Institute
+      placeholder: "e.g. University of Alabama"
+    validations:
+      required: true
+
+  - type: input
+    id: lead-email
+    attributes:
+      label: Email Address
+      placeholder: "e.g. jdoe@ua.edu"
+    validations:
+      required: true
+
+  - type: input
+    id: conference-name
+    attributes:
+      label: Conference Name
+      placeholder: "e.g. CIROH Annual Meeting"
+    validations:
+      required: false
+
+  - type: input
+    id: workshop-title
+    attributes:
+      label: Workshop Title
+      placeholder: "e.g. NGIAB Hands-On Training"
+    validations:
+      required: true
+
+  - type: input
+    id: workshop-dates
+    attributes:
+      label: Workshop Date(s)
+      placeholder: "e.g. 2026-06-10 to 2026-06-12"
+    validations:
+      required: true
+
+  - type: input
+    id: workshop-duration
+    attributes:
+      label: Workshop Duration
+      placeholder: "e.g. 2 days"
+    validations:
+      required: true
+
+  - type: input
+    id: participant-count
+    attributes:
+      label: Expected Number of Participants
+      placeholder: "e.g. 30"
+    validations:
+      required: true
+
+  - type: textarea
+    id: workshop-description
+    attributes:
+      label: Workshop Description
+      description: Describe the workshop content, learning objectives, and any software participants will use.
+      placeholder: Summarize the workshop agenda and technical requirements.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: resource-types
+    attributes:
+      label: Resource Type
+      description: Select one or more.
+      options:
+        - label: AWS Cloud
+        - label: Google Cloud
+        - label: CIROH-2i2c JupyterHub
+        - label: NSF ACCESS Allocation
+
+  - type: input
+    id: per-user-vcpu
+    attributes:
+      label: Number of vCPUs per User
+      placeholder: "e.g. 2"
+    validations:
+      required: true
+
+  - type: input
+    id: per-user-memory
+    attributes:
+      label: Memory per User
+      placeholder: "e.g. 8 GB"
+    validations:
+      required: true
+
+  - type: input
+    id: per-user-storage
+    attributes:
+      label: Storage per User
+      placeholder: "e.g. 20 GB"
+    validations:
+      required: true
+
+  - type: input
+    id: gpu-requirements
+    attributes:
+      label: GPU Requirements
+      placeholder: "e.g. None or 1 NVIDIA T4 per 5 users"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: aws-services
+    attributes:
+      label: AWS Services Needed
+      options:
+        - label: EC2
+        - label: S3
+        - label: EBS
+        - label: RDS
+        - label: VPC
+        - label: Lambda
+        - label: ArcGIS on AWS
+        - label: Other AWS services
+
+  - type: textarea
+    id: aws-service-details
+    attributes:
+      label: AWS Service Details
+      description: Include instance types, bucket type, or other AWS-specific details.
+      placeholder: List selected AWS services and any required configuration.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: google-cloud-services
+    attributes:
+      label: Google Cloud Services Needed
+      options:
+        - label: Google Compute Engine
+        - label: Google Cloud Storage
+        - label: Google BigQuery
+        - label: Google Cloud Functions
+        - label: Other Google services
+
+  - type: textarea
+    id: google-cloud-service-details
+    attributes:
+      label: Google Cloud Service Details
+      description: Include instance types or any Google Cloud-specific setup needs.
+      placeholder: List selected Google Cloud services and required configuration.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: jupyterhub-sizes
+    attributes:
+      label: CIROH-2i2c JupyterHub Resource Sizes
+      options:
+        - label: Small - 5 GB RAM, 2 CPUs
+        - label: Medium - 11 GB RAM, 4 CPUs
+        - label: Large - 24 GB RAM, 8 CPUs
+        - label: Huge - 52 GB RAM, 16 CPUs
+        - label: GPU - NVIDIA Tesla T4, approximately 16 GB and 4 CPUs
+        - label: Custom environment
+
+  - type: textarea
+    id: jupyterhub-details
+    attributes:
+      label: JupyterHub Package and Software Requirements
+      placeholder: |
+        Required Python packages with versions:
+        Other required software:
+    validations:
+      required: false
+
+  - type: textarea
+    id: access-vm-details
+    attributes:
+      label: NSF ACCESS VM Requirements
+      placeholder: |
+        Number of VMs:
+        CPUs per node:
+        Memory per node:
+        Required software modules:
+    validations:
+      required: false
+
+  - type: dropdown
+    id: individual-accounts
+    attributes:
+      label: Will participants need individual accounts?
+      options:
+        - Yes
+        - No
+    validations:
+      required: true
+
+  - type: dropdown
+    id: participant-email-list
+    attributes:
+      label: Will you provide a list of participant emails?
+      options:
+        - Yes
+        - No
+    validations:
+      required: true
+
+  - type: dropdown
+    id: persistent-storage
+    attributes:
+      label: Do participants need persistent storage beyond the workshop?
+      options:
+        - Yes
+        - No
+    validations:
+      required: true
+
+  - type: input
+    id: setup-start-date
+    attributes:
+      label: Resource Availability Start Date
+      description: When resources should be available for setup and testing.
+      placeholder: "e.g. 2026-05-20"
+    validations:
+      required: true
+
+  - type: input
+    id: workshop-date-repeat
+    attributes:
+      label: Workshop Date(s)
+      placeholder: "e.g. 2026-06-10 to 2026-06-12"
+    validations:
+      required: true
+
+  - type: input
+    id: teardown-date
+    attributes:
+      label: Resource Teardown Date
+      placeholder: "e.g. 2026-06-20"
+    validations:
+      required: true
+
+  - type: textarea
+    id: post-workshop-needs
+    attributes:
+      label: Post-workshop Resource Needs
+      description: Indicate whether resources are needed after the workshop and for how long.
+      placeholder: No post-workshop access needed, or describe required extension duration.
+    validations:
+      required: false
+
+  - type: textarea
+    id: security-compliance
+    attributes:
+      label: Security and Compliance Requirements
+      placeholder: Describe any security, privacy, or compliance constraints.
+    validations:
+      required: false
+
+  - type: textarea
+    id: cost-estimation
+    attributes:
+      label: Cost Estimation
+      description: For cloud resources, provide an estimated cost for the workshop.
+      placeholder: |
+        AWS Cost Calculator: https://calculator.aws/#/
+        Google Cloud Pricing Calculator: https://cloud.google.com/products/calculator
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-information
+    attributes:
+      label: Additional Information
+      placeholder: Include any other details that would help the infrastructure team support the workshop.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: working-group
+    attributes:
+      label: Working Group
+      options:
+        - Working Group 1
+        - Working Group 2
+        - Working Group 3
+        - Working Group 4
+    validations:
+      required: true
+
+  - type: textarea
+    id: approval
+    attributes:
+      label: Approval
+      description: Indicate any approval processes needed for this request.
+      placeholder: Describe required approvals, sponsors, or sign-offs.
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        Resource information links:
+        - CIROH-2i2c JupyterHub: https://docs.ciroh.org/docs/services/cloudservices/jupyterhub/
+        - NSF ACCESS: https://allocations.access-ci.org/resources

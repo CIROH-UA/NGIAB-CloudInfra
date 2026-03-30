@@ -1,0 +1,193 @@
+name: On-Premise Request Form
+description: Request CIROH on-premise resources such as Pantarhei or NSF ACCESS allocations.
+title: "[On-Prem Resource Request]: "
+labels: ["on-prem", "resource-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## On-Premise Request Form
+        Please complete the required sections so the infrastructure team can evaluate your on-premise resource request.
+
+  - type: input
+    id: pi-full-name
+    attributes:
+      label: "PI's Full Name"
+      placeholder: "e.g. Dr. Jane Doe"
+    validations:
+      required: true
+
+  - type: input
+    id: pi-affiliated-institute
+    attributes:
+      label: "PI's Affiliated Institute"
+      placeholder: "e.g. University of Alabama"
+    validations:
+      required: true
+
+  - type: input
+    id: pi-email
+    attributes:
+      label: "PI's Affiliated Email Address"
+      placeholder: "e.g. jdoe@ua.edu"
+    validations:
+      required: true
+
+  - type: input
+    id: requester-full-name
+    attributes:
+      label: "Requester's Full Name"
+      placeholder: "e.g. John Smith"
+    validations:
+      required: true
+
+  - type: input
+    id: requester-email
+    attributes:
+      label: "Requester's Affiliated Email Address"
+      placeholder: "e.g. jsmith@ua.edu"
+    validations:
+      required: true
+
+  - type: input
+    id: project-number
+    attributes:
+      label: CIROH Project Number
+      description: As listed in Smartsheet.
+      placeholder: "e.g. CIROH-2024-001"
+    validations:
+      required: false
+
+  - type: input
+    id: project-name
+    attributes:
+      label: CIROH Project Name
+      placeholder: "e.g. NextGen Water Modeling Framework"
+    validations:
+      required: true
+
+  - type: textarea
+    id: project-description
+    attributes:
+      label: Project Description
+      description: |
+        Describe the project, its goals, and any software or scripts involved.
+        Highlight how the project benefits from or contributes to shared CIROH infrastructure.
+      placeholder: Describe the project context and expected use of on-premise resources.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: resource-type
+    attributes:
+      label: HPC or VM
+      description: Select the type of compute resource needed.
+      options:
+        - HPC (High Performance Compute)
+        - VM (Virtual Machine)
+        - Both HPC and VM
+        - Unsure / Need Guidance
+    validations:
+      required: true
+
+  - type: input
+    id: vcpu
+    attributes:
+      label: vCPU
+      description: Number of virtual CPUs required.
+      placeholder: "e.g. 8"
+    validations:
+      required: true
+
+  - type: input
+    id: memory
+    attributes:
+      label: Memory
+      description: Amount of RAM required.
+      placeholder: "e.g. 32 GB"
+    validations:
+      required: true
+
+  - type: input
+    id: disk-space
+    attributes:
+      label: Disk Space
+      description: Amount of storage required.
+      placeholder: "e.g. 500 GB"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: allocation
+    attributes:
+      label: Pantarhei / NSF ACCESS Allocation
+      description: Select the allocation service being requested.
+      options:
+        - Pantarhei
+        - NSF ACCESS
+        - Both
+        - Neither / Not Applicable
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        More information:
+        - CIROH Pantarhei Documentation: https://docs.ciroh.org/docs/services/on-prem/Pantarhei/
+        - ACCESS Resource Allocations: https://allocations.access-ci.org/resources
+
+  - type: dropdown
+    id: working-group
+    attributes:
+      label: Working Group
+      options:
+        - Working Group 1
+        - Working Group 2
+        - Working Group 3
+        - Working Group 4
+    validations:
+      required: true
+
+  - type: input
+    id: start-date
+    attributes:
+      label: Project Start Date
+      placeholder: "e.g. 2026-04-01"
+    validations:
+      required: true
+
+  - type: input
+    id: end-date
+    attributes:
+      label: Project End Date
+      placeholder: "e.g. 2027-03-31"
+    validations:
+      required: true
+
+  - type: textarea
+    id: timeline-details
+    attributes:
+      label: Timeline Details
+      description: Indicate when resources will be needed and any major project milestones.
+      placeholder: Resources needed from June through December, with a testing period in May.
+    validations:
+      required: false
+
+  - type: textarea
+    id: security-compliance
+    attributes:
+      label: Security and Compliance Requirements
+      description: State any specific security or compliance requirements.
+      placeholder: e.g. data must remain on-premises or access restricted to approved staff.
+    validations:
+      required: false
+
+  - type: textarea
+    id: approval
+    attributes:
+      label: Approval
+      description: Indicate the necessary approval processes or sign-offs required.
+      placeholder: Describe any required approvals or sponsoring contacts.
+    validations:
+      required: false

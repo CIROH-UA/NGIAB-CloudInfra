@@ -1,0 +1,56 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in the project.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Bug Report
+        Provide enough detail for the maintainers to reproduce and diagnose the issue.
+
+  - type: textarea
+    id: short-description
+    attributes:
+      label: Short Description
+      description: Explain the issue at a high level.
+      placeholder: A concise summary of the bug.
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: Current Behavior
+      placeholder: Describe what is happening now.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      placeholder: Describe what you expected to happen instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Include commands, inputs, and relevant URLs.
+      placeholder: |
+        1. Go to ...
+        2. Run ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or Logs
+      description: Paste screenshots, stack traces, or other supporting details if available.
+      placeholder: Drag and drop screenshots here or paste logs.
+    validations:
+      required: false
