@@ -9,10 +9,6 @@ body:
         ## Cloud Resources Request Form
         Please fill out the required fields so the infrastructure team can review and process your request.
 
-  - type: markdown
-    attributes:
-      value: "### 1. Requester Information"
-
   - type: input
     id: pi-full-name
     attributes:
@@ -54,10 +50,6 @@ body:
     validations:
       required: true
 
-  - type: markdown
-    attributes:
-      value: "### 2. Project Information"
-
   - type: input
     id: project-number
     attributes:
@@ -65,7 +57,7 @@ body:
       description: As listed in Smartsheet.
       placeholder: "e.g. CIROH-2024-001"
     validations:
-      required: true
+      required: false
 
   - type: input
     id: project-name
@@ -74,10 +66,6 @@ body:
       placeholder: "e.g. NextGen Water Modeling Framework"
     validations:
       required: true
-
-  - type: markdown
-    attributes:
-      value: "### 3. Project Description"
 
   - type: textarea
     id: project-description
@@ -89,10 +77,6 @@ body:
       placeholder: Describe the project goals, context, and infrastructure impact.
     validations:
       required: true
-
-  - type: markdown
-    attributes:
-      value: "### 4. Resource Requirements"
 
   - type: textarea
     id: resource-requirements
@@ -175,10 +159,6 @@ body:
     validations:
       required: false
 
-  - type: markdown
-    attributes:
-      value: "### 5. Working Group"
-
   - type: dropdown
     id: working-group
     attributes:
@@ -191,10 +171,6 @@ body:
         - Model & Forecast Evaluation Working Group
     validations:
       required: true
-
-  - type: markdown
-    attributes:
-      value: "### 6. Timeline"
 
   - type: input
     id: project-start-date
@@ -221,10 +197,6 @@ body:
     validations:
       required: false
 
-  - type: markdown
-    attributes:
-      value: "### 7. Security and Compliance Requirements"
-
   - type: textarea
     id: security-compliance
     attributes:
@@ -232,10 +204,6 @@ body:
       placeholder: Describe any security, compliance, or data handling constraints.
     validations:
       required: false
-
-  - type: markdown
-    attributes:
-      value: "### 8. Cost Estimation"
 
   - type: textarea
     id: cost-estimation
@@ -246,11 +214,7 @@ body:
         AWS Cost Calculator: https://calculator.aws/#/
         Google Cloud Pricing Calculator: https://cloud.google.com/products/calculator
     validations:
-      required: false
-
-  - type: markdown
-    attributes:
-      value: "### 9. Approval"
+      required: true
 
   - type: textarea
     id: approval

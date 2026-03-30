@@ -9,10 +9,6 @@ body:
         ## On-Premise Request Form
         Please complete the required sections so the infrastructure team can evaluate your on-premise resource request.
 
-  - type: markdown
-    attributes:
-      value: "### 1. Requester Information"
-
   - type: input
     id: pi-full-name
     attributes:
@@ -53,10 +49,6 @@ body:
     validations:
       required: true
 
-  - type: markdown
-    attributes:
-      value: "### 2. Project Information"
-
   - type: input
     id: project-number
     attributes:
@@ -64,7 +56,7 @@ body:
       description: As listed in Smartsheet.
       placeholder: "e.g. CIROH-2024-001"
     validations:
-      required: true
+      required: false
 
   - type: input
     id: project-name
@@ -73,10 +65,6 @@ body:
       placeholder: "e.g. NextGen Water Modeling Framework"
     validations:
       required: true
-
-  - type: markdown
-    attributes:
-      value: "### 3. Project Description"
 
   - type: textarea
     id: project-description
@@ -88,10 +76,6 @@ body:
       placeholder: Describe the project context and expected use of on-premise resources.
     validations:
       required: true
-
-  - type: markdown
-    attributes:
-      value: "### 4. Resource Requirements"
 
   - type: dropdown
     id: resource-type
@@ -153,10 +137,6 @@ body:
         - CIROH Pantarhei Documentation: https://docs.ciroh.org/docs/services/on-prem/Pantarhei/
         - ACCESS Resource Allocations: https://allocations.access-ci.org/resources
 
-  - type: markdown
-    attributes:
-      value: "### 5. Working Group"
-
   - type: dropdown
     id: working-group
     attributes:
@@ -168,10 +148,6 @@ body:
         - Working Group 4
     validations:
       required: true
-
-  - type: markdown
-    attributes:
-      value: "### 6. Timeline"
 
   - type: input
     id: start-date
@@ -198,10 +174,6 @@ body:
     validations:
       required: false
 
-  - type: markdown
-    attributes:
-      value: "### 7. Security and Compliance Requirements"
-
   - type: textarea
     id: security-compliance
     attributes:
@@ -210,10 +182,6 @@ body:
       placeholder: e.g. data must remain on-premises or access restricted to approved staff.
     validations:
       required: false
-
-  - type: markdown
-    attributes:
-      value: "### 8. Approval"
 
   - type: textarea
     id: approval

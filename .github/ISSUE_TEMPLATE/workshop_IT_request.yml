@@ -9,10 +9,6 @@ body:
         ## Workshop Resource Request Form
         Use this form to request AWS, Google Cloud, CIROH-2i2c JupyterHub, or NSF ACCESS resources for a workshop.
 
-  - type: markdown
-    attributes:
-      value: "### 1. Workshop Lead Information"
-
   - type: input
     id: lead-full-name
     attributes:
@@ -36,10 +32,6 @@ body:
       placeholder: "e.g. jdoe@ua.edu"
     validations:
       required: true
-
-  - type: markdown
-    attributes:
-      value: "### 2. Workshop Information"
 
   - type: input
     id: conference-name
@@ -81,10 +73,6 @@ body:
     validations:
       required: true
 
-  - type: markdown
-    attributes:
-      value: "### 3. Workshop Description"
-
   - type: textarea
     id: workshop-description
     attributes:
@@ -93,10 +81,6 @@ body:
       placeholder: Summarize the workshop agenda and technical requirements.
     validations:
       required: true
-
-  - type: markdown
-    attributes:
-      value: "### 4. Resource Requirements"
 
   - type: checkboxes
     id: resource-types
@@ -218,10 +202,6 @@ body:
     validations:
       required: false
 
-  - type: markdown
-    attributes:
-      value: "### 5. Workshop User Management"
-
   - type: dropdown
     id: individual-accounts
     attributes:
@@ -251,10 +231,6 @@ body:
         - No
     validations:
       required: true
-
-  - type: markdown
-    attributes:
-      value: "### 6. Workshop Timeline"
 
   - type: input
     id: setup-start-date
@@ -290,10 +266,6 @@ body:
     validations:
       required: false
 
-  - type: markdown
-    attributes:
-      value: "### 7. Security and Compliance Requirements"
-
   - type: textarea
     id: security-compliance
     attributes:
@@ -301,10 +273,6 @@ body:
       placeholder: Describe any security, privacy, or compliance constraints.
     validations:
       required: false
-
-  - type: markdown
-    attributes:
-      value: "### 8. Cost Estimation"
 
   - type: textarea
     id: cost-estimation
@@ -317,10 +285,6 @@ body:
     validations:
       required: false
 
-  - type: markdown
-    attributes:
-      value: "### 9. Additional Information"
-
   - type: textarea
     id: additional-information
     attributes:
@@ -328,10 +292,6 @@ body:
       placeholder: Include any other details that would help the infrastructure team support the workshop.
     validations:
       required: false
-
-  - type: markdown
-    attributes:
-      value: "### 10. Working Group Affiliation"
 
   - type: dropdown
     id: working-group
@@ -344,10 +304,6 @@ body:
         - Working Group 4
     validations:
       required: true
-
-  - type: markdown
-    attributes:
-      value: "### 11. Approval"
 
   - type: textarea
     id: approval
