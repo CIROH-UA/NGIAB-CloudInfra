@@ -1,0 +1,165 @@
+name: Exceeding Budget Request Form
+description: Request approval to exceed the standard monthly cloud budget threshold.
+title: "[Budget Increase Request]: "
+labels: ["infrastructure", "budget-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Exceeding Budget Request Form
+        Use this form when a project anticipates exceeding the standard $500/month limit.
+
+  - type: textarea
+    id: requester-information
+    attributes:
+      label: Requester Information
+      description: Include the name and contact information of the person making the request.
+      placeholder: |
+        PI Name:
+        PI Email:
+        Requester Name:
+        Requester Email:
+        Institution:
+    validations:
+      required: true
+
+  - type: input
+    id: existing-ticket
+    attributes:
+      label: Link to Existing Infrastructure Ticket
+      placeholder: "e.g. https://github.com/org/repo/issues/123"
+    validations:
+      required: true
+
+  - type: textarea
+    id: justification
+    attributes:
+      label: Justification for Increased Budget
+      description: Provide technical details explaining the increase in projected usage.
+      placeholder: Describe why the current budget is insufficient and what is driving higher usage.
+    validations:
+      required: true
+
+  - type: textarea
+    id: resource-requirements
+    attributes:
+      label: Resource Requirements
+      description: Specify the compute, storage, and network resources required.
+      placeholder: Include quantities, configurations, and expected workload characteristics.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: cloud-provider
+    attributes:
+      label: Cloud Provider
+      options:
+        - AWS
+        - Azure
+        - GCP
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: aws-services
+    attributes:
+      label: AWS Services
+      options:
+        - label: EC2
+        - label: S3
+        - label: EBS
+        - label: EFS
+        - label: RDS
+        - label: VPC
+        - label: DynamoDB
+        - label: ECS
+        - label: EKS
+        - label: Lambda
+        - label: Other AWS services
+
+  - type: checkboxes
+    id: azure-services
+    attributes:
+      label: Azure Services
+      options:
+        - label: Virtual Machines
+        - label: Azure App Service
+        - label: Azure Kubernetes Service (AKS)
+        - label: Azure Functions
+        - label: Azure Batch
+        - label: Azure Blob Storage
+        - label: Azure File Storage
+        - label: Azure Machine Learning
+        - label: Azure Key Vault
+        - label: Other Azure services
+
+  - type: checkboxes
+    id: gcp-services
+    attributes:
+      label: Google Cloud Services
+      options:
+        - label: Google Compute Engine
+        - label: Google Kubernetes Engine (GKE)
+        - label: Google Cloud Storage
+        - label: Google VPC
+        - label: Google IAM
+        - label: Google BigQuery
+        - label: Google Cloud Functions
+        - label: Dataflow
+        - label: Other Google Cloud services
+
+  - type: textarea
+    id: other-services
+    attributes:
+      label: Other Services Details
+      description: If you selected any Other service options above, list them here.
+      placeholder: List any additional services and why they are needed.
+    validations:
+      required: false
+
+  - type: textarea
+    id: timeline
+    attributes:
+      label: Timeline
+      description: Indicate the expected duration of the extended resource requirement.
+      placeholder: Include start date, end date, and any significant milestones.
+    validations:
+      required: true
+
+  - type: textarea
+    id: security-compliance
+    attributes:
+      label: Security and Compliance Requirements
+      placeholder: Describe any applicable security or compliance requirements.
+    validations:
+      required: false
+
+  - type: textarea
+    id: cost-estimation
+    attributes:
+      label: Updated Cost Estimation
+      description: |
+        Include the revised project cost estimate.
+        AWS calculator: https://calculator.aws/#/
+        Google Cloud calculator: https://cloud.google.com/products/calculator
+      placeholder: Include assumptions, service breakdown, and estimated monthly cost.
+    validations:
+      required: true
+
+  - type: textarea
+    id: approval
+    attributes:
+      label: Approval
+      description: Form submissions will be reviewed and forwarded for management approval.
+      placeholder: List any known approvers or approval notes.
+    validations:
+      required: false
+
+  - type: textarea
+    id: project-charge
+    attributes:
+      label: Project to Charge
+      description: For CIROH IT Admin use after approval.
+      placeholder: Admin will document approved billing or project charge information here.
+    validations:
+      required: false

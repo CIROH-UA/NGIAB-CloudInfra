@@ -1,0 +1,262 @@
+name: Cloud Resources Request Form
+description: Request CIROH cloud resources or API access for a project.
+title: "[Cloud Resource Request]: "
+labels: ["infrastructure", "resource-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Cloud Resources Request Form
+        Please fill out the required fields so the infrastructure team can review and process your request.
+
+  - type: markdown
+    attributes:
+      value: "### 1. Requester Information"
+
+  - type: input
+    id: pi-full-name
+    attributes:
+      label: "PI's Full Name"
+      placeholder: "e.g. Dr. Jane Doe"
+    validations:
+      required: true
+
+  - type: input
+    id: pi-affiliated-institute
+    attributes:
+      label: "PI's Affiliated Institute"
+      placeholder: "e.g. University of Alabama"
+    validations:
+      required: true
+
+  - type: input
+    id: pi-email
+    attributes:
+      label: "PI's Affiliated Email Address"
+      placeholder: "e.g. jdoe@ua.edu"
+    validations:
+      required: true
+
+  - type: input
+    id: requester-full-name
+    attributes:
+      label: "Requester's Full Name"
+      description: Leave blank only if the requester is the same as the PI.
+      placeholder: "e.g. John Smith"
+    validations:
+      required: true
+
+  - type: input
+    id: requester-email
+    attributes:
+      label: "Requester's Affiliated Email Address"
+      placeholder: "e.g. jsmith@ua.edu"
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: "### 2. Project Information"
+
+  - type: input
+    id: project-number
+    attributes:
+      label: CIROH Project Number
+      description: As listed in Smartsheet.
+      placeholder: "e.g. CIROH-2024-001"
+    validations:
+      required: true
+
+  - type: input
+    id: project-name
+    attributes:
+      label: CIROH Project Name
+      placeholder: "e.g. NextGen Water Modeling Framework"
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: "### 3. Project Description"
+
+  - type: textarea
+    id: project-description
+    attributes:
+      label: Project Description
+      description: |
+        Describe the project, its goals, and any software or scripts involved.
+        Highlight how the project benefits from or contributes to shared CIROH infrastructure.
+      placeholder: Describe the project goals, context, and infrastructure impact.
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: "### 4. Resource Requirements"
+
+  - type: textarea
+    id: resource-requirements
+    attributes:
+      label: Resource Requirements
+      description: Specify compute, storage, network, and any special configuration needs.
+      placeholder: Include expected instance sizes, storage needs, network requirements, and workload patterns.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: cloud-provider-options
+    attributes:
+      label: Cloud Provider Options
+      description: Select all that apply.
+      options:
+        - label: CIROH AWS
+        - label: CIROH Google Cloud Platform (GCP)
+        - label: CIROH-2i2c JupyterHub
+        - label: NWM BigQuery API Access Only
+
+  - type: markdown
+    attributes:
+      value: |
+        Resource information:
+        - AWS: https://docs.ciroh.org/docs/services/cloudservices/aws/
+        - Google Cloud: https://docs.ciroh.org/docs/services/cloudservices/google%20cloud/
+        - CIROH-2i2c JupyterHub: https://docs.ciroh.org/docs/services/cloudservices/2i2c/
+        - NWM BigQuery API: https://docs.ciroh.org/docs/products/data-management/bigquery-api/
+
+  - type: checkboxes
+    id: aws-services
+    attributes:
+      label: AWS Services Needed
+      description: Select all required AWS services.
+      options:
+        - label: EC2
+        - label: S3
+        - label: EBS
+        - label: EFS
+        - label: RDS
+        - label: VPC
+        - label: DynamoDB
+        - label: ECS
+        - label: EKS
+        - label: Lambda
+        - label: Other AWS services
+
+  - type: input
+    id: aws-other-services
+    attributes:
+      label: Other AWS Services
+      description: Complete this only if you selected Other AWS services.
+      placeholder: List any additional AWS services.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: google-cloud-services
+    attributes:
+      label: Google Cloud Services Needed
+      description: Select all required Google Cloud services.
+      options:
+        - label: Google Compute Engine
+        - label: Google BigQuery
+        - label: Google Kubernetes Engine (GKE)
+        - label: Google Cloud Storage
+        - label: Google VPC
+        - label: Google IAM
+        - label: Google Cloud Functions
+        - label: Dataflow
+        - label: Other Google Cloud services
+
+  - type: input
+    id: google-cloud-other-services
+    attributes:
+      label: Other Google Cloud Services
+      description: Complete this only if you selected Other Google Cloud services.
+      placeholder: List any additional Google Cloud services.
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: "### 5. Working Group"
+
+  - type: dropdown
+    id: working-group
+    attributes:
+      label: Working Group
+      options:
+        - Hydrologic Modeling and Prediction Working Group
+        - Hydroinformatics Working Group
+        - Community Resources Working Group
+        - Artificial Intelligence Working Group
+        - Model & Forecast Evaluation Working Group
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: "### 6. Timeline"
+
+  - type: input
+    id: project-start-date
+    attributes:
+      label: Project Start Date
+      placeholder: "e.g. 2026-04-01"
+    validations:
+      required: true
+
+  - type: input
+    id: project-end-date
+    attributes:
+      label: Project End Date
+      placeholder: "e.g. 2027-03-31"
+    validations:
+      required: true
+
+  - type: textarea
+    id: timeline-details
+    attributes:
+      label: Timeline Details
+      description: Include when resources are needed and any important milestones.
+      placeholder: Resources needed for setup in April, primary usage May to November, wrap-up in December.
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: "### 7. Security and Compliance Requirements"
+
+  - type: textarea
+    id: security-compliance
+    attributes:
+      label: Security and Compliance Requirements
+      placeholder: Describe any security, compliance, or data handling constraints.
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: "### 8. Cost Estimation"
+
+  - type: textarea
+    id: cost-estimation
+    attributes:
+      label: Cost Estimation
+      description: Required for AWS and GCP requests. Include assumptions and calculator links if used.
+      placeholder: |
+        AWS Cost Calculator: https://calculator.aws/#/
+        Google Cloud Pricing Calculator: https://cloud.google.com/products/calculator
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: "### 9. Approval"
+
+  - type: textarea
+    id: approval
+    attributes:
+      label: Approval
+      description: Requests typically require management approval and can take 2 to 3 weeks to process.
+      placeholder: Describe any required approvals or sign-offs.
+    validations:
+      required: false
