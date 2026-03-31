@@ -1,4 +1,4 @@
-name: Cloud Resources Request Form
+name: Cloud Resources Request Form (New)
 description: Request CIROH cloud resources or API access for a project.
 title: "[Cloud Resource Request]: "
 labels: ["infrastructure", "resource-request"]
