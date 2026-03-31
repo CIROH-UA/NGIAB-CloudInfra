@@ -1,4 +1,4 @@
-name: Workshop Resource Request Form
+name: Workshop Resource Request Form (New)
 description: Request compute resources for a CIROH workshop.
 title: "[Workshop Resource Request]: "
 labels: ["workshop", "infrastructure", "resource-request"]
