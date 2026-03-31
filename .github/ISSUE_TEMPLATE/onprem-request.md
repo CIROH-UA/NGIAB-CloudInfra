@@ -50,7 +50,26 @@ Specify the compute, storage, and network resources needed for the project. Be a
 > - More info about Pantarhei: [CIROH Pantarhei Documentation](https://docs.ciroh.org/docs/services/on-prem/Pantarhei/)
 > - More info about NSF ACCESS: [ACCESS Resource Allocations](https://allocations.access-ci.org/resources)
 
+- [ ] Pantarhei
+- [ ] NSF ACCESS
+
 <!-- Respond here! -->
+
+---
+
+### NSF ACCESS Access
+> Complete the field below **only if you selected NSF ACCESS** above.
+
+- NSF ACCESS ID: <!-- Respond here! -->
+
+---
+
+### Pantarhei Access
+> Complete the field below **only if you selected Pantarhei** above.
+
+- Bama ID: <!-- Respond here! -->
+
+---
 
 **5. Working Group**
 
