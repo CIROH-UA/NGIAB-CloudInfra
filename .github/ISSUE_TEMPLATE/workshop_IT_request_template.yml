@@ -207,8 +207,8 @@ body:
     attributes:
       label: Will participants need individual accounts?
       options:
-        - Yes
-        - No
+        - "Yes"
+        - "No"
     validations:
       required: true
 
@@ -217,8 +217,8 @@ body:
     attributes:
       label: Will you provide a list of participant emails?
       options:
-        - Yes
-        - No
+        - "Yes"
+        - "No"
     validations:
       required: true
 
@@ -227,8 +227,8 @@ body:
     attributes:
       label: Do participants need persistent storage beyond the workshop?
       options:
-        - Yes
-        - No
+        - "Yes"
+        - "No"
     validations:
       required: true
 
