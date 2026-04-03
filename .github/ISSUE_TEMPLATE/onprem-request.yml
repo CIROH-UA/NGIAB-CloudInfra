@@ -137,15 +137,55 @@ body:
         - CIROH Pantarhei Documentation: https://docs.ciroh.org/docs/services/on-prem/Pantarhei/
         - ACCESS Resource Allocations: https://allocations.access-ci.org/resources
 
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ### NSF ACCESS Access
+        > Complete the field below **only if you selected NSF ACCESS** above.
+
+  - type: input
+    id: nsf-access-id
+    attributes:
+      label: NSF ACCESS ID (NSF ACCESS only)
+      description: Your NSF ACCESS ID is required to provision access to NSF ACCESS allocations.
+      placeholder: "e.g. abc123456"
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ### Pantarhei Access
+        > Complete the field below **only if you selected Pantarhei** above.
+
+  - type: input
+    id: pantarhei-bama-id
+    attributes:
+      label: Bama ID (Pantarhei only)
+      description: Your University of Alabama Bama ID is required to provision access to the Pantarhei system.
+      placeholder: "e.g. jsmith123"
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: "---"
+
   - type: dropdown
     id: working-group
     attributes:
       label: Working Group
       options:
-        - Working Group 1
-        - Working Group 2
-        - Working Group 3
-        - Working Group 4
+        - "Flood Inundation Mapping Working Group"
+        - "Decision Support Working Group"
+        - "Hydrologic Modeling and Prediction Working Group"
+        - "Hydroinformatics Working Group"
+        - "Early Career Working Group"
+        - "Community Resources Working Group"
+        - "Artificial Intelligence Working Group"
+        - "Model & Forecast Evaluation Working Group"
     validations:
       required: true
 

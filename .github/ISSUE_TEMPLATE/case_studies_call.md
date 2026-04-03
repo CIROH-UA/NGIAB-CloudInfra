@@ -47,6 +47,18 @@ Specify the compute, storage, and network resources needed for the project. Be a
 > * NWM BigQuery API: [NWM BigQuery API](https://docs.ciroh.org/docs/products/data-management/bigquery-api/)
 <!-- Respond here! -->
 
+---
+
+### CIROH-2i2c JupyterHub Access
+> Complete the fields below **only if you selected CIROH-2i2c JupyterHub** above.
+
+- GitHub ID: <!-- Respond here! -->
+- Compute Type Needed:
+  - [ ] CPU
+  - [ ] GPU
+
+---
+
 2. Required Services in the Cloud:
 
 <!-- Please check all required services below using the [x] format. -->
@@ -84,8 +96,11 @@ Specify the compute, storage, and network resources needed for the project. Be a
 **5. Working Group**
 Please select the working group associated with this project:
 <!-- Please check one working group below using the [x] format. -->
+- [ ] Flood Inundation Mapping Working Group
+- [ ] Decision Support Working Group
 - [ ] Hydrologic Modeling and Prediction Working Group
 - [ ] Hydroinformatics Working Group
+- [ ] Early Career Working Group
 - [ ] Community Resources Working Group
 - [ ] Artificial Intelligence Working Group
 - [ ] Model & Forecast Evaluation Working Group
