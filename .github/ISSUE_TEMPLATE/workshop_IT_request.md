@@ -102,7 +102,16 @@ assignees: ''
 *Any other details that would help us support your workshop.*
 
 ## 10. Working Group Affiliation
-Working Group 1/2/3/4 (select one): 
+Please select the working group associated with this request:
+<!-- Please check one working group below using the [x] format. -->
+- [ ] Flood Inundation Mapping Working Group
+- [ ] Decision Support Working Group
+- [ ] Hydrologic Modeling and Prediction Working Group
+- [ ] Hydroinformatics Working Group
+- [ ] Early Career Working Group
+- [ ] Community Resources Working Group
+- [ ] Artificial Intelligence Working Group
+- [ ] Model & Forecast Evaluation Working Group
 
 ## 11. Approval
 *Please indicate any approval processes needed for this request.*

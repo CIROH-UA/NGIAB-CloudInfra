@@ -96,8 +96,11 @@ Specify the compute, storage, and network resources needed for the project. Be a
 **5. Working Group**
 Please select the working group associated with this project:
 <!-- Please check one working group below using the [x] format. -->
+- [ ] Flood Inundation Mapping Working Group
+- [ ] Decision Support Working Group
 - [ ] Hydrologic Modeling and Prediction Working Group
 - [ ] Hydroinformatics Working Group
+- [ ] Early Career Working Group
 - [ ] Community Resources Working Group
 - [ ] Artificial Intelligence Working Group
 - [ ] Model & Forecast Evaluation Working Group

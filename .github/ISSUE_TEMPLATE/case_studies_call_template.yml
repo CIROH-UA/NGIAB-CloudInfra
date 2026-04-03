@@ -195,8 +195,11 @@ body:
     attributes:
       label: Working Group
       options:
+        - "Flood Inundation Mapping Working Group"
+        - "Decision Support Working Group"
         - "Hydrologic Modeling and Prediction Working Group"
         - "Hydroinformatics Working Group"
+        - "Early Career Working Group"
         - "Community Resources Working Group"
         - "Artificial Intelligence Working Group"
         - "Model & Forecast Evaluation Working Group"
