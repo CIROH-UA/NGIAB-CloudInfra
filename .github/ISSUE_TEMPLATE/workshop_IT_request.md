@@ -1,5 +1,5 @@
 ---
-name: Workshop Resource Request Form
+name: Workshop Resource Request Form (Legacy)
 about: Workshop leads may use this form to request computing resources (AWS, GCP, NSF ACCESS or CIROH-2i2c JupyterHub) for CIROH workshops.
 title: 'Workshop Resource Request: [Workshop Name]'
 labels: workshop, infrastructure

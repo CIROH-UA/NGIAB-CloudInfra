@@ -1,5 +1,5 @@
 ---
-name: OnPremise Request Form
+name: OnPremise Request Form (Legacy)
 about: PI leading CIROH projects may use this form to request CIROH on-premise requests (Pantarhei or NSF ACCESS Allocations). Access is available to all consortium members and partners.
 title: ''
 labels: on-prem
