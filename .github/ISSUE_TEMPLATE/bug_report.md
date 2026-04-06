@@ -1,5 +1,5 @@
 ---
-name: Bug report
+name: Bug report (Legacy)
 about: This template is used to report the bug in the code.
 title: ''
 labels: bug

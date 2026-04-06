@@ -1,4 +1,4 @@
-name: Workshop Resource Request Form
+name: Workshop Resource Request Form (New)
 description: Request compute resources for a CIROH workshop.
 title: "[Workshop Resource Request]: "
 labels: ["workshop", "infrastructure", "resource-request"]
@@ -207,8 +207,8 @@ body:
     attributes:
       label: Will participants need individual accounts?
       options:
-        - Yes
-        - No
+        - "Yes"
+        - "No"
     validations:
       required: true
 
@@ -217,8 +217,8 @@ body:
     attributes:
       label: Will you provide a list of participant emails?
       options:
-        - Yes
-        - No
+        - "Yes"
+        - "No"
     validations:
       required: true
 
@@ -227,8 +227,8 @@ body:
     attributes:
       label: Do participants need persistent storage beyond the workshop?
       options:
-        - Yes
-        - No
+        - "Yes"
+        - "No"
     validations:
       required: true
 
@@ -298,10 +298,14 @@ body:
     attributes:
       label: Working Group
       options:
-        - Working Group 1
-        - Working Group 2
-        - Working Group 3
-        - Working Group 4
+        - "Flood Inundation Mapping Working Group"
+        - "Decision Support Working Group"
+        - "Hydrologic Modeling and Prediction Working Group"
+        - "Hydroinformatics Working Group"
+        - "Early Career Working Group"
+        - "Community Resources Working Group"
+        - "Artificial Intelligence Working Group"
+        - "Model & Forecast Evaluation Working Group"
     validations:
       required: true
 

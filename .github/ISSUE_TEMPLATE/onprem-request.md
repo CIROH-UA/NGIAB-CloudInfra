@@ -1,5 +1,5 @@
 ---
-name: OnPremise Request Form
+name: OnPremise Request Form (Legacy)
 about: PI leading CIROH projects may use this form to request CIROH on-premise requests (Pantarhei or NSF ACCESS Allocations). Access is available to all consortium members and partners.
 title: ''
 labels: on-prem
@@ -50,11 +50,39 @@ Specify the compute, storage, and network resources needed for the project. Be a
 > - More info about Pantarhei: [CIROH Pantarhei Documentation](https://docs.ciroh.org/docs/services/on-prem/Pantarhei/)
 > - More info about NSF ACCESS: [ACCESS Resource Allocations](https://allocations.access-ci.org/resources)
 
+- [ ] Pantarhei
+- [ ] NSF ACCESS
+
 <!-- Respond here! -->
+
+---
+
+### NSF ACCESS Access
+> Complete the field below **only if you selected NSF ACCESS** above.
+
+- NSF ACCESS ID: <!-- Respond here! -->
+
+---
+
+### Pantarhei Access
+> Complete the field below **only if you selected Pantarhei** above.
+
+- Bama ID: <!-- Respond here! -->
+
+---
 
 **5. Working Group**
 
-Working Group 1/2/3/4 (select one): <!-- Respond here! -->
+Please select the working group associated with this request:
+<!-- Please check one working group below using the [x] format. -->
+- [ ] Flood Inundation Mapping Working Group
+- [ ] Decision Support Working Group
+- [ ] Hydrologic Modeling and Prediction Working Group
+- [ ] Hydroinformatics Working Group
+- [ ] Early Career Working Group
+- [ ] Community Resources Working Group
+- [ ] Artificial Intelligence Working Group
+- [ ] Model & Forecast Evaluation Working Group
 
 **6.	Timeline** 
 

@@ -1,5 +1,5 @@
 ---
-name: Exceeding Budget Request Form
+name: Exceeding Budget Request Form (Legacy)
 about: This form would be specifically for projects who anticipate exceeding the $500/month limit. 
 title: ''
 labels: infrastructure

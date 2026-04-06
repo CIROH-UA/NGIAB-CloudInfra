@@ -93,10 +93,10 @@ body:
       label: Cloud Provider Options
       description: Select all that apply.
       options:
-        - label: CIROH AWS
-        - label: CIROH Google Cloud Platform (GCP)
-        - label: CIROH-2i2c JupyterHub
-        - label: NWM BigQuery API Access Only
+        - label: "CIROH AWS"
+        - label: "CIROH Google Cloud Platform (GCP)"
+        - label: "CIROH-2i2c JupyterHub"
+        - label: "NWM BigQuery API Access Only"
 
   - type: markdown
     attributes:
@@ -107,23 +107,54 @@ body:
         - CIROH-2i2c JupyterHub: https://docs.ciroh.org/docs/services/cloudservices/2i2c/
         - NWM BigQuery API: https://docs.ciroh.org/docs/products/data-management/bigquery-api/
 
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ### CIROH-2i2c JupyterHub Access
+        > Complete the fields below **only if you selected CIROH-2i2c JupyterHub** above.
+
+  - type: input
+    id: jupyterhub-github-id
+    attributes:
+      label: GitHub ID (2i2c JupyterHub only)
+      description: Required for provisioning access to the CIROH-2i2c JupyterHub environment.
+      placeholder: "e.g. github-username"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: jupyterhub-compute-type
+    attributes:
+      label: Compute Type Needed (2i2c JupyterHub only)
+      description: Select the type of compute access required on the JupyterHub.
+      options:
+        - "CPU"
+        - "GPU"
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: "---"
+
   - type: checkboxes
     id: aws-services
     attributes:
       label: AWS Services Needed
       description: Select all required AWS services.
       options:
-        - label: EC2
-        - label: S3
-        - label: EBS
-        - label: EFS
-        - label: RDS
-        - label: VPC
-        - label: DynamoDB
-        - label: ECS
-        - label: EKS
-        - label: Lambda
-        - label: Other AWS services
+        - label: "EC2"
+        - label: "S3"
+        - label: "EBS"
+        - label: "EFS"
+        - label: "RDS"
+        - label: "VPC"
+        - label: "DynamoDB"
+        - label: "ECS"
+        - label: "EKS"
+        - label: "Lambda"
+        - label: "Other AWS services"
 
   - type: input
     id: aws-other-services
@@ -140,15 +171,15 @@ body:
       label: Google Cloud Services Needed
       description: Select all required Google Cloud services.
       options:
-        - label: Google Compute Engine
-        - label: Google BigQuery
-        - label: Google Kubernetes Engine (GKE)
-        - label: Google Cloud Storage
-        - label: Google VPC
-        - label: Google IAM
-        - label: Google Cloud Functions
-        - label: Dataflow
-        - label: Other Google Cloud services
+        - label: "Google Compute Engine"
+        - label: "Google BigQuery"
+        - label: "Google Kubernetes Engine (GKE)"
+        - label: "Google Cloud Storage"
+        - label: "Google VPC"
+        - label: "Google IAM"
+        - label: "Google Cloud Functions"
+        - label: "Dataflow"
+        - label: "Other Google Cloud services"
 
   - type: input
     id: google-cloud-other-services
@@ -164,11 +195,14 @@ body:
     attributes:
       label: Working Group
       options:
-        - Hydrologic Modeling and Prediction Working Group
-        - Hydroinformatics Working Group
-        - Community Resources Working Group
-        - Artificial Intelligence Working Group
-        - Model & Forecast Evaluation Working Group
+        - "Flood Inundation Mapping Working Group"
+        - "Decision Support Working Group"
+        - "Hydrologic Modeling and Prediction Working Group"
+        - "Hydroinformatics Working Group"
+        - "Early Career Working Group"
+        - "Community Resources Working Group"
+        - "Artificial Intelligence Working Group"
+        - "Model & Forecast Evaluation Working Group"
     validations:
       required: true
 

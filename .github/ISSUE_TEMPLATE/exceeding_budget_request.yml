@@ -1,4 +1,4 @@
-name: Exceeding Budget Request Form
+name: Exceeding Budget Request Form (New)
 description: Request approval to exceed the standard monthly cloud budget threshold.
 title: "[Budget Increase Request]: "
 labels: ["infrastructure", "budget-request"]
