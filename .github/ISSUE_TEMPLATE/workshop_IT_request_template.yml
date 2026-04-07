@@ -279,9 +279,12 @@ body:
     attributes:
       label: Cost Estimation
       description: For cloud resources, provide an estimated cost for the workshop.
-      placeholder: |
-        AWS Cost Calculator: https://calculator.aws/#/
-        Google Cloud Pricing Calculator: https://cloud.google.com/products/calculator
+      description: |
+        For cloud resources, provide an estimated cost for the workshop.
+        
+        Reference tools:
+        - AWS Cost Calculator: https://calculator.aws/#/
+        - Google Cloud Pricing Calculator: https://cloud.google.com/products/calculator
     validations:
       required: false
 
@@ -322,5 +325,5 @@ body:
     attributes:
       value: |
         Resource information links:
-        - CIROH-2i2c JupyterHub: https://docs.ciroh.org/docs/services/cloudservices/jupyterhub/
+        - CIROH-2i2c JupyterHub: https://hub.ciroh.org/docs/services/cloudservices/jupyterhub/
         - NSF ACCESS: https://allocations.access-ci.org/resources

@@ -244,9 +244,12 @@ body:
     attributes:
       label: Cost Estimation
       description: Required for AWS and GCP requests. Include assumptions and calculator links if used.
-      placeholder: |
+      description: |
+        Required for AWS and GCP requests. Include assumptions and calculator links if used.
+        
         AWS Cost Calculator: https://calculator.aws/#/
         Google Cloud Pricing Calculator: https://cloud.google.com/products/calculator
+      placeholder: "Enter your cost estimation details here."
     validations:
       required: true
 
