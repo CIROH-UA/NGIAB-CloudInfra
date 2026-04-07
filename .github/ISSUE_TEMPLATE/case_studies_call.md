@@ -41,10 +41,10 @@ Specify the compute, storage, and network resources needed for the project. Be a
 - [ ] NWM BigQuery API Access Only
    
 > For detailed information about CIROH cloud accounts and APIs:
-> * AWS: [CIROH AWS Account](https://docs.ciroh.org/docs/services/cloudservices/aws/)
-> * Google Cloud: [CIROH Google Account](https://docs.ciroh.org/docs/services/cloudservices/google%20cloud/)
-> * CIROH-2i2c JupyterHub: [CIROH-2i2c JupyterHub](https://docs.ciroh.org/docs/services/cloudservices/2i2c/)
-> * NWM BigQuery API: [NWM BigQuery API](https://docs.ciroh.org/docs/products/data-management/bigquery-api/)
+> * AWS: [CIROH AWS Account](https://hub.ciroh.org/docs/services/cloudservices/aws/)
+> * Google Cloud: [CIROH Google Account](https://hub.ciroh.org/docs/services/cloudservices/google%20cloud/)
+> * CIROH-2i2c JupyterHub: [CIROH-2i2c JupyterHub](https://hub.ciroh.org/docs/services/cloudservices/2i2c/)
+> * NWM BigQuery API: [NWM BigQuery API](https://hub.ciroh.org/docs/products/data-management/bigquery-api/)
 <!-- Respond here! -->
 
 ---

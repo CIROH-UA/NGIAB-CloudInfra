@@ -102,10 +102,10 @@ body:
     attributes:
       value: |
         Resource information:
-        - AWS: https://docs.ciroh.org/docs/services/cloudservices/aws/
-        - Google Cloud: https://docs.ciroh.org/docs/services/cloudservices/google%20cloud/
-        - CIROH-2i2c JupyterHub: https://docs.ciroh.org/docs/services/cloudservices/2i2c/
-        - NWM BigQuery API: https://docs.ciroh.org/docs/products/data-management/bigquery-api/
+        - AWS: https://hub.ciroh.org/docs/services/cloudservices/aws/
+        - Google Cloud: https://hub.ciroh.org/docs/services/cloudservices/google%20cloud/
+        - CIROH-2i2c JupyterHub: https://hub.ciroh.org/docs/services/cloudservices/2i2c/
+        - NWM BigQuery API: https://hub.ciroh.org/docs/products/data-management/bigquery-api/
 
   - type: markdown
     attributes:

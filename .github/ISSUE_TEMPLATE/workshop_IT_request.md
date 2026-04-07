@@ -119,5 +119,5 @@ Please select the working group associated with this request:
 ---
 
 ### Resource Information Links:
-- CIROH-2i2c JupyterHub: [JupyterHub Documentation](https://docs.ciroh.org/docs/services/cloudservices/jupyterhub/)
+- CIROH-2i2c JupyterHub: [JupyterHub Documentation](https://hub.ciroh.org/docs/services/cloudservices/jupyterhub/)
 - NSF ACCESS: [ACCESS Resource Allocations](https://allocations.access-ci.org/resources)
