@@ -274,17 +274,22 @@ body:
     validations:
       required: false
 
+  - type: markdown
+    attributes:
+      value: |
+        ### Cost Estimation
+        For cloud resources, provide an estimated cost for the workshop.
+
+        Reference tools:
+        - [AWS Cost Calculator](https://calculator.aws/#/)
+        - [Google Cloud Pricing Calculator](https://cloud.google.com/products/calculator)
+
   - type: textarea
     id: cost-estimation
     attributes:
       label: Cost Estimation
       description: For cloud resources, provide an estimated cost for the workshop.
-      description: |
-        For cloud resources, provide an estimated cost for the workshop.
-        
-        Reference tools:
-        - AWS Cost Calculator: https://calculator.aws/#/
-        - Google Cloud Pricing Calculator: https://cloud.google.com/products/calculator
+      placeholder: Enter your cost estimation details here.
     validations:
       required: false
 

@@ -134,7 +134,7 @@ body:
     attributes:
       value: |
         More information:
-        - CIROH Pantarhei Documentation: https://docs.ciroh.org/docs/services/on-prem/Pantarhei/
+        - CIROH Pantarhei Documentation: https://hub.ciroh.org/docs/services/on-prem/Pantarhei/
         - ACCESS Resource Allocations: https://allocations.access-ci.org/resources
 
   - type: markdown
