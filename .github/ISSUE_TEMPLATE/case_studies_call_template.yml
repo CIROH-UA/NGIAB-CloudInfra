@@ -102,10 +102,10 @@ body:
     attributes:
       value: |
         Resource information:
-        - AWS: https://docs.ciroh.org/docs/services/cloudservices/aws/
-        - Google Cloud: https://docs.ciroh.org/docs/services/cloudservices/google%20cloud/
-        - CIROH-2i2c JupyterHub: https://docs.ciroh.org/docs/services/cloudservices/2i2c/
-        - NWM BigQuery API: https://docs.ciroh.org/docs/products/data-management/bigquery-api/
+        - AWS: https://hub.ciroh.org/docs/services/cloudservices/aws/
+        - Google Cloud: https://hub.ciroh.org/docs/services/cloudservices/google%20cloud/
+        - CIROH-2i2c JupyterHub: https://hub.ciroh.org/docs/services/cloudservices/2i2c/
+        - NWM BigQuery API: https://hub.ciroh.org/docs/products/data-management/bigquery-api/
 
   - type: markdown
     attributes:
@@ -239,14 +239,21 @@ body:
     validations:
       required: false
 
+  - type: markdown
+    attributes:
+      value: |
+        ### Cost Estimation
+        For AWS and GCP requests, provide an estimated cost for the workshop and include any assumptions used.
+
+        - [AWS Cost Calculator](https://calculator.aws/#/)
+        - [Google Cloud Pricing Calculator](https://cloud.google.com/products/calculator)
+
   - type: textarea
     id: cost-estimation
     attributes:
-      label: Cost Estimation
-      description: Required for AWS and GCP requests. Include assumptions and calculator links if used.
-      placeholder: |
-        AWS Cost Calculator: https://calculator.aws/#/
-        Google Cloud Pricing Calculator: https://cloud.google.com/products/calculator
+      label: Cost Estimation Details
+      description: Required for AWS and GCP requests. Include your estimate and assumptions.
+      placeholder: Enter your cost estimation details here.
     validations:
       required: true
 
