@@ -138,37 +138,6 @@ body:
     attributes:
       value: "---"
 
-  - type: markdown
-    attributes:
-      value: |
-        ---
-        ### CIROH-2i2c JupyterHub Access
-        > Complete the fields below **only if you selected CIROH-2i2c JupyterHub** above.
-
-  - type: input
-    id: jupyterhub-github-id
-    attributes:
-      label: GitHub ID (2i2c JupyterHub only)
-      description: Required for provisioning access to the CIROH-2i2c JupyterHub environment.
-      placeholder: "e.g. github-username"
-    validations:
-      required: false
-
-  - type: dropdown
-    id: jupyterhub-compute-type
-    attributes:
-      label: Compute Type Needed (2i2c JupyterHub only)
-      description: Select the type of compute access required on the JupyterHub.
-      options:
-        - "CPU"
-        - "GPU"
-    validations:
-      required: false
-
-  - type: markdown
-    attributes:
-      value: "---"
-
   - type: checkboxes
     id: aws-services
     attributes:
