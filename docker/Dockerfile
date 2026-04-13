@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM rockylinux:9.1 AS base
+FROM rockylinux:9.3 AS base
 ENV TROUTE_REPO=CIROH-UA/t-route
 ENV TROUTE_BRANCH=ngiab
 ENV NGEN_REPO=CIROH-UA/ngen
