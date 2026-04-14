@@ -1,17 +1,16 @@
-name: AWS Cloud Resources Request
-description: Request CIROH AWS cloud resources for a project.
-title: "[AWS Resource Request]: "
-labels: ["infrastructure", "resource-request", "aws"]
+name: CIROH-2i2c JupyterHub Access Request
+description: Request access or compute resources for the CIROH-2i2c JupyterHub.
+title: "[2i2c JupyterHub Request]: "
+labels: ["infrastructure", "resource-request", "2i2c"]
 body:
   - type: markdown
     attributes:
       value: |
-        ## AWS Cloud Resources Request
-        Complete this form to request AWS resources for a CIROH project.
+        ## CIROH-2i2c JupyterHub Access Request
+        Complete this form to request access to the CIROH-2i2c JupyterHub environment.
 
-        Helpful links:
-        - AWS service overview: https://hub.ciroh.org/docs/services/cloudservices/aws/
-        - AWS Cost Calculator: https://calculator.aws/#/
+        Helpful link:
+        - JupyterHub service info: https://hub.ciroh.org/docs/services/cloudservices/2i2c/
 
   - type: input
     id: pi-full-name
@@ -76,44 +75,54 @@ body:
     attributes:
       label: Project Description
       description: |
-        Describe the project goals, software, users, and expected infrastructure impact.
-      placeholder: Summarize the project and why AWS resources are needed.
+        Describe the project goals, notebooks, workflows, and collaboration needs.
+      placeholder: Summarize the project and how the JupyterHub will be used.
+    validations:
+      required: true
+
+  - type: input
+    id: jupyterhub-github-id
+    attributes:
+      label: GitHub ID
+      description: Required for provisioning access to the CIROH-2i2c JupyterHub environment.
+      placeholder: "e.g. github-username"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: jupyterhub-compute-type
+    attributes:
+      label: Compute Type Needed
+      description: Select the type of compute access required on the JupyterHub.
+      options:
+        - "CPU"
+        - "GPU"
+    validations:
+      required: true
+
+  - type: input
+    id: expected-users
+    attributes:
+      label: Number of Users Requiring Access
+      placeholder: "e.g. 5"
     validations:
       required: true
 
   - type: textarea
-    id: resource-requirements
+    id: software-requirements
     attributes:
-      label: AWS Resource Requirements
-      description: Specify compute, storage, networking, and workload expectations.
-      placeholder: Include instance sizes, storage needs, VPC/network needs, expected runtime, and scaling patterns.
+      label: Software and Environment Requirements
+      description: List required Python packages, libraries, containers, or notebook dependencies.
+      placeholder: Include any packages, environments, or notebook images needed.
     validations:
       required: true
 
-  - type: checkboxes
-    id: aws-services
+  - type: textarea
+    id: storage-data-needs
     attributes:
-      label: AWS Services Needed
-      description: Select all required AWS services.
-      options:
-        - label: "EC2"
-        - label: "S3"
-        - label: "EBS"
-        - label: "EFS"
-        - label: "RDS"
-        - label: "VPC"
-        - label: "DynamoDB"
-        - label: "ECS"
-        - label: "EKS"
-        - label: "Lambda"
-        - label: "Other AWS services"
-
-  - type: input
-    id: aws-other-services
-    attributes:
-      label: Other AWS Services
-      description: Complete this only if you selected Other AWS services.
-      placeholder: List any additional AWS services.
+      label: Data Storage and Access Needs
+      description: Describe datasets, storage size, and any shared folders or external data connections needed.
+      placeholder: Include expected storage size and any data access requirements.
     validations:
       required: false
 
@@ -153,8 +162,8 @@ body:
     id: timeline-details
     attributes:
       label: Timeline Details
-      description: Include when AWS resources are needed and any key milestones.
-      placeholder: Setup in April, primary usage May to November, wrap-up in December.
+      description: Include when access is needed and any important milestones.
+      placeholder: Access needed for onboarding in April, collaboration May to November, wrap-up in December.
     validations:
       required: false
 
@@ -165,15 +174,6 @@ body:
       placeholder: Describe any security, compliance, or data handling constraints.
     validations:
       required: false
-
-  - type: textarea
-    id: cost-estimation
-    attributes:
-      label: AWS Cost Estimation Details
-      description: Include your estimate and key assumptions.
-      placeholder: Provide the estimated monthly or total AWS cost and assumptions used.
-    validations:
-      required: true
 
   - type: textarea
     id: approval

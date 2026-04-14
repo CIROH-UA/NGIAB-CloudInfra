@@ -1,17 +1,17 @@
-name: AWS Cloud Resources Request
-description: Request CIROH AWS cloud resources for a project.
-title: "[AWS Resource Request]: "
-labels: ["infrastructure", "resource-request", "aws"]
+name: GCP Cloud Resources Request
+description: Request CIROH Google Cloud resources for a project.
+title: "[GCP Resource Request]: "
+labels: ["infrastructure", "resource-request", "gcp"]
 body:
   - type: markdown
     attributes:
       value: |
-        ## AWS Cloud Resources Request
-        Complete this form to request AWS resources for a CIROH project.
+        ## GCP Cloud Resources Request
+        Complete this form to request Google Cloud resources for a CIROH project.
 
         Helpful links:
-        - AWS service overview: https://hub.ciroh.org/docs/services/cloudservices/aws/
-        - AWS Cost Calculator: https://calculator.aws/#/
+        - Google Cloud overview: https://hub.ciroh.org/docs/services/cloudservices/google%20cloud/
+        - Google Cloud Pricing Calculator: https://cloud.google.com/products/calculator
 
   - type: input
     id: pi-full-name
@@ -77,43 +77,41 @@ body:
       label: Project Description
       description: |
         Describe the project goals, software, users, and expected infrastructure impact.
-      placeholder: Summarize the project and why AWS resources are needed.
+      placeholder: Summarize the project and why Google Cloud resources are needed.
     validations:
       required: true
 
   - type: textarea
     id: resource-requirements
     attributes:
-      label: AWS Resource Requirements
+      label: Google Cloud Resource Requirements
       description: Specify compute, storage, networking, and workload expectations.
-      placeholder: Include instance sizes, storage needs, VPC/network needs, expected runtime, and scaling patterns.
+      placeholder: Include VM sizing, storage needs, IAM/network needs, expected runtime, and scaling patterns.
     validations:
       required: true
 
   - type: checkboxes
-    id: aws-services
+    id: google-cloud-services
     attributes:
-      label: AWS Services Needed
-      description: Select all required AWS services.
+      label: Google Cloud Services Needed
+      description: Select all required Google Cloud services.
       options:
-        - label: "EC2"
-        - label: "S3"
-        - label: "EBS"
-        - label: "EFS"
-        - label: "RDS"
-        - label: "VPC"
-        - label: "DynamoDB"
-        - label: "ECS"
-        - label: "EKS"
-        - label: "Lambda"
-        - label: "Other AWS services"
+        - label: "Google Compute Engine"
+        - label: "Google BigQuery"
+        - label: "Google Kubernetes Engine (GKE)"
+        - label: "Google Cloud Storage"
+        - label: "Google VPC"
+        - label: "Google IAM"
+        - label: "Google Cloud Functions"
+        - label: "Dataflow"
+        - label: "Other Google Cloud services"
 
   - type: input
-    id: aws-other-services
+    id: google-cloud-other-services
     attributes:
-      label: Other AWS Services
-      description: Complete this only if you selected Other AWS services.
-      placeholder: List any additional AWS services.
+      label: Other Google Cloud Services
+      description: Complete this only if you selected Other Google Cloud services.
+      placeholder: List any additional Google Cloud services.
     validations:
       required: false
 
@@ -153,7 +151,7 @@ body:
     id: timeline-details
     attributes:
       label: Timeline Details
-      description: Include when AWS resources are needed and any key milestones.
+      description: Include when Google Cloud resources are needed and any key milestones.
       placeholder: Setup in April, primary usage May to November, wrap-up in December.
     validations:
       required: false
@@ -169,9 +167,9 @@ body:
   - type: textarea
     id: cost-estimation
     attributes:
-      label: AWS Cost Estimation Details
+      label: GCP Cost Estimation Details
       description: Include your estimate and key assumptions.
-      placeholder: Provide the estimated monthly or total AWS cost and assumptions used.
+      placeholder: Provide the estimated monthly or total GCP cost and assumptions used.
     validations:
       required: true
 
