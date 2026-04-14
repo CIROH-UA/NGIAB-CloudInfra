@@ -166,6 +166,15 @@ body:
     validations:
       required: false
 
+  - type: markdown
+    attributes:
+      value: |
+        ### Cost Estimation
+        For AWS and GCP requests, provide an estimated cost for the workshop and include any assumptions used.
+
+        - [AWS Cost Calculator](https://calculator.aws/#/)
+        - [Google Cloud Pricing Calculator](https://cloud.google.com/products/calculator)
+
   - type: textarea
     id: cost-estimation
     attributes:
