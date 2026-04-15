@@ -90,22 +90,35 @@ body:
     validations:
       required: true
 
-  - type: checkboxes
-    id: aws-services
+  - type: markdown
     attributes:
-      label: AWS Services Needed
-      description: Select all required AWS services.
+      value: |
+        ### Compute Resources
+  - type: checkboxes
+    id: aws-compute-services
+    attributes:
+      label: Compute Resources Needed
+      description: Select all required AWS compute services.
       options:
         - label: "EC2"
+        - label: "ECS"
+        - label: "EKS"
+        - label: "Lambda"
+  - type: markdown
+    attributes:
+      value: |
+        ### Storage Resources
+  - type: checkboxes
+    id: aws-storage-services
+    attributes:
+      label: Storage Resources Needed
+      description: Select all required AWS storage services.
+      options:
         - label: "S3"
         - label: "EBS"
         - label: "EFS"
         - label: "RDS"
-        - label: "VPC"
         - label: "DynamoDB"
-        - label: "ECS"
-        - label: "EKS"
-        - label: "Lambda"
         - label: "Other AWS services"
 
   - type: input

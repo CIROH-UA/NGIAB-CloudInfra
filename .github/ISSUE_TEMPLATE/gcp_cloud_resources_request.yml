@@ -91,19 +91,26 @@ body:
       required: true
 
   - type: checkboxes
-    id: google-cloud-services
+    id: google-cloud-compute-resources
     attributes:
-      label: Google Cloud Services Needed
-      description: Select all required Google Cloud services.
+      label: Compute Resources
+      description: Select all required compute-related Google Cloud services.
       options:
         - label: "Google Compute Engine"
-        - label: "Google BigQuery"
         - label: "Google Kubernetes Engine (GKE)"
-        - label: "Google Cloud Storage"
         - label: "Google VPC"
         - label: "Google IAM"
         - label: "Google Cloud Functions"
         - label: "Dataflow"
+
+  - type: checkboxes
+    id: google-cloud-storage-resources
+    attributes:
+      label: Storage Resources
+      description: Select all required storage-related Google Cloud services.
+      options:
+        - label: "Google BigQuery"
+        - label: "Google Cloud Storage"
         - label: "Other Google Cloud services"
 
   - type: input
