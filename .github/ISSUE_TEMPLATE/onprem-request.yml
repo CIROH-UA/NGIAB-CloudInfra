@@ -1,7 +1,7 @@
 name: On-Premise Request Form
 description: Request CIROH on-premise resources such as Pantarhei or NSF ACCESS allocations.
 title: "[On-Prem Resource Request]: "
-labels: ["on-prem", "resource-request"]
+labels: ["on-prem", "resource-request", "Infra Access"]
 body:
   - type: markdown
     attributes:

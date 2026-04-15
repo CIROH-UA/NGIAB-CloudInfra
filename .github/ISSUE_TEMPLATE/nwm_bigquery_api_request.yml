@@ -1,7 +1,7 @@
 name: NWM BigQuery API Access Request
 description: Request access to the NWM BigQuery API or related datasets.
 title: "[NWM BigQuery API Request]: "
-labels: ["infrastructure", "resource-request", "bigquery"]
+labels: ["infrastructure", "resource-request", "bigquery", "Infra Access"]
 body:
   - type: markdown
     attributes:

@@ -1,7 +1,7 @@
 name: CIROH-2i2c JupyterHub Access Request
 description: Request access or compute resources for the CIROH-2i2c JupyterHub.
 title: "[2i2c JupyterHub Request]: "
-labels: ["infrastructure", "resource-request", "2i2c"]
+labels: ["infrastructure", "resource-request", "2i2c", "Infra Access"]
 body:
   - type: markdown
     attributes:

@@ -1,7 +1,7 @@
 name: GCP Cloud Resources Request
 description: Request CIROH Google Cloud resources for a project.
 title: "[GCP Resource Request]: "
-labels: ["infrastructure", "resource-request", "gcp"]
+labels: ["infrastructure", "resource-request", "gcp", "Infra Access"]
 body:
   - type: markdown
     attributes:
