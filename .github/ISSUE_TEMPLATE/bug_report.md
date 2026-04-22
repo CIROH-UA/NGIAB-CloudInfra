@@ -1,5 +1,5 @@
 ---
-name: Bug report (Legacy)
+name: (DEPRECATED) Bug Report
 about: This template is used to report the bug in the code.
 title: ''
 labels: bug
@@ -7,17 +7,6 @@ assignees: ''
 
 ---
 
-Short description explaining the high-level reason for the new issue.
+This template is deprecated. Please do not use it.
 
-## Current behavior
-
-
-## Expected behavior
-
-
-## Steps to replicate behavior (include URLs)
-
-1.
-
-
-## Screenshots
+For the most current version of this form, please visit: https://github.com/CIROH-UA/NGIAB-CloudInfra/issues/new?template=bug_report.yml

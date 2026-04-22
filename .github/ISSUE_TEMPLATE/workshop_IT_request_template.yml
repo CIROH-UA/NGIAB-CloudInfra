@@ -130,14 +130,13 @@ body:
     attributes:
       label: AWS Services Needed
       options:
-        - label: EC2
-        - label: S3
-        - label: EBS
-        - label: RDS
-        - label: VPC
-        - label: Lambda
-        - label: ArcGIS on AWS
-        - label: Other AWS services
+        - label: S3 Storage
+        - label: Other AWS services*
+
+  - type: markdown
+    id: aws-disclaimer
+    attributes:
+      value: '*\* Note: outside of S3 storage buckets, 2i2c JupyterHub and NSF Access allocations are strongly preferred for workshop use.*'
 
   - type: textarea
     id: aws-service-details
@@ -153,11 +152,13 @@ body:
     attributes:
       label: Google Cloud Services Needed
       options:
-        - label: Google Compute Engine
-        - label: Google Cloud Storage
-        - label: Google BigQuery
-        - label: Google Cloud Functions
-        - label: Other Google services
+        - label: NWM BigQuery API
+        - label: Other Google services*
+
+  - type: markdown
+    id: google-cloud-disclaimer
+    attributes:
+      value: '*\* Note: outside of accessing the NWM BigQuery API, CIROH2i2c JupyterHub and NSF Access allocations are strongly preferredfor workshop use.*'
 
   - type: textarea
     id: google-cloud-service-details
@@ -167,18 +168,6 @@ body:
       placeholder: List selected Google Cloud services and required configuration.
     validations:
       required: false
-
-  - type: checkboxes
-    id: jupyterhub-sizes
-    attributes:
-      label: CIROH-2i2c JupyterHub Resource Sizes
-      options:
-        - label: Small - 5 GB RAM, 2 CPUs
-        - label: Medium - 11 GB RAM, 4 CPUs
-        - label: Large - 24 GB RAM, 8 CPUs
-        - label: Huge - 52 GB RAM, 16 CPUs
-        - label: GPU - NVIDIA Tesla T4, approximately 16 GB and 4 CPUs
-        - label: Custom environment
 
   - type: textarea
     id: jupyterhub-details
