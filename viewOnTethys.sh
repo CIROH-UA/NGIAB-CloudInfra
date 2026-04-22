@@ -61,6 +61,13 @@ VISUALIZER_CONF="$MODELS_RUNS_DIRECTORY/ngiab_visualizer.json"
 TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
 SKIP_DB_SETUP=false
 
+# TEEHR warehouse (shared across model runs). Persisted in a sibling config file
+# so runTeehr.sh and viewOnTethys.sh agree on the location. Must be mounted at
+# the SAME absolute path inside the Tethys container because Iceberg embeds
+# absolute paths in local_catalog.db and metadata/*.json.
+TEEHR_EVAL_CONFIG_FILE="$HOME/.teehr_evaluation_path.conf"
+TEEHR_WAREHOUSE_PATH=""
+
 # Parameters
 DATA_FOLDER_PATH="" # If non-empty, gets used as the gage path to import.
 TETHYS_TAG="" # If non-empty, gets used as the image tag.
@@ -147,6 +154,19 @@ else
 fi
 
 # Main functions
+load_teehr_warehouse_path() {
+    # Load TEEHR_WAREHOUSE_PATH from the runTeehr.sh config file if present.
+    # Silent no-op when the file doesn't exist -- the Tethys backend treats
+    # "no warehouse configured" as a first-class empty state.
+    if [ -f "$TEEHR_EVAL_CONFIG_FILE" ]; then
+        local candidate
+        candidate="$(cat "$TEEHR_EVAL_CONFIG_FILE")"
+        if [ -n "$candidate" ] && [ -d "$candidate" ]; then
+            TEEHR_WAREHOUSE_PATH="$candidate"
+        fi
+    fi
+}
+
 ensure_host_dir() {
     local dir="$1"
 
@@ -363,11 +383,23 @@ run_tethys() {
     sleep 1
     echo -e "  ${INFO_MARK} ${BYellow}Starting Tethys container...${Color_Off}"
 
+    # Build the TEEHR warehouse mount flags conditionally -- mirrored-path
+    # bind mount is required when a warehouse is configured; skipped entirely
+    # when not so users without TEEHR set up are not blocked.
+    local teehr_mount_args=()
+    local teehr_env_args=()
+    if [ -n "$TEEHR_WAREHOUSE_PATH" ] && [ -d "$TEEHR_WAREHOUSE_PATH" ]; then
+        teehr_mount_args=(-v "$TEEHR_WAREHOUSE_PATH:$TEEHR_WAREHOUSE_PATH:ro")
+        teehr_env_args=(--env "TEEHR_WAREHOUSE_PATH=$TEEHR_WAREHOUSE_PATH")
+        echo -e "  ${INFO_MARK} Mounting TEEHR warehouse: ${BCyan}$TEEHR_WAREHOUSE_PATH${Color_Off}"
+    fi
+
     # Launch container with explicit error handling
     echo -e "  ${INFO_MARK} Running docker command..."
     docker run --rm -d \
         -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer" \
         -v "$DATASTREAM_DIRECTORY:$TETHYS_PERSIST_PATH/.datastream_ngiab" \
+        "${teehr_mount_args[@]}" \
         -p "$nginx_tethys_port:$nginx_tethys_port" \
         --network "$DOCKER_NETWORK" \
         --name "$TETHYS_CONTAINER_NAME" \
@@ -378,6 +410,7 @@ run_tethys() {
         --env VISUALIZER_CONF="$TETHYS_PERSIST_PATH/ngiab_visualizer/ngiab_visualizer.json" \
         --env NGINX_PORT="$nginx_tethys_port" \
         --env CSRF_TRUSTED_ORIGINS="$CSRF_TRUSTED_ORIGINS" \
+        "${teehr_env_args[@]}" \
         "${TETHYS_REPO}:${TETHYS_TAG}"
 
     if [ $? -eq 0 ]; then
@@ -547,11 +580,31 @@ add_model_run() {
     [[ -f "$json_file" ]] || echo '{"model_runs":[]}' > "$json_file"
 
     # ── 1. Gather new-run metadata ──────────────────────────────────────
-    local base_name new_uuid current_time final_path
+    local base_name new_uuid current_time final_path teehr_config_name
     base_name=$(basename "$input_path")
     new_uuid=$(uuidgen)
     current_time=$(date +"%Y-%m-%d:%H:%M:%S")
     final_path="/var/lib/tethys_persist/ngiab_visualizer/$base_name"
+
+    # Read teehr_configuration_name from the producer's manifest (if any).
+    # The manifest travels with the run directory through copy_models_run, so
+    # it's co-located at "$input_path/teehr_run_manifest.json". If absent or
+    # malformed, fall through with an empty value -- the backend's fallback
+    # derivation path will still resolve the config name at query time.
+    teehr_config_name=""
+    local manifest="$input_path/teehr_run_manifest.json"
+    if [ -f "$manifest" ]; then
+        if command -v jq >/dev/null 2>&1; then
+            teehr_config_name=$(jq -r '.teehr_configuration_name // empty' "$manifest" 2>/dev/null || true)
+        elif command -v python3 >/dev/null 2>&1; then
+            teehr_config_name=$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(d.get('teehr_configuration_name') or '')" "$manifest" 2>/dev/null || true)
+        fi
+        if [ -n "$teehr_config_name" ]; then
+            echo -e "  ${INFO_MARK} Registered TEEHR configuration: ${BCyan}$teehr_config_name${Color_Off}"
+        else
+            echo -e "  ${WARNING_MARK} ${BYellow}teehr_run_manifest.json present but teehr_configuration_name missing/unparseable.${Color_Off}"
+        fi
+    fi
 
     # ── 2. Pick a jq implementation (host → docker → fail) ──────────────
     local jq_exec
@@ -593,20 +646,27 @@ add_model_run() {
     fi
 
     # ── 4. Append the new record ────────────────────────────────────────
+    # The teehr_configuration_name field is only included when non-empty so
+    # legacy entries (registered before the manifest flow existed) keep the
+    # exact same JSON shape they have today.
     if $jq_exec \
         --arg base_name    "$base_name" \
         --arg final_path   "$final_path" \
         --arg current_time "$current_time" \
         --arg uuid         "$new_uuid" \
+        --arg teehr_cfg    "$teehr_config_name" \
         '
-        .model_runs += [{
+        .model_runs += [
+          ({
             label:  $base_name,
             path:   $final_path,
             date:   $current_time,
             id:     $uuid,
             subset: "",
             tags:   []
-        }]
+          }
+          + ( if $teehr_cfg == "" then {} else {teehr_configuration_name: $teehr_cfg} end ))
+        ]
         ' < "$json_file" > "${json_file}.tmp" && \
        mv -f "${json_file}.tmp" "$json_file"; then
         ## ► success message
@@ -762,6 +822,10 @@ if [[ -n "$DATA_FOLDER_PATH" && ! -d "$DATA_FOLDER_PATH" ]]; then
 fi
 
 print_section_header "PREPARING VISUALIZATION ENVIRONMENT"
+
+# Load TEEHR warehouse path from runTeehr.sh's config file if set. Silent when
+# unset -- the visualizer treats "no warehouse configured" as a valid state.
+load_teehr_warehouse_path
 
 # If visualization directory is non-empty, offer a fresh start option
 prompt_fresh_start
