@@ -117,7 +117,7 @@ body:
     validations:
       required: true
 
-  - type: dropdown
+  - type: checkboxes
     id: allocation
     attributes:
       label: Pantarhei / NSF ACCESS Allocation
@@ -128,7 +128,6 @@ body:
         - NSF JetStream GPU
         - NSF Anvil CPU
         - NSF Anvil GPU
-
     validations:
       required: true
 
