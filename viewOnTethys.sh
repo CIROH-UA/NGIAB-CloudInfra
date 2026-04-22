@@ -172,7 +172,7 @@ ensure_host_dir() {
 
     # Create the directory if it doesn't exist
     if [ ! -d "$dir" ]; then
-        echo -e "${INFO_MARK} Directory ${BWhite}$dir${Color_Off} doesn't exist — creating it..."
+        echo -e "${INFO_MARK} Directory ${BWhite}$dir${Color_Off} doesn't exist - creating it..."
         mkdir -p "$dir" || { echo "Could not create directory $dir"; return 1; }
     fi
 
@@ -191,7 +191,7 @@ ensure_host_dir() {
             # 2) >&2 sends it to stderr (same stream as sudo prompt)
             # 3) sleep 0.1 lets the text reach the terminal before sudo starts
             echo -e "${INFO_MARK} ${BYellow}Reclaiming ownership of $dir " \
-                    "(sudo may prompt)…${Color_Off}" >&2
+                    "(sudo may prompt)...${Color_Off}" >&2
             sleep 0.1
             sudo chown -R "$(id -u):$(id -g)" "$dir" \
             || echo -e "${WARNING_MARK} Could not change directory ownership."
@@ -444,7 +444,7 @@ select_tethys_image_source() {
                 [Ll]* )
                     echo -e "  ${CHECK_MARK} Using local image" ; return 0 ;;
                 [Pp]* )
-                    echo -e "  ${INFO_MARK} ${BYellow}Pulling image – this may take a moment…${Color_Off}"
+                    echo -e "  ${INFO_MARK} ${BYellow}Pulling image - this may take a moment...${Color_Off}"
                     show_loading "Downloading Tethys image" 3
                     docker pull "$image_ref" && return 0
                     echo -e "  ${CROSS_MARK} ${BRed}Failed to pull $image_ref${Color_Off}"
@@ -454,8 +454,8 @@ select_tethys_image_source() {
             esac
         done
     else
-        # No local image – pull automatically
-        echo -e "  ${INFO_MARK} ${BYellow}Image not found locally – pulling $image_ref…${Color_Off}"
+        # No local image - pull automatically
+        echo -e "  ${INFO_MARK} ${BYellow}Image not found locally - pulling $image_ref...${Color_Off}"
         show_loading "Downloading Tethys image" 3
         docker pull "$image_ref" && return 0
         echo -e "  ${CROSS_MARK} ${BRed}Failed to pull $image_ref${Color_Off}"
@@ -501,7 +501,7 @@ prompt_fresh_start() {
             case "$keep_choice" in
                 [Kk]* ) break ;;   # keep as-is
                 [Ff]* )
-                    echo -e "  ${INFO_MARK} ${BYellow}Removing previous runs…" \
+                    echo -e "  ${INFO_MARK} ${BYellow}Removing previous runs..." \
                             "${LBLUE}(sudo may be required)${Color_Off}" >&2
                     rm -rf "${models_dir:?}/"* 2>/dev/null || sudo rm -rf "${models_dir:?}/"* 
                     break ;;
@@ -529,7 +529,7 @@ copy_models_run() {
     local model_run_path="$models_dir/$base_name"
     local final_copied_path="$model_run_path"
 
-    # 3. Copy / overwrite / duplicate – user-driven
+    # 3. Copy / overwrite / duplicate - user-driven
     overwrite_used=false # Message-passing for add_model_run()
     if [ ! -e "$model_run_path" ]; then
         cp -r "$input_path" "$models_dir/" || {
@@ -613,7 +613,7 @@ add_model_run() {
     elif command -v docker >/dev/null 2>&1; then
         local jq_image="ghcr.io/jqlang/jq:latest"
         docker image inspect "$jq_image" >/dev/null 2>&1 || {
-            echo -e "  ${INFO_MARK} ${BYellow}Pulling jq helper image…${Color_Off}"
+            echo -e "  ${INFO_MARK} ${BYellow}Pulling jq helper image...${Color_Off}"
             docker pull "$jq_image" >/dev/null
         }
         jq_exec="docker run --rm -i $jq_image"
@@ -670,7 +670,7 @@ add_model_run() {
         ' < "$json_file" > "${json_file}.tmp" && \
        mv -f "${json_file}.tmp" "$json_file"; then
         ## ► success message
-        echo -e "  ${CHECK_MARK} ${BCyan}Model run “$base_name” registered (${new_uuid})${Color_Off}"
+        echo -e "  ${CHECK_MARK} ${BCyan}Model run "$base_name" registered (${new_uuid})${Color_Off}"
     else
         ## ► failure message
         echo -e "  ${CROSS_MARK} ${BRed}Failed to update $json_file with new model run.${Color_Off}"
@@ -690,7 +690,7 @@ manage_datastream_cache() {
 
     # ─── Nothing inside?  Tell the user and bail out ───────────────────
     if [ -z "$(ls -A "$cache_dir" 2>/dev/null)" ]; then
-        echo -e "  ${INFO_MARK} ${LGREEN}No existing Datastream cache found –" \
+        echo -e "  ${INFO_MARK} ${LGREEN}No existing Datastream cache found -" \
                 "a fresh download will be used.${Color_Off}"
         return 0
     fi
@@ -709,7 +709,7 @@ manage_datastream_cache() {
                 break ;;
             [Ff]* )
                 echo -e "  ${INFO_MARK} ${BYellow}Clearing Datastream cache " \
-                        "(sudo may be required)…${Color_Off}"
+                        "(sudo may be required)...${Color_Off}"
                 rm -rf "${cache_dir:?}/"* 2>/dev/null || sudo rm -rf "${cache_dir:?}/"*
                 break ;;
             * )
