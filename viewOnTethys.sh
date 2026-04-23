@@ -670,7 +670,7 @@ add_model_run() {
         ' < "$json_file" > "${json_file}.tmp" && \
        mv -f "${json_file}.tmp" "$json_file"; then
         ## ► success message
-        echo -e "  ${CHECK_MARK} ${BCyan}Model run "$base_name" registered (${new_uuid})${Color_Off}"
+        echo -e "  ${CHECK_MARK} ${BCyan}Model run \"${base_name}\" registered (${new_uuid})${Color_Off}"
     else
         ## ► failure message
         echo -e "  ${CROSS_MARK} ${BRed}Failed to update $json_file with new model run.${Color_Off}"
