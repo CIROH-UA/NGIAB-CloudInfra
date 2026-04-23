@@ -160,7 +160,9 @@ load_teehr_warehouse_path() {
     # "no warehouse configured" as a first-class empty state.
     if [ -f "$TEEHR_EVAL_CONFIG_FILE" ]; then
         local candidate
-        candidate="$(cat "$TEEHR_EVAL_CONFIG_FILE")"
+        candidate="$(cat "$TEEHR_EVAL_CONFIG_FILE" | tr -d '\r')"
+        candidate="${candidate#"${candidate%%[![:space:]]*}"}"
+        candidate="${candidate%"${candidate##*[![:space:]]}"}"
         if [ -n "$candidate" ] && [ -d "$candidate" ]; then
             TEEHR_WAREHOUSE_PATH="$candidate"
         fi
