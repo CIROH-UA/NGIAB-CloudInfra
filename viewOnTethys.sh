@@ -61,10 +61,10 @@ VISUALIZER_CONF="$MODELS_RUNS_DIRECTORY/ngiab_visualizer.json"
 TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
 SKIP_DB_SETUP=false
 
-# TEEHR warehouse (shared across model runs). Persisted in a sibling config file
-# so runTeehr.sh and viewOnTethys.sh agree on the location. Must be mounted at
-# the SAME absolute path inside the Tethys container because Iceberg embeds
-# absolute paths in local_catalog.db and metadata/*.json.
+# TEEHR warehouse path used by this script for Tethys visualization. Persisted
+# in a config file so the configured location can be reused across runs. It
+# must be mounted at the SAME absolute path inside the Tethys container because
+# Iceberg embeds absolute paths in local_catalog.db and metadata/*.json.
 TEEHR_EVAL_CONFIG_FILE="$HOME/.teehr_evaluation_path.conf"
 TEEHR_WAREHOUSE_PATH=""
 
