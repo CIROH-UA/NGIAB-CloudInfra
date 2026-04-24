@@ -608,6 +608,19 @@ add_model_run() {
         fi
     fi
 
+    # When the producer manifest did not supply a value, derive one from the
+    # run folder basename. Must mirror the producer rule in
+    # ngiab-teehr/scripts/teehr_ngen.py exactly:
+    #     "ngen_" + re.sub(r"[^a-zA-Z0-9_]", "_", basename).lower()
+    # LC_ALL=C pins sed/tr to ASCII so the output matches the producer's
+    # ASCII-only regex byte-for-byte for the basenames ngen actually produces.
+    if [ -z "$teehr_config_name" ]; then
+        teehr_config_name="ngen_$(printf '%s' "$base_name" \
+            | LC_ALL=C sed -E 's/[^a-zA-Z0-9_]/_/g' \
+            | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+        echo -e "  ${INFO_MARK} Derived TEEHR configuration from run folder: ${BCyan}$teehr_config_name${Color_Off}"
+    fi
+
     # ── 2. Pick a jq implementation (host → docker → fail) ──────────────
     local jq_exec
     if command -v jq >/dev/null 2>&1; then
