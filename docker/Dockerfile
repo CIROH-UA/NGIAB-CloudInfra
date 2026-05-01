@@ -161,6 +161,12 @@ RUN cmake -G Ninja -B build_summa -DUSE_NEXTGEN=ON -DUSE_SUNDIALS=ON \
 RUN cmake --build build_summa --target all -- -j $(nproc)
 
 
+FROM ngen_clone AS build_sacsma
+WORKDIR /ngen/ngen/extern/sac-sma
+RUN cmake -B cmake_build -DISO_C_FORTRAN_BMI_PATH=/ngen/ngen/extern/iso_c_fortran_bmi -S .
+RUN cmake --build cmake_build -j $(nproc)
+
+
 FROM ngen_build AS restructure_files
 RUN mkdir -p /dmod/datasets /dmod/datasets/static /dmod/shared_libs /dmod/bin /dmod/utils/ && \
     shopt -s globstar && \
@@ -173,7 +179,8 @@ RUN mkdir -p /dmod/datasets /dmod/datasets/static /dmod/shared_libs /dmod/bin /d
     cd /dmod/bin && \
     (stat ngen-parallel && ln -s ngen-parallel ngen) || (stat ngen-serial && ln -s ngen-serial ngen)
 COPY --from=build_summa /ngen/ngen/extern/summa/build_summa/*.so /dmod/shared_libs/
-
+COPY --from=build_sacsma /ngen/ngen/extern/sac-sma/cmake_build/*.so /dmod/shared_libs/
+COPY --from=build_sacsma /ngen/ngen/extern/sac-sma/test_cases/ex1 /dmod/datasets/static/sac-sma_ex1
 
 FROM restructure_files AS dev
 COPY  HelloNGEN.sh /ngen/HelloNGEN.sh
