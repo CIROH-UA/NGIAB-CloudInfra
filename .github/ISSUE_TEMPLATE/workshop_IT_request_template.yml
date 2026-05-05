@@ -156,7 +156,7 @@ body:
 
   - type: markdown
     attributes:
-      value: '*\* Note: outside of accessing the NWM BigQuery API, CIROH2i2c JupyterHub and NSF Access allocations are strongly preferredfor workshop use.*'
+      value: '*\* Note: outside of accessing the NWM BigQuery API, CIROH-2i2c JupyterHub and NSF Access allocations are strongly preferred for workshop use.*'
 
   - type: textarea
     id: google-cloud-service-details
