@@ -134,7 +134,6 @@ body:
         - label: Other AWS services*
 
   - type: markdown
-    id: aws-disclaimer
     attributes:
       value: '*\* Note: outside of S3 storage buckets, 2i2c JupyterHub and NSF Access allocations are strongly preferred for workshop use.*'
 
@@ -156,7 +155,6 @@ body:
         - label: Other Google services*
 
   - type: markdown
-    id: google-cloud-disclaimer
     attributes:
       value: '*\* Note: outside of accessing the NWM BigQuery API, CIROH2i2c JupyterHub and NSF Access allocations are strongly preferredfor workshop use.*'
 

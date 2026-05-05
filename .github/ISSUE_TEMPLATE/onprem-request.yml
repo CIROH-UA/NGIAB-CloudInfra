@@ -143,7 +143,7 @@ body:
       value: |
         ---
         ### NSF ACCESS Access
-        > Complete the field below **only if you selected NSF ACCESS** above.
+        > Complete the field below **only if you selected an NSF ACCESS option** above.
 
   - type: input
     id: nsf-access-id
