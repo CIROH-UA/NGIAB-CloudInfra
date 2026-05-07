@@ -163,7 +163,6 @@ RUN cmake --build build_summa --target all -- -j $(nproc)
 
 FROM ngen_clone AS build_snow17
 WORKDIR /ngen/ngen/extern/snow17
-RUN tar -xzf test_cases/ex1.tgz
 RUN cmake -B cmake_build -DISO_C_FORTRAN_BMI_PATH=/ngen/ngen/extern/iso_c_fortran_bmi -S .
 RUN cmake --build cmake_build
 RUN cmake --build cmake_build -j $(nproc)
@@ -182,7 +181,6 @@ RUN mkdir -p /dmod/datasets /dmod/datasets/static /dmod/shared_libs /dmod/bin /d
     (stat ngen-parallel && ln -s ngen-parallel ngen) || (stat ngen-serial && ln -s ngen-serial ngen)
 COPY --from=build_summa /ngen/ngen/extern/summa/build_summa/*.so /dmod/shared_libs/
 COPY --from=build_snow17 /ngen/ngen/extern/snow17/cmake_build/*.so /dmod/shared_libs/
-COPY --from=build_snow17 /ngen/ngen/extern/snow17/ex1 /dmod/datasets/static/snow17_ex1
 
 
 FROM restructure_files AS dev
