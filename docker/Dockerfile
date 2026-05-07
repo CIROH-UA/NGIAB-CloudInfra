@@ -180,7 +180,6 @@ RUN mkdir -p /dmod/datasets /dmod/datasets/static /dmod/shared_libs /dmod/bin /d
     (stat ngen-parallel && ln -s ngen-parallel ngen) || (stat ngen-serial && ln -s ngen-serial ngen)
 COPY --from=build_summa /ngen/ngen/extern/summa/build_summa/*.so /dmod/shared_libs/
 COPY --from=build_sacsma /ngen/ngen/extern/sac-sma/cmake_build/*.so /dmod/shared_libs/
-COPY --from=build_sacsma /ngen/ngen/extern/sac-sma/test_cases/ex1 /dmod/datasets/static/sac-sma_ex1
 
 FROM restructure_files AS dev
 COPY  HelloNGEN.sh /ngen/HelloNGEN.sh
