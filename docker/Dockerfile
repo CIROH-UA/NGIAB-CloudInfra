@@ -164,7 +164,6 @@ RUN cmake --build build_summa --target all -- -j $(nproc)
 FROM ngen_clone AS build_snow17
 WORKDIR /ngen/ngen/extern/snow17
 RUN cmake -B cmake_build -DISO_C_FORTRAN_BMI_PATH=/ngen/ngen/extern/iso_c_fortran_bmi -S .
-RUN cmake --build cmake_build
 RUN cmake --build cmake_build -j $(nproc)
 
 
