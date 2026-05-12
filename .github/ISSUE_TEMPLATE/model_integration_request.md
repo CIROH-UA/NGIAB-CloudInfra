@@ -1,5 +1,5 @@
 ---
-name: Model Integration Checklist for NGIAB (Legacy)
+name: Model Integration Checklist for NGIAB
 about: This form would be for the new model that will be integrated with NGIAB.
 title: ''
 labels: 'model-integration, needs-review, NGIAB'
