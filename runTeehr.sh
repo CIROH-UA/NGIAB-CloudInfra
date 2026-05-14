@@ -353,7 +353,7 @@ if [[ "$run_teehr_choice" =~ ^[Yy] ]]; then
     clean_up_resources
 
     # Run the TEEHR container with a name for easier cleanup
-    if ! ${DOCKER_CMD} run --name "$CONTAINER_NAME" --rm -v "$DATA_FOLDER_PATH:/app/data" "${IMAGE_NAME}:${teehr_image_tag}"; then
+    if ! ${DOCKER_CMD} run --name "$CONTAINER_NAME" --rm -v "$DATA_FOLDER_PATH:/app/data:Z" "${IMAGE_NAME}:${teehr_image_tag}"; then
         handle_error "TEEHR evaluation failed"
     fi
 
