@@ -57,6 +57,7 @@ TEEHR_SCRIPT="./runTeehr.sh"
 DOCKER_CMD="docker"
 NGEN_IMAGE_NAME="awiciroh/ciroh-ngen-image"
 NGEN_IMAGE_TAG="latest"
+DOCKER_REGISTRY="docker.io/"
 # (The rest of these are solely used to manage shutdowns)
 DOCKER_NETWORK="tethys-network"
 TETHYS_CONTAINER_NAME="tethys-ngen-portal"
@@ -187,7 +188,11 @@ while getopts 'd:phi:rt:' flag; do
         h) print_usage
            exit 1 ;;
         i) NGEN_IMAGE_NAME="${OPTARG}" ;;
-        p) DOCKER_CMD="podman" ;;
+        p) DOCKER_CMD="podman"
+           NGEN_IMAGE_NAME="${DOCKER_REGISTRY}${NGEN_IMAGE_NAME}"
+           TETHYS_IMAGE_NAME="${DOCKER_REGISTRY}${TETHYS_IMAGE_NAME}"
+           TEEHR_IMAGE_NAME="${DOCKER_REGISTRY}${TEEHR_IMAGE_NAME}"
+           ;;
         r) CLEAR_CONSOLE=false ;;
         t) NGEN_IMAGE_TAG="${OPTARG}"
            CUSTOM_TAG_USED=true ;;
