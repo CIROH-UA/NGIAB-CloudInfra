@@ -592,6 +592,10 @@ if [ $Final_Outputs_Count -gt 0 ]; then
                 tethys_call="$TETHYS_SCRIPT -r -d $HOST_DATA_PATH"
             fi
 
+            if [ "$DOCKER_CMD" == "podman" ]; then
+                tethys_call="$tethys_call -p"
+            fi
+
             # Call the viewOnTethys.sh script with the data path
             if ! bash -c "$tethys_call"; then
                 echo -e "\n${WARNING_MARK} ${BRed}Failed to launch Tethys visualization.${Color_Off}"
