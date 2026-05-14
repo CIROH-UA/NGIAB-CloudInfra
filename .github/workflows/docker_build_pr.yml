@@ -12,6 +12,10 @@ on:
       - docker/**
 env:
   AWS_REGION: us-east-1
+  TEST_DATA_URLS: |
+    https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-010-lstm/AWI-10154200-lstm.tar.gz
+    https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-007/AWI_16_2863657_007.tar.gz
+    https://communityhydrofabric.s3.us-east-1.amazonaws.com/example_data/AWI_16_01073000_011.tar.gz
 
 permissions:
   contents: read
@@ -35,12 +39,13 @@ jobs:
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
           buildcloud-endpoint: ${{ secrets.BUILDCLOUD_ENDPOINT }}
+
   start-arm64-runner:
     runs-on: ubuntu-latest
     steps:
       - name: Install dependencies
         run: npm install @aws-sdk/client-lambda
-     
+
       - name: Start ARM64 Runner via Lambda
         run: |
           node -e "
@@ -58,52 +63,51 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ env.AWS_REGION }}
+
       - name: wait runner up
         shell: bash
         run: |
           sleep 120
-  
+
   test-amd64:
     needs: build-and-push
     runs-on: ubuntu-latest  # Native AMD64
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
-        
+
       - name: Test AMD64 Docker Image
         uses: ./.github/actions/docker-test
         with:
           image-name: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'ciroh-ngen-image' || 'ngiab-dev' }}
           tag-name: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'latest' || github.event.pull_request.number }}
-          test-data-url-1: "https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-010-lstm/AWI-10154200-lstm.tar.gz"
-          test-data-url-2: "https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-007/AWI_16_2863657_007.tar.gz"
+          test-data-urls: ${{ env.TEST_DATA_URLS }}
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           current-platform: "linux/amd64"
-      
+
   test-arm64:
     needs: [build-and-push, start-arm64-runner]
     runs-on: [self-hosted, ARM64]
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
-        
+
       - name: Test ARM64 Docker Image
         uses: ./.github/actions/docker-test
         with:
           image-name: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'ciroh-ngen-image' || 'ngiab-dev' }}
           tag-name: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'latest' || github.event.pull_request.number }}
-          test-data-url-1: "https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-010-lstm/AWI-10154200-lstm.tar.gz"
-          test-data-url-2: "https://ciroh-ua-ngen-data.s3.us-east-2.amazonaws.com/AWI-007/AWI_16_2863657_007.tar.gz"
+          test-data-urls: ${{ env.TEST_DATA_URLS }}
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           current-platform: "linux/arm64"
-      
+
   stop-arm64-runner:
     needs: test-arm64
     runs-on: ubuntu-latest
     steps:
       - name: Install dependencies
         run: npm install @aws-sdk/client-lambda
-  
+
       - name: Stop ARM64 Runner via Lambda
         run: |
           node -e "
@@ -121,7 +125,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ env.AWS_REGION }}
-    
+
   # Optional: Job to check if both tests passed
   test-summary:
     needs: [test-amd64, test-arm64]
@@ -133,7 +137,7 @@ jobs:
         run: |
           echo "AMD64 Test: ${{ needs.test-amd64.result }}"
           echo "ARM64 Test: ${{ needs.test-arm64.result }}"
-          
+
           if [[ "${{ needs.test-amd64.result }}" == "success" && "${{ needs.test-arm64.result }}" == "success" ]]; then
             echo "✅ All platform tests passed!"
             echo "PR #${{ github.event.pull_request.number }} ready for review"
@@ -144,9 +148,11 @@ jobs:
             echo "JOBSTATUS=failure" >> "$GITHUB_ENV"
             exit 1
           fi
+
       - name: checkout
         if: always()
         uses: actions/checkout@v4.2.2
+
       - name: Publish slack message
         if: always()
         uses: ./.github/action_templates/slack
