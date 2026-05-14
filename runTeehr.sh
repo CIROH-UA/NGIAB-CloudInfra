@@ -26,7 +26,7 @@ Color_Off='\033[0m'
 
 # Extended color palette with 256-color support
 LBLUE='\033[38;5;39m'  # Light blue
-LGREEN='\033[38;5;83m' # Light green 
+LGREEN='\033[38;5;83m' # Light green
 LPURPLE='\033[38;5;171m' # Light purple
 LORANGE='\033[38;5;215m' # Light orange
 LTEAL='\033[38;5;87m'  # Light teal
@@ -51,7 +51,7 @@ set -e
 
 # Constants
 CONFIG_FILE="$HOME/.host_data_path.conf"
-IMAGE_NAME="awiciroh/ngiab-teehr"
+IMAGE_NAME="docker.io/awiciroh/ngiab-teehr"
 TEEHR_CONTAINER_PREFIX="teehr-evaluation"
 
 # Parameters
@@ -69,7 +69,7 @@ show_loading() {
     local chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
     local colors=("\033[38;5;39m" "\033[38;5;45m" "\033[38;5;51m" "\033[38;5;87m")
     local end_time=$((SECONDS + duration))
-    
+
     while [ $SECONDS -lt $end_time ]; do
         for (( i=0; i<${#chars}; i++ )); do
             color_index=$((i % ${#colors[@]}))
@@ -86,7 +86,7 @@ print_section_header() {
     local width=70
     local right_padding=$(( (width - ${#title}) / 2 ))
     local left_padding=$(( (width - ${#title}) % 2 + right_padding ))
-    
+
     # Create a more visually appealing section header with light blue background
     echo -e "\n\033[48;5;117m$(printf "%${width}s" " ")\033[0m"
     echo -e "\033[48;5;117m$(printf "%${left_padding}s" " ")${BBlack}${title}$(printf "%${right_padding}s" " ")\033[0m"
@@ -125,7 +125,7 @@ handle_sigint() {
 # Clean up resources function
 clean_up_resources() {
     echo -e "\n${ARROW} ${BYellow}Cleaning up resources...${Color_Off}"
-    
+
     # Check if Docker daemon is running
     if ! ${DOCKER_CMD} info >/dev/null 2>&1; then
         if [ "${DOCKER_CMD}" == 'docker' ]; then
@@ -135,35 +135,35 @@ clean_up_resources() {
         fi
         return 1
     fi
-    
+
     # Find and stop any running TEEHR containers
     local running_containers=$(${DOCKER_CMD} ps -q --filter "ancestor=$IMAGE_NAME")
     if [ -n "$running_containers" ]; then
         echo -e "  ${INFO_MARK} Stopping TEEHR containers..."
         ${DOCKER_CMD} stop $running_containers >/dev/null 2>&1 || true
     fi
-    
+
     # Also check for containers with our prefix
     local prefix_containers=$(${DOCKER_CMD} ps -q --filter "name=$TEEHR_CONTAINER_PREFIX")
     if [ -n "$prefix_containers" ]; then
         echo -e "  ${INFO_MARK} Stopping additional TEEHR containers..."
         ${DOCKER_CMD} stop $prefix_containers >/dev/null 2>&1 || true
     fi
-    
+
     # Remove any stopped containers matching our criteria
     local all_containers=$(${DOCKER_CMD} ps -a -q --filter "ancestor=$IMAGE_NAME")
     if [ -n "$all_containers" ]; then
         echo -e "  ${INFO_MARK} Removing TEEHR containers..."
         ${DOCKER_CMD} rm $all_containers >/dev/null 2>&1 || true
     fi
-    
+
     # Also remove any with our prefix
     local all_prefix_containers=$(${DOCKER_CMD} ps -a -q --filter "name=$TEEHR_CONTAINER_PREFIX")
     if [ -n "$all_prefix_containers" ]; then
         echo -e "  ${INFO_MARK} Removing additional TEEHR containers..."
         ${DOCKER_CMD} rm $all_prefix_containers >/dev/null 2>&1 || true
     fi
-    
+
     echo -e "  ${CHECK_MARK} ${BGreen}Cleanup completed${Color_Off}"
 }
 
@@ -184,7 +184,7 @@ check_and_read_config() {
         LAST_PATH=$(cat "$CONFIG_FILE")
         echo -e "${INFO_MARK} Last used data directory: ${BBlue}$LAST_PATH${Color_Off}"
         read -erp "$(echo -e "  ${ARROW} Use this path? [Y/n]: ")" use_last_path
-        
+
         if [[ -z "$use_last_path" || "$use_last_path" =~ ^[Yy] ]]; then
             DATA_FOLDER_PATH="$LAST_PATH"
             check_if_data_folder_exists
@@ -193,7 +193,7 @@ check_and_read_config() {
             echo -ne "  ${ARROW} Enter your input data directory path: "
             read -e DATA_FOLDER_PATH
             check_if_data_folder_exists
-            
+
             # Save the new path to the config file
             echo "$DATA_FOLDER_PATH" > "$CONFIG_FILE"
             echo -e "  ${CHECK_MARK} ${BGreen}Path saved for future use${Color_Off}"
@@ -203,7 +203,7 @@ check_and_read_config() {
         echo -ne "  ${ARROW} Enter your input data directory path: "
         read -e DATA_FOLDER_PATH
         check_if_data_folder_exists
-        
+
         # Save the path to the config file
         echo "$DATA_FOLDER_PATH" > "$CONFIG_FILE"
         echo -e "  ${CHECK_MARK} ${BGreen}Path saved for future use${Color_Off}"
@@ -292,7 +292,7 @@ if [[ "$run_teehr_choice" =~ ^[Yy] ]]; then
         else
             default_tag="x86"    # x86 architecture
         fi
-        
+
         echo -e "\n${ARROW} ${BWhite}System architecture detected: ${BCyan}$(uname -m)${Color_Off}"
         echo -e "  ${INFO_MARK} Recommended image tag: ${BCyan}$default_tag${Color_Off}"
         read -erp "$(echo -ne "  ${ARROW} Specify TEEHR image tag [default: $default_tag]: ")" teehr_image_tag
@@ -309,7 +309,7 @@ if [[ "$run_teehr_choice" =~ ^[Yy] ]]; then
     fi
 
     print_section_header "CONTAINER MANAGEMENT"
-    
+
     echo -e "${ARROW} ${BWhite}Select an option:${Color_Off}\n"
     options=("Run TEEHR using existing local image" "Update to latest TEEHR image" "Exit")
     select option in "${options[@]}"; do
@@ -321,11 +321,11 @@ if [[ "$run_teehr_choice" =~ ^[Yy] ]]; then
             "Update to latest TEEHR image")
                 echo -e "  ${ARROW} ${BYellow}Updating TEEHR image...${Color_Off}"
                 show_loading "Downloading latest TEEHR image" 3
-                
+
                 if ! ${DOCKER_CMD} pull "${IMAGE_NAME}:${teehr_image_tag}"; then
                     handle_error "Failed to pull container image: ${IMAGE_NAME}:${teehr_image_tag}"
                 fi
-                
+
                 echo -e "  ${CHECK_MARK} ${BGreen}TEEHR image updated successfully${Color_Off}"
                 break
                 ;;
@@ -340,25 +340,25 @@ if [[ "$run_teehr_choice" =~ ^[Yy] ]]; then
     done
 
     print_section_header "RUNNING TEEHR EVALUATION"
-    
+
     echo -e "${INFO_MARK} ${BWhite}Evaluating model outputs in: ${BCyan}$DATA_FOLDER_PATH${Color_Off}"
     echo -e "  ${ARROW} This analysis may take several minutes depending on your dataset size"
-    
+
     show_loading "Initializing TEEHR evaluation" 2
-    
+
     # Create a unique container name
     CONTAINER_NAME="${TEEHR_CONTAINER_PREFIX}-$(date +%s)"
-    
+
     # First clean up any old containers
     clean_up_resources
-    
+
     # Run the TEEHR container with a name for easier cleanup
     if ! ${DOCKER_CMD} run --name "$CONTAINER_NAME" --rm -v "$DATA_FOLDER_PATH:/app/data" "${IMAGE_NAME}:${teehr_image_tag}"; then
         handle_error "TEEHR evaluation failed"
     fi
-    
+
     print_section_header "EVALUATION COMPLETE"
-    
+
     echo -e "${BG_Green}${BWhite} TEEHR evaluation completed successfully! ${Color_Off}\n"
     echo -e "${INFO_MARK} ${BWhite}Results have been saved to your outputs directory:${Color_Off}"
     echo -e "  ${ARROW} ${BCyan}$DATA_FOLDER_PATH/teehr/${Color_Off}"

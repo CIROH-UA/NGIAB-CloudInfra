@@ -55,14 +55,13 @@ TEEHR_SCRIPT="./runTeehr.sh"
 
 # Container and image constants
 DOCKER_CMD="docker"
-NGEN_IMAGE_NAME="awiciroh/ciroh-ngen-image"
+NGEN_IMAGE_NAME="docker.io/awiciroh/ciroh-ngen-image"
 NGEN_IMAGE_TAG="latest"
-DOCKER_REGISTRY="docker.io/"
 # (The rest of these are solely used to manage shutdowns)
 DOCKER_NETWORK="tethys-network"
 TETHYS_CONTAINER_NAME="tethys-ngen-portal"
-TETHYS_IMAGE_NAME="awiciroh/tethys-ngiab"
-TEEHR_IMAGE_NAME="awiciroh/ngiab-teehr"
+TETHYS_IMAGE_NAME="docker.io/awiciroh/tethys-ngiab"
+TEEHR_IMAGE_NAME="docker.io/awiciroh/ngiab-teehr"
 
 # Parameters
 DATA_FOLDER_PATH="" # Path to the model run being evaluated.
@@ -188,11 +187,7 @@ while getopts 'd:phi:rt:' flag; do
         h) print_usage
            exit 1 ;;
         i) NGEN_IMAGE_NAME="${OPTARG}" ;;
-        p) DOCKER_CMD="podman"
-           NGEN_IMAGE_NAME="${DOCKER_REGISTRY}${NGEN_IMAGE_NAME}"
-           TETHYS_IMAGE_NAME="${DOCKER_REGISTRY}${TETHYS_IMAGE_NAME}"
-           TEEHR_IMAGE_NAME="${DOCKER_REGISTRY}${TEEHR_IMAGE_NAME}"
-           ;;
+        p) DOCKER_CMD="podman";;
         r) CLEAR_CONSOLE=false ;;
         t) NGEN_IMAGE_TAG="${OPTARG}"
            CUSTOM_TAG_USED=true ;;
@@ -521,6 +516,10 @@ if [ $Final_Outputs_Count -gt 0 ]; then
                 teehr_call="$TEEHR_SCRIPT -y -d $HOST_DATA_PATH"
             else
                 teehr_call="$TEEHR_SCRIPT -y -r -d $HOST_DATA_PATH"
+            fi
+
+            if [ "$DOCKER_CMD" == "podman" ]; then
+                teehr_call="$teehr_call -p"
             fi
 
             # Call the runTeehr.sh script with the data path

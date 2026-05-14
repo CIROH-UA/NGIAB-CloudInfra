@@ -28,7 +28,7 @@ Color_Off='\033[0m'
 
 # Extended color palette with 256-color support
 LBLUE='\033[38;5;39m'  # Light blue
-LGREEN='\033[38;5;83m' # Light green 
+LGREEN='\033[38;5;83m' # Light green
 LPURPLE='\033[38;5;171m' # Light purple
 LORANGE='\033[38;5;215m' # Light orange
 LTEAL='\033[38;5;87m'  # Light teal
@@ -53,7 +53,7 @@ export TERM=xterm-256color
 CONFIG_FILE="$HOME/.host_data_path.conf"
 DOCKER_NETWORK="tethys-network"
 TETHYS_CONTAINER_NAME="tethys-ngen-portal"
-TETHYS_REPO="awiciroh/tethys-ngiab"
+TETHYS_REPO="docker.io/awiciroh/tethys-ngiab"
 
 MODELS_RUNS_DIRECTORY="$HOME/ngiab_visualizer"
 DATASTREAM_DIRECTORY="$HOME/.datastream_ngiab"
@@ -86,7 +86,7 @@ show_loading() {
     local chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
     local colors=("\033[38;5;39m" "\033[38;5;45m" "\033[38;5;51m" "\033[38;5;87m")
     local end_time=$((SECONDS + duration))
-    
+
     while [ $SECONDS -lt $end_time ]; do
         for (( i=0; i<${#chars}; i++ )); do
             color_index=$((i % ${#colors[@]}))
@@ -103,7 +103,7 @@ print_section_header() {
     local width=70
     local right_padding=$(( (width - ${#title}) / 2 ))
     local left_padding=$(( (width - ${#title}) % 2 + right_padding ))
-    
+
     # Create a more visually appealing section header with light blue background
     echo -e "\n\033[48;5;117m$(printf "%${width}s" " ")\033[0m"
     echo -e "\033[48;5;117m$(printf "%${left_padding}s" " ")${BBlack}${title}$(printf "%${right_padding}s" " ")\033[0m"
@@ -130,7 +130,7 @@ handle_error() {
     echo -e "\n${BG_Red}${BWhite} ERROR: $1 ${Color_Off}"
     # Save error to log file
     echo "$(date): ERROR: $1" >> ~/ngiab_tethys_error.log
-    
+
     # Be sure to clean up resources even on error
     tear_down
     exit 1
@@ -230,7 +230,7 @@ ensure_visualizer_conf_host_file() {
 
 create_tethys_docker_network() {
     echo -e "${INFO_MARK} Setting up Docker network for Tethys..."
-    
+
     # Check if Docker daemon is running
     if ! ${DOCKER_CMD} info >/dev/null 2>&1; then
         if [ "${DOCKER_CMD}" == 'docker' ]; then
@@ -240,13 +240,13 @@ create_tethys_docker_network() {
         fi
         return 1
     fi
-    
+
     # Check if network already exists
     if ${DOCKER_CMD} network inspect "$DOCKER_NETWORK" >/dev/null 2>&1; then
         echo -e "  ${CHECK_MARK} Network ${BCyan}$DOCKER_NETWORK${Color_Off} already exists."
         return 0
     fi
-    
+
     # Create the network
     if ${DOCKER_CMD} network create -d bridge "$DOCKER_NETWORK" >/dev/null 2>&1; then
         echo -e "  ${CHECK_MARK} Network ${BCyan}$DOCKER_NETWORK${Color_Off} created successfully."
@@ -279,13 +279,13 @@ check_for_existing_tethys_image() {
         fi
         return 1
     fi
-    
+
     # Check if the image exists locally
     local image_exists=false
     if ${DOCKER_CMD} image inspect "${TETHYS_REPO}:${TETHYS_TAG}" >/dev/null 2>&1; then
         image_exists=true
     fi
-    
+
     if [ "$image_exists" = true ]; then
         echo -e "  ${CHECK_MARK} ${BGreen}Using local Tethys image: ${TETHYS_REPO}:${TETHYS_TAG}${Color_Off}"
         return 0
@@ -480,7 +480,7 @@ select_tethys_image_source() {
 
 tear_down() {
     echo -e "\n${ARROW} ${BYellow}Cleaning up resources...${Color_Off}"
-    
+
     # Check if Docker daemon is running
     if ! ${DOCKER_CMD} info >/dev/null 2>&1; then
         if [ "${DOCKER_CMD}" == 'docker' ]; then
@@ -490,20 +490,20 @@ tear_down() {
         fi
         return 1
     fi
-    
+
     # Stop the Tethys container if it's running
     if ${DOCKER_CMD} ps -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
         echo -e "  ${INFO_MARK} Stopping Tethys container..."
         ${DOCKER_CMD} stop "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1
         sleep 2
     fi
-    
+
     # Remove the Docker network if it exists
     if ${DOCKER_CMD} network inspect "$DOCKER_NETWORK" >/dev/null 2>&1; then
         echo -e "  ${INFO_MARK} Removing container network..."
         ${DOCKER_CMD} network rm "$DOCKER_NETWORK" >/dev/null 2>&1 || true
     fi
-    
+
     echo -e "  ${CHECK_MARK} ${BGreen}Cleanup completed${Color_Off}"
     return 0
 }
@@ -522,7 +522,7 @@ prompt_fresh_start() {
                 [Ff]* )
                     echo -e "  ${INFO_MARK} ${BYellow}Removing previous runs..." \
                             "${LBLUE}(sudo may be required)${Color_Off}" >&2
-                    rm -rf "${models_dir:?}/"* 2>/dev/null || sudo rm -rf "${models_dir:?}/"* 
+                    rm -rf "${models_dir:?}/"* 2>/dev/null || sudo rm -rf "${models_dir:?}/"*
                     break ;;
                 * ) echo -e "  ${CROSS_MARK} ${BRed}Invalid choice.${Color_Off}" >&2 ;;
             esac
@@ -753,7 +753,7 @@ pause_script_execution() {
     echo -e "\n${BG_Blue}${BWhite} Tethys is now running ${Color_Off}"
     echo -e "${INFO_MARK} Access the visualization at: ${UBlue}http://localhost:$nginx_tethys_port/apps/ngiab${Color_Off}"
     echo -e "${INFO_MARK} Press ${BWhite}Ctrl+C${Color_Off} to stop Tethys when you're done."
-    
+
     # Keep script running until user interrupts
     while true; do
         sleep 10
@@ -843,7 +843,7 @@ if [[ -z "$DATA_FOLDER_PATH" && $IMPORT_GAGE == "yes" ]]; then
         echo -ne "  ${ARROW} Enter your input data directory path: "
         read -e DATA_FOLDER_PATH
     fi
-    
+
     # Save the new path
     echo "$DATA_FOLDER_PATH" > "$CONFIG_FILE"
     echo -e "  ${CHECK_MARK} ${BGreen}Path saved for future use.${Color_Off}"
