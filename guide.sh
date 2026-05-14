@@ -448,7 +448,7 @@ select option in "${options[@]}"; do
         "Update to latest container image and run")
             echo -e "\n${ARROW} ${BYellow}Updating container image...${Color_Off}"
             show_loading "Downloading latest NextGen image" 3
-            docker pull $IMAGE_NAME
+            $DOCKER_CMD pull $IMAGE_NAME
             echo -e "${CHECK_MARK} ${BGreen}Container image updated successfully${Color_Off}"
             break
             ;;
