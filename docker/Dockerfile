@@ -207,33 +207,6 @@ WORKDIR /build/rust-lstm-1025
 RUN cargo build --release
 
 
-FROM build_base AS dhbv2
-WORKDIR /tmp/build
-RUN mkdir /wheels
-# Build and repair dmg
-ADD --keep-git-dir https://github.com/mhpi/generic_deltamodel.git#ede7a448bff2889cb685bd491ee0d1e64fa54198 dmg
-RUN --mount=type=cache,target=/root/.cache/uv \
-    cd dmg && \
-    uv build --wheel && \
-    cp dist/*.whl /wheels/
-
-# Build and repair hydrodl2
-ADD --keep-git-dir https://github.com/mhpi/hydrodl2.git#7267a5a7b8909d0f4ae04d48b38b32a5e88c2146 hydrodl2
-RUN --mount=type=cache,target=/root/.cache/uv \
-    cd hydrodl2 && \
-    uv build --wheel && \
-    cp dist/*.whl /wheels/
-
-# Copy and patch dhbv2
-ADD --keep-git-dir https://github.com/mhpi/dhbv2.git#39379fd435747a3f765d1a2201d613f9f0087448 dhbv2
-RUN --mount=type=cache,target=/root/.cache/uv \
-    cd dhbv2 && \
-    sed -i 's|"dmg @ git+https://github.com/mhpi/generic_deltamodel.git@master"|"dmg"|' pyproject.toml && \
-    sed -i 's|"hydrodl2 @ git+https://github.com/mhpi/hydrodl2.git@master"|"hydrodl2"|' pyproject.toml && \
-    uv build --wheel && \
-    cp dist/*.whl /wheels/
-
-
 FROM base AS final
 ARG pinned_python_packages="netCDF4==1.6.3 pydantic<2 pandas<3"
 WORKDIR /ngen
@@ -281,10 +254,9 @@ COPY --from=burn_lstm /build/rust-lstm-1025/target/release/librust_lstm_1025.so 
 # needed for SUMMA
 COPY --from=build_sundials /sundials/install/ /sundials
 RUN echo "/sundials/lib64" >> /etc/ld.so.conf.d/sundials.conf && ldconfig -v
-# Install dhbv wheels
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,from=dhbv2,source=/wheels,target=/tmp/wheels \
-    uv pip install /tmp/wheels/*.whl --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Install dhbv
+RUN uv pip install "dmg==1.4.0" "hydrodl2==1.3.5" "dhbv2==0.5.3" --extra-index-url https://download.pytorch.org/whl/cpu
 
 
 ADD --unpack https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2_mts.tar.gz \
