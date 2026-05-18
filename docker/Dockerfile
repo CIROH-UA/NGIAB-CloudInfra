@@ -257,12 +257,15 @@ RUN echo "/sundials/lib64" >> /etc/ld.so.conf.d/sundials.conf && ldconfig -v
 
 # Install dhbv
 RUN uv pip install "dmg==1.4.0" "hydrodl2==1.3.5" "dhbv2==0.5.3" --extra-index-url https://download.pytorch.org/whl/cpu
-
-
-ADD --unpack https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2_mts.tar.gz \
+ADD https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2_mts.tar.gz \
     /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/
-ADD --unpack https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2.tar.gz \
+ADD https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2.tar.gz \
     /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2/model/
+RUN tar -xzf /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/dhbv_2_mts.tar.gz -C /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/ --strip-components=1 && \
+    tar -xzf /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2/model/dhbv_2.tar.gz -C /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2/model/ --strip-components=1 && \
+    rm /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/dhbv_2_mts.tar.gz && \
+    rm /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2/model/dhbv_2.tar.gz
+
 ## add some metadata to the image
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url
 COPY --from=ngen_build /tmp/ngen_url /ngen/ngen_url
