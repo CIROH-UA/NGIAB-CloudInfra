@@ -234,7 +234,7 @@ print_usage() {
 
 
 # Pre-script execution
-while getopts 'd:phrt:y' flag; do
+while getopts 'd:phi:rt:y' flag; do
     case "${flag}" in
         d) DATA_FOLDER_PATH="${OPTARG}" ;;
         h) print_usage

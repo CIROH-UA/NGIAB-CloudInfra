@@ -121,29 +121,29 @@ clean_up_resources() {
     echo -e "\n${ARROW} ${BYellow}Cleaning up resources...${Color_Off}"
 
     # Stop any running TEEHR containers
-    local teehr_containers=$(docker ps -q --filter "ancestor=$TEEHR_IMAGE_NAME" 2>/dev/null)
+    local teehr_containers=$(${DOCKER_CMD} ps -q --filter "ancestor=$TEEHR_IMAGE_NAME" 2>/dev/null)
     if [ -n "$teehr_containers" ]; then
         echo -e "  ${INFO_MARK} Stopping TEEHR containers..."
-        docker stop $teehr_containers >/dev/null 2>&1
+        ${DOCKER_CMD} stop $teehr_containers >/dev/null 2>&1
     fi
 
     # Stop the Tethys container if it's running
-    if docker ps -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
+    if ${DOCKER_CMD} ps -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
         echo -e "  ${INFO_MARK} Stopping Tethys container..."
-        docker stop "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1
+        ${DOCKER_CMD} stop "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1
     fi
 
     # Remove the Docker network
-    if docker network inspect "$DOCKER_NETWORK" >/dev/null 2>&1; then
+    if ${DOCKER_CMD} network inspect "$DOCKER_NETWORK" >/dev/null 2>&1; then
         echo -e "  ${INFO_MARK} Removing Docker network..."
-        docker network rm "$DOCKER_NETWORK" >/dev/null 2>&1
+        ${DOCKER_CMD} network rm "$DOCKER_NETWORK" >/dev/null 2>&1
     fi
 
     # Check for other containers using our images and stop them
-    local ngen_containers=$(docker ps -q --filter "ancestor=$NGEN_IMAGE_NAME" 2>/dev/null)
+    local ngen_containers=$(${DOCKER_CMD} ps -q --filter "ancestor=$NGEN_IMAGE_NAME" 2>/dev/null)
     if [ -n "$ngen_containers" ]; then
         echo -e "  ${INFO_MARK} Stopping NGEN containers..."
-        docker stop $ngen_containers >/dev/null 2>&1
+        ${DOCKER_CMD} stop $ngen_containers >/dev/null 2>&1
     fi
 
     echo -e "  ${CHECK_MARK} ${BGreen}Cleanup completed.${Color_Off}"
@@ -173,10 +173,10 @@ print_usage() {
     echo -e "${BYellow}Options:${Color_Off}"
     echo -e "${BCyan}  -d [path]:${Color_Off} Designates the provided path as the data directory to import into the visualizer."
     echo -e "${BCyan}  -h:${Color_Off} Displays usage information, then exits."
-    echo -e "${BCyan}  -i [image]:${Color_Off} Specifies which Docker image of NGIAB to run."
+    echo -e "${BCyan}  -i [image]:${Color_Off} Specifies which container image of NGIAB to run."
     echo -e "${BCyan}  -p:${Color_Off} Use Podman instead of Docker."
     echo -e "${BCyan}  -r:${Color_Off} Retains previous console output when launching the script."
-    echo -e "${BCyan}  -t [tag]:${Color_Off} Specifies which Docker image tag of NGIAB to run."
+    echo -e "${BCyan}  -t [tag]:${Color_Off} Specifies which container image tag of NGIAB to run."
 }
 
 
@@ -468,7 +468,6 @@ echo -e "  ${INFO_MARK} ${BCyan}Container image: ${BWhite}$IMAGE_NAME${Color_Off
 sleep 2
 
 echo -e "\n${ARROW} ${BYellow}Launching NextGen container...${Color_Off}"
-echo $DOCKER_CMD run --rm -it -v "$HOST_DATA_PATH:/ngen/ngen/data" "$IMAGE_NAME" /ngen/ngen/data/
 $DOCKER_CMD run --rm -it -v "$HOST_DATA_PATH:/ngen/ngen/data" "$IMAGE_NAME" /ngen/ngen/data/
 
 # Final output count with improved presentation
@@ -513,17 +512,17 @@ if [ $Final_Outputs_Count -gt 0 ]; then
 
             # Disable clearing console if needed
             if [ "$CLEAR_CONSOLE" == true ]; then
-                teehr_call="$TEEHR_SCRIPT -y -d $HOST_DATA_PATH"
+                teehr_args=("$TEEHR_SCRIPT" "-y" "-d" "$HOST_DATA_PATH")
             else
-                teehr_call="$TEEHR_SCRIPT -y -r -d $HOST_DATA_PATH"
+                teehr_args=("$TEEHR_SCRIPT" "-y" "-r" "-d" "$HOST_DATA_PATH")
             fi
 
             if [ "$DOCKER_CMD" == "podman" ]; then
-                teehr_call="$teehr_call -p"
+                teehr_args+=("-p")
             fi
 
             # Call the runTeehr.sh script with the data path
-            if ! bash -c "$teehr_call"; then
+            if ! bash "${teehr_args[@]}"; then
                 echo -e "\n${WARNING_MARK} ${BRed}Failed to run TEEHR evaluation.${Color_Off}"
                 echo -e "  ${INFO_MARK} Check that the runTeehr.sh script is properly configured."
             fi
@@ -587,17 +586,17 @@ if [ $Final_Outputs_Count -gt 0 ]; then
 
             # Disable clearing console if needed
             if [ "$CLEAR_CONSOLE" == true ]; then
-                tethys_call="$TETHYS_SCRIPT -d $HOST_DATA_PATH"
+                tethys_args=("$TETHYS_SCRIPT" "-d" "$HOST_DATA_PATH")
             else
-                tethys_call="$TETHYS_SCRIPT -r -d $HOST_DATA_PATH"
+                tethys_args=("$TETHYS_SCRIPT" "-r" "-d" "$HOST_DATA_PATH")
             fi
 
             if [ "$DOCKER_CMD" == "podman" ]; then
-                tethys_call="$tethys_call -p"
+                tethys_args+=("-p")
             fi
 
             # Call the viewOnTethys.sh script with the data path
-            if ! bash -c "$tethys_call"; then
+            if ! bash "${tethys_args[@]}"; then
                 echo -e "\n${WARNING_MARK} ${BRed}Failed to launch Tethys visualization.${Color_Off}"
                 echo -e "  ${INFO_MARK} Check that the viewOnTethys.sh script is properly configured."
             fi
