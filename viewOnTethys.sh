@@ -28,7 +28,7 @@ Color_Off='\033[0m'
 
 # Extended color palette with 256-color support
 LBLUE='\033[38;5;39m'  # Light blue
-LGREEN='\033[38;5;83m' # Light green 
+LGREEN='\033[38;5;83m' # Light green
 LPURPLE='\033[38;5;171m' # Light purple
 LORANGE='\033[38;5;215m' # Light orange
 LTEAL='\033[38;5;87m'  # Light teal
@@ -53,7 +53,7 @@ export TERM=xterm-256color
 CONFIG_FILE="$HOME/.host_data_path.conf"
 DOCKER_NETWORK="tethys-network"
 TETHYS_CONTAINER_NAME="tethys-ngen-portal"
-TETHYS_REPO="awiciroh/tethys-ngiab"
+TETHYS_REPO="docker.io/awiciroh/tethys-ngiab"
 
 MODELS_RUNS_DIRECTORY="$HOME/ngiab_visualizer"
 DATASTREAM_DIRECTORY="$HOME/.datastream_ngiab"
@@ -69,6 +69,13 @@ TEEHR_EVAL_CONFIG_FILE="$HOME/.teehr_evaluation_path.conf"
 TEEHR_WAREHOUSE_PATH=""
 
 # Parameters
+DOCKER_CMD="docker"
+# Engine-derived defaults; populated by configure_container_engine() after arg parsing.
+USERNS_ARGS=()
+NETWORK_ARGS=()
+VOLUME_SUFFIX=""
+CONTAINER_PORT=8080  # visualizer image listens on 8080 (rootless-Podman safe).
+WWW_UID=1011  # tethys-core base image: useradd -u 1011 -g www www
 DATA_FOLDER_PATH="" # If non-empty, gets used as the gage path to import.
 TETHYS_TAG="" # If non-empty, gets used as the image tag.
 IMPORT_GAGE="ask" # "ask"/"yes"/"no"/"done"
@@ -85,7 +92,7 @@ show_loading() {
     local chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
     local colors=("\033[38;5;39m" "\033[38;5;45m" "\033[38;5;51m" "\033[38;5;87m")
     local end_time=$((SECONDS + duration))
-    
+
     while [ $SECONDS -lt $end_time ]; do
         for (( i=0; i<${#chars}; i++ )); do
             color_index=$((i % ${#colors[@]}))
@@ -102,7 +109,7 @@ print_section_header() {
     local width=70
     local right_padding=$(( (width - ${#title}) / 2 ))
     local left_padding=$(( (width - ${#title}) % 2 + right_padding ))
-    
+
     # Create a more visually appealing section header with light blue background
     echo -e "\n\033[48;5;117m$(printf "%${width}s" " ")\033[0m"
     echo -e "\033[48;5;117m$(printf "%${left_padding}s" " ")${BBlack}${title}$(printf "%${right_padding}s" " ")\033[0m"
@@ -129,7 +136,7 @@ handle_error() {
     echo -e "\n${BG_Red}${BWhite} ERROR: $1 ${Color_Off}"
     # Save error to log file
     echo "$(date): ERROR: $1" >> ~/ngiab_tethys_error.log
-    
+
     # Be sure to clean up resources even on error
     tear_down
     exit 1
@@ -227,29 +234,53 @@ ensure_visualizer_conf_host_file() {
     return 0
 }
 
+# Set engine-specific run flags. Called after arg parsing.
+# Assumes Podman >= 4.3 (keep-id:uid= syntax). Podman emits clear errors itself
+# if subuid ranges are missing or the version is too old.
+# Caveat: :Z is an exclusive SELinux relabel. If the bind mount is shared with
+# other containers, switch to :z manually.
+configure_container_engine() {
+    if [ "${DOCKER_CMD}" != "podman" ]; then
+        NETWORK_ARGS=(--network "$DOCKER_NETWORK")
+        return 0
+    fi
+    USERNS_ARGS=(--userns=keep-id:uid=${WWW_UID})
+    VOLUME_SUFFIX=":Z"
+    # NETWORK_ARGS stays empty; rootless uses slirp4netns/netavark.
+}
+
 create_tethys_docker_network() {
+    # Rootless Podman doesn't need an explicit user-defined network.
+    if [ "${DOCKER_CMD}" == "podman" ]; then
+        return 0
+    fi
+
     echo -e "${INFO_MARK} Setting up Docker network for Tethys..."
-    
+
     # Check if Docker daemon is running
-    if ! docker info >/dev/null 2>&1; then
-        echo -e "${BRed}Docker daemon is not running or accessible.${Color_Off}"
+    if ! ${DOCKER_CMD} info >/dev/null 2>&1; then
+        if [ "${DOCKER_CMD}" == 'docker' ]; then
+            echo -e "  ${CROSS_MARK} ${BRed}Docker daemon is not running or accessible.${Color_Off}"
+        else
+            echo -e "  ${CROSS_MARK} ${BRed}Command \"${DOCKER_CMD} info\" failed, container runtime inoperative.${Color_Off}"
+        fi
         return 1
     fi
-    
+
     # Check if network already exists
-    if docker network inspect "$DOCKER_NETWORK" >/dev/null 2>&1; then
+    if ${DOCKER_CMD} network inspect "$DOCKER_NETWORK" >/dev/null 2>&1; then
         echo -e "  ${CHECK_MARK} Network ${BCyan}$DOCKER_NETWORK${Color_Off} already exists."
         return 0
     fi
-    
+
     # Create the network
-    if docker network create -d bridge "$DOCKER_NETWORK" >/dev/null 2>&1; then
+    if ${DOCKER_CMD} network create -d bridge "$DOCKER_NETWORK" >/dev/null 2>&1; then
         echo -e "  ${CHECK_MARK} Network ${BCyan}$DOCKER_NETWORK${Color_Off} created successfully."
         # Add a small delay to ensure network is fully created
         sleep 1
         return 0
     else
-        echo -e "  ${CROSS_MARK} ${BRed}Failed to create Docker network.${Color_Off}"
+        echo -e "  ${CROSS_MARK} ${BRed}Failed to create container network.${Color_Off}"
         return 1
     fi
 }
@@ -266,25 +297,29 @@ set_tethys_tag() {
 
 check_for_existing_tethys_image() {
     # First check if Docker is running
-    if ! docker info >/dev/null 2>&1; then
-        echo -e "${BRed}Docker daemon is not running or accessible.${Color_Off}"
+    if ! ${DOCKER_CMD} info >/dev/null 2>&1; then
+        if [ "${DOCKER_CMD}" == 'docker' ]; then
+            echo -e "  ${CROSS_MARK} ${BRed}Docker daemon is not running or accessible.${Color_Off}"
+        else
+            echo -e "  ${CROSS_MARK} ${BRed}Command \"${DOCKER_CMD} info\" failed, container runtime inoperative.${Color_Off}"
+        fi
         return 1
     fi
-    
+
     # Check if the image exists locally
     local image_exists=false
-    if docker image inspect "${TETHYS_REPO}:${TETHYS_TAG}" >/dev/null 2>&1; then
+    if ${DOCKER_CMD} image inspect "${TETHYS_REPO}:${TETHYS_TAG}" >/dev/null 2>&1; then
         image_exists=true
     fi
-    
+
     if [ "$image_exists" = true ]; then
         echo -e "  ${CHECK_MARK} ${BGreen}Using local Tethys image: ${TETHYS_REPO}:${TETHYS_TAG}${Color_Off}"
         return 0
     else
         echo -e "  ${INFO_MARK} ${BYellow}Tethys image not found locally. Pulling from registry...${Color_Off}"
         show_loading "Downloading Tethys image" 3
-        if ! docker pull "${TETHYS_REPO}:${TETHYS_TAG}"; then
-            echo -e "  ${CROSS_MARK} ${BRed}Failed to pull Docker image: ${TETHYS_REPO}:${TETHYS_TAG}${Color_Off}"
+        if ! ${DOCKER_CMD} pull "${TETHYS_REPO}:${TETHYS_TAG}"; then
+            echo -e "  ${CROSS_MARK} ${BRed}Failed to pull container image: ${TETHYS_REPO}:${TETHYS_TAG}${Color_Off}"
             return 1
         fi
         echo -e "  ${CHECK_MARK} ${BGreen}Tethys image downloaded successfully${Color_Off}"
@@ -293,14 +328,16 @@ check_for_existing_tethys_image() {
 }
 
 choose_port_to_run_tethys() {
+    # Default 8080 so rootless Podman can bind without privileged-port hacks.
+    # Existing Docker users on port 80 must pass it explicitly.
+    local default_port=8080
     while true; do
-        echo -e "${BBlue}Select a port to run Tethys on. [Default: 80] ${Color_Off}"
+        echo -e "${BBlue}Select a port to run Tethys on. [Default: ${default_port}] ${Color_Off}"
         read -erp "$(echo -e "  ${ARROW} Port: ")" nginx_tethys_port
 
-        # Default to 80 if the user just hits <Enter>
         if [[ -z "$nginx_tethys_port" ]]; then
-            nginx_tethys_port=80
-            echo -e "${ARROW} ${BWhite}Using default port 80 for Tethys.${Color_Off}"
+            nginx_tethys_port=${default_port}
+            echo -e "${ARROW} ${BWhite}Using default port ${default_port} for Tethys.${Color_Off}"
         fi
 
         # Validate numeric port 1-65535
@@ -319,7 +356,25 @@ choose_port_to_run_tethys() {
         break
     done
 
-    CSRF_TRUSTED_ORIGINS="[\"http://localhost:${nginx_tethys_port}\",\"http://127.0.0.1:${nginx_tethys_port}\"]"
+    # Build ALLOWED_HOSTS + CSRF_TRUSTED_ORIGINS from localhost + every IPv4 the
+    # host owns (catches the WSL VM address, LAN address, etc.). The outer
+    # literal double-quotes in ALLOWED_HOSTS protect the brackets when the
+    # tethys-core salt state renders them through an unquoted shell command.
+    local host_ips
+    host_ips=$(hostname -I 2>/dev/null || ip -4 -o addr show 2>/dev/null | awk '{split($4,a,"/"); print a[1]}' | tr '\n' ' ' || echo)
+    local allowed_list="localhost, 127.0.0.1"
+    local csrf_list="\"http://localhost:${nginx_tethys_port}\",\"http://127.0.0.1:${nginx_tethys_port}\""
+    for ip in $host_ips; do
+        case "$ip" in
+            127.*|"") ;;  # skip loopback duplicates and empties
+            *)
+                allowed_list="${allowed_list}, $ip"
+                csrf_list="${csrf_list},\"http://${ip}:${nginx_tethys_port}\""
+                ;;
+        esac
+    done
+    ALLOWED_HOSTS="\"[${allowed_list}]\""
+    CSRF_TRUSTED_ORIGINS="[${csrf_list}]"
     echo -e "  ${CHECK_MARK} ${BGreen}Port $nginx_tethys_port selected${Color_Off}"
 
     return 0
@@ -328,33 +383,55 @@ choose_port_to_run_tethys() {
 # Wait for a Docker container to become healthy
 wait_container_healthy() {
     local container_name=$1
-    local container_health_status=""
-    local attempt_counter=0
 
-    echo -e "${INFO_MARK} ${BWhite} Waiting for container: $container_name to become healthy. This can take a couple of minutes...${Color_Off}"
-    while true; do
-        # Update the health status
-        container_health_status=$(docker inspect -f '{{.State.Health.Status}}' "$container_name" 2>/dev/null)
+    # Detect once whether the image has a healthcheck. Podman builds in default
+    # OCI format strip HEALTHCHECK; the inspect query for .State.Health.Status
+    # then nil-derefs and exits 125. Fall back to a TCP probe in that case.
+    local has_healthcheck
+    has_healthcheck=$(${DOCKER_CMD} inspect -f '{{if .State.Health}}yes{{else}}no{{end}}' "$container_name" 2>/dev/null)
 
-        if [ $? -ne 0 ]; then
-            echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} Failed to get health status for container $container_name. Ensure the container exists and has a health check. ${Color_Off}"
+    if [ "$has_healthcheck" = "yes" ]; then
+        echo -e "${INFO_MARK} ${BWhite} Waiting for container: $container_name to become healthy. This can take a couple of minutes...${Color_Off}"
+        while true; do
+            local container_health_status
+            container_health_status=$(${DOCKER_CMD} inspect -f '{{.State.Health.Status}}' "$container_name" 2>/dev/null)
+            if [ $? -ne 0 ]; then
+                echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} Failed to get health status for container $container_name. Ensure the container exists and has a health check. ${Color_Off}"
+                return 1
+            fi
+            if [[ "$container_health_status" == "healthy" ]]; then
+                echo -e "\n ${CHECK_MARK} ${BG_Green}${BWhite} Container $container_name is now healthy! ${Color_Off}"
+                return 0
+            elif [[ "$container_health_status" == "unhealthy" ]]; then
+                echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} Container $container_name is unhealthy! ${Color_Off}"
+                return 0
+            fi
+            sleep 2
+        done
+    fi
+
+    # No healthcheck in the image: poll the published port directly. Bounded so a
+    # truly broken container doesn't hang the script forever.
+    echo -e "${INFO_MARK} ${BWhite} Image has no healthcheck; polling http://127.0.0.1:${nginx_tethys_port}/ for readiness (max 5 min)...${Color_Off}"
+    local max_wait=300
+    local elapsed=0
+    while [ $elapsed -lt $max_wait ]; do
+        if curl -sf --max-time 3 -o /dev/null "http://127.0.0.1:${nginx_tethys_port}/" 2>/dev/null; then
+            echo -e "\n ${CHECK_MARK} ${BG_Green}${BWhite} Container $container_name is serving requests! ${Color_Off}"
+            return 0
+        fi
+        # If the container exited, stop polling.
+        local running
+        running=$(${DOCKER_CMD} inspect -f '{{.State.Running}}' "$container_name" 2>/dev/null)
+        if [ "$running" != "true" ]; then
+            echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} Container $container_name is no longer running. ${Color_Off}"
             return 1
         fi
-
-        if [[ "$container_health_status" == "healthy" ]]; then
-            echo -e "\n ${CHECK_MARK} ${BG_Green}${BWhite} Container $container_name is now healthy! ${Color_Off}"
-            return 0
-        elif [[ "$container_health_status" == "unhealthy" ]]; then
-            echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} Container $container_name is unhealthy! ${Color_Off}"
-            return 0
-        elif [[ -z "$container_health_status" ]]; then
-            echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} No health status available for container $container_name. Ensure the container has a health check configured. ${Color_Off}"
-            return 1
-        fi
-
-        ((attempt_counter++))
-        sleep 2  # Adjust the sleep time as needed
+        sleep 5
+        elapsed=$((elapsed + 5))
     done
+    echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} Timed out waiting for $container_name to respond on port ${nginx_tethys_port}. ${Color_Off}"
+    return 1
 }
 
 run_tethys() {
@@ -365,16 +442,16 @@ run_tethys() {
     echo -e "${ARROW} ${BWhite}Launching Tethys container...${Color_Off}"
 
     # First, make sure any existing Tethys containers are stopped
-    if docker ps -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
+    if ${DOCKER_CMD} ps -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
         echo -e "  ${INFO_MARK} ${BYellow}Tethys container is already running. Stopping it first...${Color_Off}"
-        docker stop "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1
+        ${DOCKER_CMD} stop "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1
         sleep 3
     fi
 
     # Final check - if container still exists, force removal
-    if docker ps -a -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
+    if ${DOCKER_CMD} ps -a -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
         echo -e "  ${WARNING_MARK} ${BYellow}Forcibly removing container...${Color_Off}"
-        docker rm -f "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1 || true
+        ${DOCKER_CMD} rm -f "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1 || true
         sleep 2
     fi
 
@@ -391,26 +468,33 @@ run_tethys() {
     local teehr_mount_args=()
     local teehr_env_args=()
     if [ -n "$TEEHR_WAREHOUSE_PATH" ] && [ -d "$TEEHR_WAREHOUSE_PATH" ]; then
-        teehr_mount_args=(-v "$TEEHR_WAREHOUSE_PATH:$TEEHR_WAREHOUSE_PATH:ro")
+        # Podman wants comma-separated mount options (ro,Z); VOLUME_SUFFIX is :Z so strip the colon.
+        local teehr_ro_flags="ro"
+        [ -n "$VOLUME_SUFFIX" ] && teehr_ro_flags="ro,${VOLUME_SUFFIX#:}"
+        teehr_mount_args=(-v "$TEEHR_WAREHOUSE_PATH:$TEEHR_WAREHOUSE_PATH:${teehr_ro_flags}")
         teehr_env_args=(--env "TEEHR_WAREHOUSE_PATH=$TEEHR_WAREHOUSE_PATH")
         echo -e "  ${INFO_MARK} Mounting TEEHR warehouse: ${BCyan}$TEEHR_WAREHOUSE_PATH${Color_Off}"
     fi
 
-    # Launch container with explicit error handling
-    echo -e "  ${INFO_MARK} Running docker command..."
-    docker run --rm -d \
-        -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer" \
-        -v "$DATASTREAM_DIRECTORY:$TETHYS_PERSIST_PATH/.datastream_ngiab" \
+    # Launch container with explicit error handling.
+    # Container port is fixed at CONTAINER_PORT (image default 8080); the host
+    # port is what the user picked. NGINX_PORT inside matches CONTAINER_PORT.
+    echo -e "  ${INFO_MARK} Running ${DOCKER_CMD} command..."
+    ${DOCKER_CMD} run --rm -d \
+        "${USERNS_ARGS[@]}" \
+        -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer${VOLUME_SUFFIX}" \
+        -v "$DATASTREAM_DIRECTORY:$TETHYS_PERSIST_PATH/.datastream_ngiab${VOLUME_SUFFIX}" \
         "${teehr_mount_args[@]}" \
-        -p "$nginx_tethys_port:$nginx_tethys_port" \
-        --network "$DOCKER_NETWORK" \
+        -p "$nginx_tethys_port:$CONTAINER_PORT" \
+        "${NETWORK_ARGS[@]}" \
         --name "$TETHYS_CONTAINER_NAME" \
         --env MEDIA_ROOT="$TETHYS_PERSIST_PATH/media" \
         --env MEDIA_URL="/media/" \
         --env SKIP_DB_SETUP="$SKIP_DB_SETUP" \
         --env DATASTREAM_CONF="$TETHYS_PERSIST_PATH/.datastream_ngiab" \
         --env VISUALIZER_CONF="$TETHYS_PERSIST_PATH/ngiab_visualizer/ngiab_visualizer.json" \
-        --env NGINX_PORT="$nginx_tethys_port" \
+        --env NGINX_PORT="$CONTAINER_PORT" \
+        --env ALLOWED_HOSTS="$ALLOWED_HOSTS" \
         --env CSRF_TRUSTED_ORIGINS="$CSRF_TRUSTED_ORIGINS" \
         "${teehr_env_args[@]}" \
         "${TETHYS_REPO}:${TETHYS_TAG}"
@@ -429,15 +513,19 @@ run_tethys() {
 # ──────────────────────────────────────────────────────────────────────
 select_tethys_image_source() {
     # Bail out early if Docker is unavailable
-    if ! docker info >/dev/null 2>&1; then
-        echo -e "  ${CROSS_MARK} ${BRed}Docker daemon not running.${Color_Off}"
+    if ! ${DOCKER_CMD} info >/dev/null 2>&1; then
+        if [ "${DOCKER_CMD}" == 'docker' ]; then
+            echo -e "  ${CROSS_MARK} ${BRed}Docker daemon is not running or accessible.${Color_Off}"
+        else
+            echo -e "  ${CROSS_MARK} ${BRed}Command \"${DOCKER_CMD} info\" failed, container runtime inoperative.${Color_Off}"
+        fi
         return 1
     fi
 
     local image_ref="${TETHYS_REPO}:${TETHYS_TAG}"
 
     # Does the image already exist locally?
-    if docker image inspect "$image_ref" >/dev/null 2>&1; then
+    if ${DOCKER_CMD} image inspect "$image_ref" >/dev/null 2>&1; then
         echo -e "  ${INFO_MARK} Found local image ${BCyan}$image_ref${Color_Off}"
         while true; do
             echo -ne "  ${ARROW} Use local copy (L) or Pull latest from registry (P)? [L/P]: "
@@ -448,7 +536,7 @@ select_tethys_image_source() {
                 [Pp]* )
                     echo -e "  ${INFO_MARK} ${BYellow}Pulling image - this may take a moment...${Color_Off}"
                     show_loading "Downloading Tethys image" 3
-                    docker pull "$image_ref" && return 0
+                    ${DOCKER_CMD} pull "$image_ref" && return 0
                     echo -e "  ${CROSS_MARK} ${BRed}Failed to pull $image_ref${Color_Off}"
                     return 1 ;;
                 * )
@@ -459,7 +547,7 @@ select_tethys_image_source() {
         # No local image - pull automatically
         echo -e "  ${INFO_MARK} ${BYellow}Image not found locally - pulling $image_ref...${Color_Off}"
         show_loading "Downloading Tethys image" 3
-        docker pull "$image_ref" && return 0
+        ${DOCKER_CMD} pull "$image_ref" && return 0
         echo -e "  ${CROSS_MARK} ${BRed}Failed to pull $image_ref${Color_Off}"
         return 1
     fi
@@ -467,26 +555,30 @@ select_tethys_image_source() {
 
 tear_down() {
     echo -e "\n${ARROW} ${BYellow}Cleaning up resources...${Color_Off}"
-    
+
     # Check if Docker daemon is running
-    if ! docker info >/dev/null 2>&1; then
-        echo -e "  ${CROSS_MARK} ${BRed}Docker daemon is not running, cannot clean up containers.${Color_Off}"
+    if ! ${DOCKER_CMD} info >/dev/null 2>&1; then
+        if [ "${DOCKER_CMD}" == 'docker' ]; then
+            echo -e "  ${CROSS_MARK} ${BRed}Docker daemon is not running or accessible.${Color_Off}"
+        else
+            echo -e "  ${CROSS_MARK} ${BRed}Command \"${DOCKER_CMD} info\" failed, container runtime inoperative.${Color_Off}"
+        fi
         return 1
     fi
-    
+
     # Stop the Tethys container if it's running
-    if docker ps -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
+    if ${DOCKER_CMD} ps -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
         echo -e "  ${INFO_MARK} Stopping Tethys container..."
-        docker stop "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1
+        ${DOCKER_CMD} stop "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1
         sleep 2
     fi
-    
+
     # Remove the Docker network if it exists
-    if docker network inspect "$DOCKER_NETWORK" >/dev/null 2>&1; then
-        echo -e "  ${INFO_MARK} Removing Docker network..."
-        docker network rm "$DOCKER_NETWORK" >/dev/null 2>&1 || true
+    if ${DOCKER_CMD} network inspect "$DOCKER_NETWORK" >/dev/null 2>&1; then
+        echo -e "  ${INFO_MARK} Removing container network..."
+        ${DOCKER_CMD} network rm "$DOCKER_NETWORK" >/dev/null 2>&1 || true
     fi
-    
+
     echo -e "  ${CHECK_MARK} ${BGreen}Cleanup completed${Color_Off}"
     return 0
 }
@@ -505,7 +597,7 @@ prompt_fresh_start() {
                 [Ff]* )
                     echo -e "  ${INFO_MARK} ${BYellow}Removing previous runs..." \
                             "${LBLUE}(sudo may be required)${Color_Off}" >&2
-                    rm -rf "${models_dir:?}/"* 2>/dev/null || sudo rm -rf "${models_dir:?}/"* 
+                    rm -rf "${models_dir:?}/"* 2>/dev/null || sudo rm -rf "${models_dir:?}/"*
                     break ;;
                 * ) echo -e "  ${CROSS_MARK} ${BRed}Invalid choice.${Color_Off}" >&2 ;;
             esac
@@ -625,15 +717,15 @@ add_model_run() {
     local jq_exec
     if command -v jq >/dev/null 2>&1; then
         jq_exec="jq"
-    elif command -v docker >/dev/null 2>&1; then
+    elif command -v ${DOCKER_CMD} >/dev/null 2>&1; then
         local jq_image="ghcr.io/jqlang/jq:latest"
-        docker image inspect "$jq_image" >/dev/null 2>&1 || {
+        ${DOCKER_CMD} image inspect "$jq_image" >/dev/null 2>&1 || {
             echo -e "  ${INFO_MARK} ${BYellow}Pulling jq helper image...${Color_Off}"
-            docker pull "$jq_image" >/dev/null
+            ${DOCKER_CMD} pull "$jq_image" >/dev/null
         }
-        jq_exec="docker run --rm -i $jq_image"
+        jq_exec="${DOCKER_CMD} run --rm -i $jq_image"
     else
-        echo -e "  ${CROSS_MARK} ${BRed}jq is required, but neither jq nor Docker is available.${Color_Off}"
+        echo -e "  ${CROSS_MARK} ${BRed}jq is required, but neither jq nor ${DOCKER_CMD^} is available.${Color_Off}"
         return 1
     fi
 
@@ -732,11 +824,56 @@ manage_datastream_cache() {
         esac
     done
 }
+# Print URLs ordered by reliability for the current engine.
+#
+# Under rootless Podman on WSL the Windows browser doesn't reliably route
+# `localhost` (Windows resolves to ::1 but pasta only binds IPv4) and may not
+# route `127.0.0.1` either (depends on whether WSL2 localhostForwarding is
+# enabled on the Windows host). The host's non-loopback IPv4 always works.
+# Order: non-loopback IPs first, loopback after, with a note pointing users
+# at the most reliable choice for their setup.
+print_visualization_urls() {
+    local app_path="/apps/ngiab"
+    local is_wsl=false
+    grep -qi microsoft /proc/version 2>/dev/null && is_wsl=true
+
+    # Only the IP of the default-route interface -- skips docker bridges,
+    # minikube/k3s vifs, and other noise that hostname -I returns.
+    local primary_ip default_iface
+    default_iface=$(ip -4 route show default 2>/dev/null | awk '/default/ {print $5; exit}')
+    if [ -n "$default_iface" ]; then
+        primary_ip=$(ip -4 -o addr show dev "$default_iface" 2>/dev/null | awk '{split($4,a,"/"); print a[1]; exit}')
+    fi
+
+    echo -e "${INFO_MARK} Access the visualization at:"
+
+    if [ "${DOCKER_CMD}" = "podman" ]; then
+        # Default-route IP first -- always reachable from a Windows browser into WSL.
+        if [ -n "$primary_ip" ] && [ "$primary_ip" != "127.0.0.1" ]; then
+            echo -e "  ${ARROW} ${UBlue}http://${primary_ip}:${nginx_tethys_port}${app_path}${Color_Off}"
+        fi
+        # Loopback -- works inside WSL, and from Windows only if
+        # localhostForwarding=true in .wslconfig.
+        echo -e "  ${ARROW} ${UBlue}http://127.0.0.1:${nginx_tethys_port}${app_path}${Color_Off}  ${BWhite}(loopback)${Color_Off}"
+        if [ "${is_wsl}" = true ]; then
+            echo -e "  ${INFO_MARK} ${BWhite}On WSL+Podman, the host-IP URL above is the most reliable; localhost is intentionally not listed.${Color_Off}"
+        else
+            echo -e "  ${INFO_MARK} ${BWhite}Rootless Podman does not bind 'localhost' reliably; use an address above.${Color_Off}"
+        fi
+    else
+        echo -e "  ${ARROW} ${UBlue}http://localhost:${nginx_tethys_port}${app_path}${Color_Off}"
+        echo -e "  ${ARROW} ${UBlue}http://127.0.0.1:${nginx_tethys_port}${app_path}${Color_Off}"
+        if [ -n "$primary_ip" ] && [ "$primary_ip" != "127.0.0.1" ]; then
+            echo -e "  ${ARROW} ${UBlue}http://${primary_ip}:${nginx_tethys_port}${app_path}${Color_Off}"
+        fi
+    fi
+}
+
 pause_script_execution() {
     echo -e "\n${BG_Blue}${BWhite} Tethys is now running ${Color_Off}"
-    echo -e "${INFO_MARK} Access the visualization at: ${UBlue}http://localhost:$nginx_tethys_port/apps/ngiab${Color_Off}"
+    print_visualization_urls
     echo -e "${INFO_MARK} Press ${BWhite}Ctrl+C${Color_Off} to stop Tethys when you're done."
-    
+
     # Keep script running until user interrupts
     while true; do
         sleep 10
@@ -749,22 +886,24 @@ print_usage() {
     echo -e "${BYellow}Options:${Color_Off}"
     echo -e "${BCyan}  -d [path]:${Color_Off} Designates the provided path as the data directory to import into the visualizer."
     echo -e "${BCyan}  -h:${Color_Off} Displays usage information, then exits."
-    echo -e "${BCyan}  -i [image]:${Color_Off} Specifies which Docker image of the visualizer to run."
+    echo -e "${BCyan}  -i [image]:${Color_Off} Specifies which container image of the visualizer to run."
     echo -e "${BCyan}  -n:${Color_Off} Launches the visualizer immediately without importing a data directory."
+    echo -e "${BCyan}  -p:${Color_Off} Use Podman instead of Docker."
     echo -e "${BCyan}  -r:${Color_Off} Retains previous console output when launching the script."
-    echo -e "${BCyan}  -t [tag]:${Color_Off} Specifies which Docker image tag of the visualizer to run."
+    echo -e "${BCyan}  -t [tag]:${Color_Off} Specifies which container image tag of the visualizer to run."
     echo -e "${BCyan}  -y:${Color_Off} Immediately requests to import a data directory."
 }
 
 
 # Pre-script execution
-while getopts 'd:hi:nrt:y' flag; do
+while getopts 'd:hi:nprt:y' flag; do
     case "${flag}" in
         d) DATA_FOLDER_PATH="${OPTARG}" ;;
         h) print_usage
            exit 1 ;;
         i) TETHYS_REPO="${OPTARG}" ;;
         n) IMPORT_GAGE="no";;
+        p) DOCKER_CMD="podman" ;;
         r) CLEAR_CONSOLE=false ;;
         t) TETHYS_TAG="${OPTARG}" ;;
         y) IMPORT_GAGE="yes" ;;
@@ -780,6 +919,9 @@ if [ -n "$DATA_FOLDER_PATH" ] && [ "$IMPORT_GAGE" == "no" ]; then
     print_usage
     exit 1
 fi
+
+# Populate USERNS_ARGS, VOLUME_SUFFIX, NETWORK_ARGS based on -p flag selection.
+configure_container_engine
 
 # Backwards compatibility: If no flags provided, first argument should be used as data path
 if [ "$FLAGS_USED" == false ] && [ -n "$1" ]; then
@@ -824,7 +966,7 @@ if [[ -z "$DATA_FOLDER_PATH" && $IMPORT_GAGE == "yes" ]]; then
         echo -ne "  ${ARROW} Enter your input data directory path: "
         read -e DATA_FOLDER_PATH
     fi
-    
+
     # Save the new path
     echo "$DATA_FOLDER_PATH" > "$CONFIG_FILE"
     echo -e "  ${CHECK_MARK} ${BGreen}Path saved for future use.${Color_Off}"
@@ -893,7 +1035,7 @@ wait_container_healthy "$TETHYS_CONTAINER_NAME" || {
 print_section_header "VISUALIZATION READY"
 
 echo -e "${BG_Green}${BWhite} Your model outputs are now available for visualization! ${Color_Off}\n"
-echo -e "${INFO_MARK} Access the visualization at: ${UBlue}http://localhost:$nginx_tethys_port/apps/ngiab${Color_Off}"
+print_visualization_urls
 echo -e "${INFO_MARK} Login credentials:"
 echo -e "  ${ARROW} ${BWhite}Username:${Color_Off} admin"
 echo -e "  ${ARROW} ${BWhite}Password:${Color_Off} pass"

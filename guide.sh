@@ -26,7 +26,7 @@ Color_Off='\033[0m'
 
 # Extended color palette with 256-color support
 LBLUE='\033[38;5;39m'  # Light blue
-LGREEN='\033[38;5;83m' # Light green 
+LGREEN='\033[38;5;83m' # Light green
 LPURPLE='\033[38;5;171m' # Light purple
 LORANGE='\033[38;5;215m' # Light orange
 LTEAL='\033[38;5;87m'  # Light teal
@@ -54,13 +54,14 @@ TETHYS_SCRIPT="./viewOnTethys.sh"
 TEEHR_SCRIPT="./runTeehr.sh"
 
 # Container and image constants
-NGEN_IMAGE_NAME="awiciroh/ciroh-ngen-image"
+DOCKER_CMD="docker"
+NGEN_IMAGE_NAME="docker.io/awiciroh/ciroh-ngen-image"
 NGEN_IMAGE_TAG="latest"
 # (The rest of these are solely used to manage shutdowns)
 DOCKER_NETWORK="tethys-network"
 TETHYS_CONTAINER_NAME="tethys-ngen-portal"
-TETHYS_IMAGE_NAME="awiciroh/tethys-ngiab"
-TEEHR_IMAGE_NAME="awiciroh/ngiab-teehr"
+TETHYS_IMAGE_NAME="docker.io/awiciroh/tethys-ngiab"
+TEEHR_IMAGE_NAME="docker.io/awiciroh/ngiab-teehr"
 
 # Parameters
 DATA_FOLDER_PATH="" # Path to the model run being evaluated.
@@ -75,7 +76,7 @@ show_loading() {
     local chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
     local colors=("\033[38;5;39m" "\033[38;5;45m" "\033[38;5;51m" "\033[38;5;87m")
     local end_time=$((SECONDS + duration))
-    
+
     while [ $SECONDS -lt $end_time ]; do
         for (( i=0; i<${#chars}; i++ )); do
             color_index=$((i % ${#colors[@]}))
@@ -92,7 +93,7 @@ print_section_header() {
     local width=70
     local right_padding=$(( (width - ${#title}) / 2 ))
     local left_padding=$(( (width - ${#title}) % 2 + right_padding ))
-    
+
     # Create a more visually appealing section header with light blue background
     echo -e "\n\033[48;5;117m$(printf "%${width}s" " ")\033[0m"
     echo -e "\033[48;5;117m$(printf "%${left_padding}s" " ")${BBlack}${title}$(printf "%${right_padding}s" " ")\033[0m"
@@ -118,33 +119,33 @@ print_welcome_banner() {
 # Cleanup function for all resources
 clean_up_resources() {
     echo -e "\n${ARROW} ${BYellow}Cleaning up resources...${Color_Off}"
-    
+
     # Stop any running TEEHR containers
-    local teehr_containers=$(docker ps -q --filter "ancestor=$TEEHR_IMAGE_NAME" 2>/dev/null)
+    local teehr_containers=$(${DOCKER_CMD} ps -q --filter "ancestor=$TEEHR_IMAGE_NAME" 2>/dev/null)
     if [ -n "$teehr_containers" ]; then
         echo -e "  ${INFO_MARK} Stopping TEEHR containers..."
-        docker stop $teehr_containers >/dev/null 2>&1
+        ${DOCKER_CMD} stop $teehr_containers >/dev/null 2>&1
     fi
-    
+
     # Stop the Tethys container if it's running
-    if docker ps -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
+    if ${DOCKER_CMD} ps -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
         echo -e "  ${INFO_MARK} Stopping Tethys container..."
-        docker stop "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1
+        ${DOCKER_CMD} stop "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1
     fi
-    
+
     # Remove the Docker network
-    if docker network inspect "$DOCKER_NETWORK" >/dev/null 2>&1; then
+    if ${DOCKER_CMD} network inspect "$DOCKER_NETWORK" >/dev/null 2>&1; then
         echo -e "  ${INFO_MARK} Removing Docker network..."
-        docker network rm "$DOCKER_NETWORK" >/dev/null 2>&1
+        ${DOCKER_CMD} network rm "$DOCKER_NETWORK" >/dev/null 2>&1
     fi
-    
+
     # Check for other containers using our images and stop them
-    local ngen_containers=$(docker ps -q --filter "ancestor=$NGEN_IMAGE_NAME" 2>/dev/null)
+    local ngen_containers=$(${DOCKER_CMD} ps -q --filter "ancestor=$NGEN_IMAGE_NAME" 2>/dev/null)
     if [ -n "$ngen_containers" ]; then
         echo -e "  ${INFO_MARK} Stopping NGEN containers..."
-        docker stop $ngen_containers >/dev/null 2>&1
+        ${DOCKER_CMD} stop $ngen_containers >/dev/null 2>&1
     fi
-    
+
     echo -e "  ${CHECK_MARK} ${BGreen}Cleanup completed.${Color_Off}"
 }
 
@@ -172,19 +173,21 @@ print_usage() {
     echo -e "${BYellow}Options:${Color_Off}"
     echo -e "${BCyan}  -d [path]:${Color_Off} Designates the provided path as the data directory to import into the visualizer."
     echo -e "${BCyan}  -h:${Color_Off} Displays usage information, then exits."
-    echo -e "${BCyan}  -i [image]:${Color_Off} Specifies which Docker image of NGIAB to run."
+    echo -e "${BCyan}  -i [image]:${Color_Off} Specifies which container image of NGIAB to run."
+    echo -e "${BCyan}  -p:${Color_Off} Use Podman instead of Docker."
     echo -e "${BCyan}  -r:${Color_Off} Retains previous console output when launching the script."
-    echo -e "${BCyan}  -t [tag]:${Color_Off} Specifies which Docker image tag of NGIAB to run."
+    echo -e "${BCyan}  -t [tag]:${Color_Off} Specifies which container image tag of NGIAB to run."
 }
 
 
 # Pre-script execution
-while getopts 'd:hi:rt:' flag; do
+while getopts 'd:phi:rt:' flag; do
     case "${flag}" in
         d) HOST_DATA_PATH="${OPTARG}" ;;
         h) print_usage
            exit 1 ;;
         i) NGEN_IMAGE_NAME="${OPTARG}" ;;
+        p) DOCKER_CMD="podman";;
         r) CLEAR_CONSOLE=false ;;
         t) NGEN_IMAGE_TAG="${OPTARG}"
            CUSTOM_TAG_USED=true ;;
@@ -268,16 +271,16 @@ validate_directory() {
 
     # Add a small delay to make the process visible to the user
     sleep 0.3
-    
+
     echo -ne "  ${ARROW} Checking for ${color}${name}${Color_Off} directory... "
-    
+
     if [ -d "$dir" ]; then
         # Count files safely with proper error handling
         local count=0
         if [ -n "$(ls -A "$dir" 2>/dev/null)" ]; then
             count=$(find "$dir" -type f 2>/dev/null | wc -l)
         fi
-        
+
         # Colorize the count based on number of files
         if [ $count -eq 0 ]; then
             echo -e "${CHECK_MARK} Found but ${BYellow}empty${Color_Off} (0 files)"
@@ -325,7 +328,7 @@ cleanup_folder() {
     local file_count=$(eval "$find_cmd" 2> /dev/null | wc -l)
 
     echo -e "\n${ARROW} Checking ${BWhite}$folder_name${Color_Off} directory for existing files..."
-    
+
     if [ "$file_count" -gt 0 ]; then
         echo -e "  ${WARNING_MARK} Found ${BYellow}$file_count${Color_Off} existing files"
         echo -e "\n${UYellow}Cleanup options for $folder_name:${Color_Off}"
@@ -338,19 +341,19 @@ cleanup_folder() {
 choose_option() {
     local folder_path="$1"
     local file_types="$2"
-    
+
     options=("Delete files and run fresh simulation" "Continue with existing files" "Exit")
     select option in "${options[@]}"; do
         case $option in
             "Delete files and run fresh simulation")
                 echo -e "\n  ${ARROW} ${BYellow}Cleaning folder for fresh run...${Color_Off}"
-                
+
                 # Show progress for long operations
                 show_loading "Removing existing files" 2
-                
+
                 # Construct the find delete command
                 local find_delete_cmd="find \"$folder_path\" -maxdepth 2 -type f \( $file_types \) -delete"
-                
+
                 # Execute the find delete command
                 eval "$find_delete_cmd"
                 echo -e "  ${CHECK_MARK} ${BGreen}Cleanup completed successfully${Color_Off}"
@@ -391,7 +394,7 @@ find_files() {
     local color=$4
 
     echo -e "${ARROW} Searching for ${color}$name${Color_Off} files..."
-    
+
     local files=$(find "$path" -iname "$regex" 2>/dev/null)
     if [ -n "$files" ]; then
         echo -e "  ${CHECK_MARK} ${BGreen}Found $(echo "$files" | wc -l) files:${Color_Off}"
@@ -415,12 +418,12 @@ echo -e "  ${INFO_MARK} Operating System: ${BCyan}$os_name${Color_Off}"
 echo -e "  ${INFO_MARK} Architecture: ${BCyan}$system_arch${Color_Off}"
 
 # Docker detection with better error handling
-echo -e "\n${ARROW} ${BWhite}Checking for Docker:${Color_Off}"
-if command -v docker >/dev/null 2>&1; then
-    docker_version=$(docker --version | cut -d' ' -f3 | sed 's/,//')
-    echo -e "  ${CHECK_MARK} Docker detected (version: ${BGreen}$docker_version${Color_Off})"
+echo -e "\n${ARROW} ${BWhite}Checking for ${DOCKER_CMD}:${Color_Off}"
+if command -v $DOCKER_CMD >/dev/null 2>&1; then
+    docker_version=$($DOCKER_CMD --version | cut -d' ' -f3 | sed 's/,//')
+    echo -e "  ${CHECK_MARK} $DOCKER_CMD detected (version: ${BGreen}$docker_version${Color_Off})"
 else
-    handle_error "Docker not found. This script requires Docker to run the NextGen model."
+    handle_error "$DOCKER_CMD not found. This script requires Docker or Podman to run the NextGen model."
 fi
 
 # Model run options with improved visuals
@@ -430,18 +433,18 @@ IMAGE_NAME="$NGEN_IMAGE_NAME:$NGEN_IMAGE_TAG"
 $CUSTOM_TAG_USED && echo -e "  ${CHECK_MARK} Using specified tag: ${BGreen}$IMAGE_NAME${Color_Off}\n"
 
 echo -e "${ARROW} ${BWhite}Please select an option to proceed:${Color_Off}\n"
-options=("Run NextGen using existing local docker image" "Update to latest docker image and run" "Exit")
+options=("Run NextGen using existing local container image" "Update to latest container image and run" "Exit")
 select option in "${options[@]}"; do
     case $option in
-        "Run NextGen using existing local docker image")
-            echo -e "\n${CHECK_MARK} ${BGreen}Using existing Docker image${Color_Off}"
+        "Run NextGen using existing local container image")
+            echo -e "\n${CHECK_MARK} ${BGreen}Using existing container image${Color_Off}"
             break
             ;;
-        "Update to latest docker image and run")
-            echo -e "\n${ARROW} ${BYellow}Updating Docker image...${Color_Off}"
+        "Update to latest container image and run")
+            echo -e "\n${ARROW} ${BYellow}Updating container image...${Color_Off}"
             show_loading "Downloading latest NextGen image" 3
-            docker pull $IMAGE_NAME
-            echo -e "${CHECK_MARK} ${BGreen}Docker image updated successfully${Color_Off}"
+            $DOCKER_CMD pull $IMAGE_NAME
+            echo -e "${CHECK_MARK} ${BGreen}Container image updated successfully${Color_Off}"
             break
             ;;
         "Exit")
@@ -459,13 +462,13 @@ print_section_header "RUNNING NEXTGEN MODEL SIMULATION"
 echo -e "${ARROW} ${BWhite}Preparing to run NextGen model...${Color_Off}"
 echo -e "  ${INFO_MARK} ${BCyan}Local directory: ${BWhite}$HOST_DATA_PATH${Color_Off}"
 echo -e "  ${INFO_MARK} ${BCyan}Container directory: ${BWhite}/ngen/ngen/data${Color_Off}"
-echo -e "  ${INFO_MARK} ${BCyan}Docker image: ${BWhite}$IMAGE_NAME${Color_Off}"
+echo -e "  ${INFO_MARK} ${BCyan}Container image: ${BWhite}$IMAGE_NAME${Color_Off}"
 
 # Pause for visual confirmation
 sleep 2
 
 echo -e "\n${ARROW} ${BYellow}Launching NextGen container...${Color_Off}"
-docker run --rm -it -v "$HOST_DATA_PATH:/ngen/ngen/data" "$IMAGE_NAME" /ngen/ngen/data/
+$DOCKER_CMD run --rm -it -v "$HOST_DATA_PATH:/ngen/ngen/data" "$IMAGE_NAME" /ngen/ngen/data/
 
 # Final output count with improved presentation
 print_section_header "SIMULATION RESULTS"
@@ -484,38 +487,42 @@ fi
 # ============ Run TEEHR using the runTeehr.sh script ============
 if [ $Final_Outputs_Count -gt 0 ]; then
     print_section_header "EVALUATION OPTIONS"
-    
+
     echo -e "${ARROW} ${BWhite}Would you like to run a TEEHR evaluation on the output?${Color_Off}"
     echo -e "  ${INFO_MARK} This will analyze your simulation results using the TEEHR toolkit"
     echo -e "  ${INFO_MARK} Learn more: ${UBlue}https://rtiinternational.github.io/ngiab-teehr/${Color_Off}\n"
-    
+
     read -erp "  Run TEEHR evaluation? [Y/n]: " run_teehr_choice
-    
+
     # Default to 'y' if input is empty
     if [[ -z "$run_teehr_choice" ]]; then
         run_teehr_choice="y"
     fi
-    
+
     # Execute TEEHR if requested
     if [[ "$run_teehr_choice" == [Yy]* ]]; then
         # Check if the runTeehr.sh script exists
         if [ -f "$TEEHR_SCRIPT" ]; then
             echo -e "\n${INFO_MARK} ${BWhite}Launching TEEHR evaluation...${Color_Off}"
-            
+
             # Make sure the script is executable
             if [ ! -x "$TEEHR_SCRIPT" ]; then
                 chmod +x "$TEEHR_SCRIPT"
             fi
-            
+
             # Disable clearing console if needed
             if [ "$CLEAR_CONSOLE" == true ]; then
-                teehr_call="$TEEHR_SCRIPT -y -d $HOST_DATA_PATH"
+                teehr_args=("$TEEHR_SCRIPT" "-y" "-d" "$HOST_DATA_PATH")
             else
-                teehr_call="$TEEHR_SCRIPT -y -r -d $HOST_DATA_PATH"
+                teehr_args=("$TEEHR_SCRIPT" "-y" "-r" "-d" "$HOST_DATA_PATH")
+            fi
+
+            if [ "$DOCKER_CMD" == "podman" ]; then
+                teehr_args+=("-p")
             fi
 
             # Call the runTeehr.sh script with the data path
-            if ! bash -c "$teehr_call"; then
+            if ! bash "${teehr_args[@]}"; then
                 echo -e "\n${WARNING_MARK} ${BRed}Failed to run TEEHR evaluation.${Color_Off}"
                 echo -e "  ${INFO_MARK} Check that the runTeehr.sh script is properly configured."
             fi
@@ -523,31 +530,31 @@ if [ $Final_Outputs_Count -gt 0 ]; then
             echo -e "\n${WARNING_MARK} ${BRed}Could not find the TEEHR evaluation script.${Color_Off}"
             echo -e "  ${INFO_MARK} Expected location: ${BWhite}$TEEHR_SCRIPT${Color_Off}"
             echo -e "  ${INFO_MARK} Please make sure the script is in the current directory."
-            
+
             # Fallback to inline TEEHR execution
             echo -e "\n${INFO_MARK} ${BYellow}Falling back to embedded TEEHR evaluation...${Color_Off}"
-            
+
             # Detect architecture for default tag
             if uname -a | grep -q 'arm64\|aarch64'; then
                 default_tag="latest"
             else
                 default_tag="x86"
             fi
-            
+
             echo -e "  ${INFO_MARK} Detected architecture: ${BCyan}$(uname -m)${Color_Off} (default tag: ${BCyan}$default_tag${Color_Off})"
             read -erp "  ${ARROW} Specify TEEHR image tag [default: '$default_tag']: " teehr_image_tag
-            
+
             if [[ -z "$teehr_image_tag" ]]; then
                 teehr_image_tag=$default_tag
             fi
-            
+
             IMAGE_NAME=$TEEHR_IMAGE_NAME
-            
+
             print_section_header "RUNNING TEEHR EVALUATION"
-            
+
             echo -e "${ARROW} ${BYellow}Launching TEEHR evaluation...${Color_Off}\n"
-            docker run -v "$HOST_DATA_PATH:/app/data" "$IMAGE_NAME:$teehr_image_tag"
-            
+            $DOCKER_CMD run -v "$HOST_DATA_PATH:/app/data" "$IMAGE_NAME:$teehr_image_tag"
+
             echo -e "\n${BG_Green}${BWhite} TEEHR EVALUATION COMPLETE ${Color_Off}"
             echo -e "${INFO_MARK} ${BCyan}Results have been saved to your output directory${Color_Off}"
         fi
@@ -561,17 +568,17 @@ fi
 # ============ Use viewOnTethys.sh for visualization ============
 if [ $Final_Outputs_Count -gt 0 ]; then
     print_section_header "VISUALIZATION OPTIONS"
-    
+
     echo -e "${ARROW} ${BWhite}Would you like to visualize results using Tethys?${Color_Off}"
     echo -e "  ${INFO_MARK} This will provide an interactive web interface to explore your model results"
     read -erp "  Visualize results? [Y/n]: " visualize_choice
-    
+
     # Default to 'y' if input is empty
     if [[ -z "$visualize_choice" || "$visualize_choice" == [Yy]* ]]; then
         # Check if the viewOnTethys.sh script exists
         if [ -f "$TETHYS_SCRIPT" ]; then
             echo -e "\n${INFO_MARK} ${BWhite}Launching Tethys visualization...${Color_Off}"
-            
+
             # Make sure the script is executable
             if [ ! -x "$TETHYS_SCRIPT" ]; then
                 chmod +x "$TETHYS_SCRIPT"
@@ -579,13 +586,17 @@ if [ $Final_Outputs_Count -gt 0 ]; then
 
             # Disable clearing console if needed
             if [ "$CLEAR_CONSOLE" == true ]; then
-                tethys_call="$TETHYS_SCRIPT -d $HOST_DATA_PATH"
+                tethys_args=("$TETHYS_SCRIPT" "-d" "$HOST_DATA_PATH")
             else
-                tethys_call="$TETHYS_SCRIPT -r -d $HOST_DATA_PATH"
+                tethys_args=("$TETHYS_SCRIPT" "-r" "-d" "$HOST_DATA_PATH")
+            fi
+
+            if [ "$DOCKER_CMD" == "podman" ]; then
+                tethys_args+=("-p")
             fi
 
             # Call the viewOnTethys.sh script with the data path
-            if ! bash -c "$tethys_call"; then
+            if ! bash "${tethys_args[@]}"; then
                 echo -e "\n${WARNING_MARK} ${BRed}Failed to launch Tethys visualization.${Color_Off}"
                 echo -e "  ${INFO_MARK} Check that the viewOnTethys.sh script is properly configured."
             fi
