@@ -356,7 +356,25 @@ choose_port_to_run_tethys() {
         break
     done
 
-    CSRF_TRUSTED_ORIGINS="[\"http://localhost:${nginx_tethys_port}\",\"http://127.0.0.1:${nginx_tethys_port}\"]"
+    # Build ALLOWED_HOSTS + CSRF_TRUSTED_ORIGINS from localhost + every IPv4 the
+    # host owns (catches the WSL VM address, LAN address, etc.). The outer
+    # literal double-quotes in ALLOWED_HOSTS protect the brackets when the
+    # tethys-core salt state renders them through an unquoted shell command.
+    local host_ips
+    host_ips=$(hostname -I 2>/dev/null || ip -4 -o addr show 2>/dev/null | awk '{split($4,a,"/"); print a[1]}' | tr '\n' ' ' || echo)
+    local allowed_list="localhost, 127.0.0.1"
+    local csrf_list="\"http://localhost:${nginx_tethys_port}\",\"http://127.0.0.1:${nginx_tethys_port}\""
+    for ip in $host_ips; do
+        case "$ip" in
+            127.*|"") ;;  # skip loopback duplicates and empties
+            *)
+                allowed_list="${allowed_list}, $ip"
+                csrf_list="${csrf_list},\"http://${ip}:${nginx_tethys_port}\""
+                ;;
+        esac
+    done
+    ALLOWED_HOSTS="\"[${allowed_list}]\""
+    CSRF_TRUSTED_ORIGINS="[${csrf_list}]"
     echo -e "  ${CHECK_MARK} ${BGreen}Port $nginx_tethys_port selected${Color_Off}"
 
     return 0
@@ -454,6 +472,7 @@ run_tethys() {
         --env DATASTREAM_CONF="$TETHYS_PERSIST_PATH/.datastream_ngiab" \
         --env VISUALIZER_CONF="$TETHYS_PERSIST_PATH/ngiab_visualizer/ngiab_visualizer.json" \
         --env NGINX_PORT="$CONTAINER_PORT" \
+        --env ALLOWED_HOSTS="$ALLOWED_HOSTS" \
         --env CSRF_TRUSTED_ORIGINS="$CSRF_TRUSTED_ORIGINS" \
         "${teehr_env_args[@]}" \
         "${TETHYS_REPO}:${TETHYS_TAG}"
