@@ -383,33 +383,55 @@ choose_port_to_run_tethys() {
 # Wait for a Docker container to become healthy
 wait_container_healthy() {
     local container_name=$1
-    local container_health_status=""
-    local attempt_counter=0
 
-    echo -e "${INFO_MARK} ${BWhite} Waiting for container: $container_name to become healthy. This can take a couple of minutes...${Color_Off}"
-    while true; do
-        # Update the health status
-        container_health_status=$(${DOCKER_CMD} inspect -f '{{.State.Health.Status}}' "$container_name" 2>/dev/null)
+    # Detect once whether the image has a healthcheck. Podman builds in default
+    # OCI format strip HEALTHCHECK; the inspect query for .State.Health.Status
+    # then nil-derefs and exits 125. Fall back to a TCP probe in that case.
+    local has_healthcheck
+    has_healthcheck=$(${DOCKER_CMD} inspect -f '{{if .State.Health}}yes{{else}}no{{end}}' "$container_name" 2>/dev/null)
 
-        if [ $? -ne 0 ]; then
-            echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} Failed to get health status for container $container_name. Ensure the container exists and has a health check. ${Color_Off}"
+    if [ "$has_healthcheck" = "yes" ]; then
+        echo -e "${INFO_MARK} ${BWhite} Waiting for container: $container_name to become healthy. This can take a couple of minutes...${Color_Off}"
+        while true; do
+            local container_health_status
+            container_health_status=$(${DOCKER_CMD} inspect -f '{{.State.Health.Status}}' "$container_name" 2>/dev/null)
+            if [ $? -ne 0 ]; then
+                echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} Failed to get health status for container $container_name. Ensure the container exists and has a health check. ${Color_Off}"
+                return 1
+            fi
+            if [[ "$container_health_status" == "healthy" ]]; then
+                echo -e "\n ${CHECK_MARK} ${BG_Green}${BWhite} Container $container_name is now healthy! ${Color_Off}"
+                return 0
+            elif [[ "$container_health_status" == "unhealthy" ]]; then
+                echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} Container $container_name is unhealthy! ${Color_Off}"
+                return 0
+            fi
+            sleep 2
+        done
+    fi
+
+    # No healthcheck in the image: poll the published port directly. Bounded so a
+    # truly broken container doesn't hang the script forever.
+    echo -e "${INFO_MARK} ${BWhite} Image has no healthcheck; polling http://127.0.0.1:${nginx_tethys_port}/ for readiness (max 5 min)...${Color_Off}"
+    local max_wait=300
+    local elapsed=0
+    while [ $elapsed -lt $max_wait ]; do
+        if curl -sf --max-time 3 -o /dev/null "http://127.0.0.1:${nginx_tethys_port}/" 2>/dev/null; then
+            echo -e "\n ${CHECK_MARK} ${BG_Green}${BWhite} Container $container_name is serving requests! ${Color_Off}"
+            return 0
+        fi
+        # If the container exited, stop polling.
+        local running
+        running=$(${DOCKER_CMD} inspect -f '{{.State.Running}}' "$container_name" 2>/dev/null)
+        if [ "$running" != "true" ]; then
+            echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} Container $container_name is no longer running. ${Color_Off}"
             return 1
         fi
-
-        if [[ "$container_health_status" == "healthy" ]]; then
-            echo -e "\n ${CHECK_MARK} ${BG_Green}${BWhite} Container $container_name is now healthy! ${Color_Off}"
-            return 0
-        elif [[ "$container_health_status" == "unhealthy" ]]; then
-            echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} Container $container_name is unhealthy! ${Color_Off}"
-            return 0
-        elif [[ -z "$container_health_status" ]]; then
-            echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} No health status available for container $container_name. Ensure the container has a health check configured. ${Color_Off}"
-            return 1
-        fi
-
-        ((attempt_counter++))
-        sleep 2  # Adjust the sleep time as needed
+        sleep 5
+        elapsed=$((elapsed + 5))
     done
+    echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} Timed out waiting for $container_name to respond on port ${nginx_tethys_port}. ${Color_Off}"
+    return 1
 }
 
 run_tethys() {
