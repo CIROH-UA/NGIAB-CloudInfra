@@ -824,9 +824,54 @@ manage_datastream_cache() {
         esac
     done
 }
+# Print URLs ordered by reliability for the current engine.
+#
+# Under rootless Podman on WSL the Windows browser doesn't reliably route
+# `localhost` (Windows resolves to ::1 but pasta only binds IPv4) and may not
+# route `127.0.0.1` either (depends on whether WSL2 localhostForwarding is
+# enabled on the Windows host). The host's non-loopback IPv4 always works.
+# Order: non-loopback IPs first, loopback after, with a note pointing users
+# at the most reliable choice for their setup.
+print_visualization_urls() {
+    local app_path="/apps/ngiab"
+    local is_wsl=false
+    grep -qi microsoft /proc/version 2>/dev/null && is_wsl=true
+
+    # Only the IP of the default-route interface -- skips docker bridges,
+    # minikube/k3s vifs, and other noise that hostname -I returns.
+    local primary_ip default_iface
+    default_iface=$(ip -4 route show default 2>/dev/null | awk '/default/ {print $5; exit}')
+    if [ -n "$default_iface" ]; then
+        primary_ip=$(ip -4 -o addr show dev "$default_iface" 2>/dev/null | awk '{split($4,a,"/"); print a[1]; exit}')
+    fi
+
+    echo -e "${INFO_MARK} Access the visualization at:"
+
+    if [ "${DOCKER_CMD}" = "podman" ]; then
+        # Default-route IP first -- always reachable from a Windows browser into WSL.
+        if [ -n "$primary_ip" ] && [ "$primary_ip" != "127.0.0.1" ]; then
+            echo -e "  ${ARROW} ${UBlue}http://${primary_ip}:${nginx_tethys_port}${app_path}${Color_Off}"
+        fi
+        # Loopback -- works inside WSL, and from Windows only if
+        # localhostForwarding=true in .wslconfig.
+        echo -e "  ${ARROW} ${UBlue}http://127.0.0.1:${nginx_tethys_port}${app_path}${Color_Off}  ${BWhite}(loopback)${Color_Off}"
+        if [ "${is_wsl}" = true ]; then
+            echo -e "  ${INFO_MARK} ${BWhite}On WSL+Podman, the host-IP URL above is the most reliable; localhost is intentionally not listed.${Color_Off}"
+        else
+            echo -e "  ${INFO_MARK} ${BWhite}Rootless Podman does not bind 'localhost' reliably; use an address above.${Color_Off}"
+        fi
+    else
+        echo -e "  ${ARROW} ${UBlue}http://localhost:${nginx_tethys_port}${app_path}${Color_Off}"
+        echo -e "  ${ARROW} ${UBlue}http://127.0.0.1:${nginx_tethys_port}${app_path}${Color_Off}"
+        if [ -n "$primary_ip" ] && [ "$primary_ip" != "127.0.0.1" ]; then
+            echo -e "  ${ARROW} ${UBlue}http://${primary_ip}:${nginx_tethys_port}${app_path}${Color_Off}"
+        fi
+    fi
+}
+
 pause_script_execution() {
     echo -e "\n${BG_Blue}${BWhite} Tethys is now running ${Color_Off}"
-    echo -e "${INFO_MARK} Access the visualization at: ${UBlue}http://localhost:$nginx_tethys_port/apps/ngiab${Color_Off}"
+    print_visualization_urls
     echo -e "${INFO_MARK} Press ${BWhite}Ctrl+C${Color_Off} to stop Tethys when you're done."
 
     # Keep script running until user interrupts
@@ -990,7 +1035,7 @@ wait_container_healthy "$TETHYS_CONTAINER_NAME" || {
 print_section_header "VISUALIZATION READY"
 
 echo -e "${BG_Green}${BWhite} Your model outputs are now available for visualization! ${Color_Off}\n"
-echo -e "${INFO_MARK} Access the visualization at: ${UBlue}http://localhost:$nginx_tethys_port/apps/ngiab${Color_Off}"
+print_visualization_urls
 echo -e "${INFO_MARK} Login credentials:"
 echo -e "  ${ARROW} ${BWhite}Username:${Color_Off} admin"
 echo -e "  ${ARROW} ${BWhite}Password:${Color_Off} pass"
