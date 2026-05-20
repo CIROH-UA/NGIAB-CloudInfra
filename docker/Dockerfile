@@ -120,7 +120,7 @@ ARG COMMON_BUILD_ARGS="-DNGEN_WITH_EXTERN_ALL=ON \
 
 # Build Ngen serial
 RUN cmake -G Ninja -B cmake_build_serial -S . ${COMMON_BUILD_ARGS} -DNGEN_WITH_MPI:BOOL=OFF && \
-    cmake --build cmake_build_serial --target all -- -j $(nproc)
+    cmake --build cmake_build_serial --target all -- -j 4
 
 ARG MPI_BUILD_ARGS="-DNGEN_WITH_MPI:BOOL=ON \
     -DNetCDF_ROOT=/usr/lib64/mpich \
@@ -134,7 +134,7 @@ RUN dnf install -y netcdf-cxx4-mpich-devel
 RUN cmake -G Ninja -B cmake_build_parallel -S . ${COMMON_BUILD_ARGS} ${MPI_BUILD_ARGS} \
     -DNetCDF_CXX_INCLUDE_DIR=/usr/include/mpich-$(arch) \
     -DNetCDF_INCLUDE_DIR=/usr/include/mpich-$(arch) && \
-    cmake --build cmake_build_parallel --target all -- -j $(nproc)
+    cmake --build cmake_build_parallel --target all -- -j 4
 
 
 
@@ -147,7 +147,7 @@ ENV SUNDIALS_VERSION=7.5.0
 RUN wget https://github.com/LLNL/sundials/releases/download/v${SUNDIALS_VERSION}/sundials-${SUNDIALS_VERSION}.tar.gz && \
     tar -xzf sundials-${SUNDIALS_VERSION}.tar.gz && \
     rm sundials-${SUNDIALS_VERSION}.tar.gz
-RUN cmake -G Ninja -B build_sundials sundials-${SUNDIALS_VERSION} -DEXAMPLES_ENABLE_C=OFF -DEXAMPLES_ENABLE_F2003=OFF -DBUILD_FORTRAN_MODULE_INTERFACE=ON -DCMAKE_Fortran_COMPILER=gfortran -DCMAKE_INSTALL_PREFIX=/sundials/install && cmake --build build_sundials --target all -- -j $(nproc) && cmake --build build_sundials --target install
+RUN cmake -G Ninja -B build_sundials sundials-${SUNDIALS_VERSION} -DEXAMPLES_ENABLE_C=OFF -DEXAMPLES_ENABLE_F2003=OFF -DBUILD_FORTRAN_MODULE_INTERFACE=ON -DCMAKE_Fortran_COMPILER=gfortran -DCMAKE_INSTALL_PREFIX=/sundials/install && cmake --build build_sundials --target all -- -j 4 && cmake --build build_sundials --target install
 
 
 FROM build_sundials AS build_summa
@@ -158,7 +158,7 @@ RUN cmake -G Ninja -B build_summa -DUSE_NEXTGEN=ON -DUSE_SUNDIALS=ON \
     -DNetCDF_F90_INCLUDE_DIR=/usr/lib64/gfortran/modules/ \
     -DOpenBLAS_INCLUDE_DIR=/usr/include/openblas \
     -DSUNDIALS_DIR=/sundials/build_sundials/
-RUN cmake --build build_summa --target all -- -j $(nproc)
+RUN cmake --build build_summa --target all -- -j 4
 
 
 FROM ngen_build AS restructure_files
@@ -256,15 +256,14 @@ COPY --from=build_sundials /sundials/install/ /sundials
 RUN echo "/sundials/lib64" >> /etc/ld.so.conf.d/sundials.conf && ldconfig -v
 
 # Install dhbv
-RUN uv pip install "dmg==1.4.0" "hydrodl2==1.3.5" "dhbv2==0.5.3" --extra-index-url https://download.pytorch.org/whl/cpu
-ADD https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2_mts.tar.gz \
-    /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/
-ADD https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2.tar.gz \
-    /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2/model/
-RUN tar -xzf /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/dhbv_2_mts.tar.gz -C /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/ --strip-components=1 && \
-    tar -xzf /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2/model/dhbv_2.tar.gz -C /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2/model/ --strip-components=1 && \
-    rm /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/dhbv_2_mts.tar.gz && \
-    rm /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2/model/dhbv_2.tar.gz
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install "dmg==1.4.0" "hydrodl2==1.3.5" "dhbv2==0.5.3" --extra-index-url https://download.pytorch.org/whl/cpu
+RUN mkdir -p /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/ \
+             /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2/model/ && \
+    curl -fsSL https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2_mts.tar.gz \
+        | tar -xz -C /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/ --strip-components=1 && \
+    curl -fsSL https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2.tar.gz \
+        | tar -xz -C /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2/model/ --strip-components=1
 
 ## add some metadata to the image
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url
