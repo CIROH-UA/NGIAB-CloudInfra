@@ -720,7 +720,7 @@ add_model_run() {
     elif command -v ${DOCKER_CMD} >/dev/null 2>&1; then
         local jq_image="ghcr.io/jqlang/jq:latest"
         ${DOCKER_CMD} image inspect "$jq_image" >/dev/null 2>&1 || {
-            echo -e "  ${INFO_MARK} ${BYellow}Pulling jq helper image…${Color_Off}"
+            echo -e "  ${INFO_MARK} ${BYellow}Pulling jq helper image...${Color_Off}"
             ${DOCKER_CMD} pull "$jq_image" >/dev/null
         }
         jq_exec="${DOCKER_CMD} run --rm -i $jq_image"
