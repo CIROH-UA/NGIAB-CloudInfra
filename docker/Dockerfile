@@ -120,7 +120,7 @@ ARG COMMON_BUILD_ARGS="-DNGEN_WITH_EXTERN_ALL=ON \
 
 # Build Ngen serial
 RUN cmake -G Ninja -B cmake_build_serial -S . ${COMMON_BUILD_ARGS} -DNGEN_WITH_MPI:BOOL=OFF && \
-    cmake --build cmake_build_serial --target all -- -j 4
+    cmake --build cmake_build_serial --target all -- -j $(nproc)
 
 ARG MPI_BUILD_ARGS="-DNGEN_WITH_MPI:BOOL=ON \
     -DNetCDF_ROOT=/usr/lib64/mpich \
@@ -134,7 +134,7 @@ RUN dnf install -y netcdf-cxx4-mpich-devel
 RUN cmake -G Ninja -B cmake_build_parallel -S . ${COMMON_BUILD_ARGS} ${MPI_BUILD_ARGS} \
     -DNetCDF_CXX_INCLUDE_DIR=/usr/include/mpich-$(arch) \
     -DNetCDF_INCLUDE_DIR=/usr/include/mpich-$(arch) && \
-    cmake --build cmake_build_parallel --target all -- -j 4
+    cmake --build cmake_build_parallel --target all -- -j $(nproc)
 
 
 
@@ -147,7 +147,7 @@ ENV SUNDIALS_VERSION=7.5.0
 RUN wget https://github.com/LLNL/sundials/releases/download/v${SUNDIALS_VERSION}/sundials-${SUNDIALS_VERSION}.tar.gz && \
     tar -xzf sundials-${SUNDIALS_VERSION}.tar.gz && \
     rm sundials-${SUNDIALS_VERSION}.tar.gz
-RUN cmake -G Ninja -B build_sundials sundials-${SUNDIALS_VERSION} -DEXAMPLES_ENABLE_C=OFF -DEXAMPLES_ENABLE_F2003=OFF -DBUILD_FORTRAN_MODULE_INTERFACE=ON -DCMAKE_Fortran_COMPILER=gfortran -DCMAKE_INSTALL_PREFIX=/sundials/install && cmake --build build_sundials --target all -- -j 4 && cmake --build build_sundials --target install
+RUN cmake -G Ninja -B build_sundials sundials-${SUNDIALS_VERSION} -DEXAMPLES_ENABLE_C=OFF -DEXAMPLES_ENABLE_F2003=OFF -DBUILD_FORTRAN_MODULE_INTERFACE=ON -DCMAKE_Fortran_COMPILER=gfortran -DCMAKE_INSTALL_PREFIX=/sundials/install && cmake --build build_sundials --target all -- -j $(nproc) && cmake --build build_sundials --target install
 
 
 FROM build_sundials AS build_summa
@@ -158,7 +158,7 @@ RUN cmake -G Ninja -B build_summa -DUSE_NEXTGEN=ON -DUSE_SUNDIALS=ON \
     -DNetCDF_F90_INCLUDE_DIR=/usr/lib64/gfortran/modules/ \
     -DOpenBLAS_INCLUDE_DIR=/usr/include/openblas \
     -DSUNDIALS_DIR=/sundials/build_sundials/
-RUN cmake --build build_summa --target all -- -j 4
+RUN cmake --build build_summa --target all -- -j $(nproc)
 
 
 FROM ngen_build AS restructure_files
