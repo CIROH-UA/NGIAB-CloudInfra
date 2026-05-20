@@ -70,6 +70,12 @@ TEEHR_WAREHOUSE_PATH=""
 
 # Parameters
 DOCKER_CMD="docker"
+# Engine-derived defaults; populated by configure_container_engine() after arg parsing.
+USERNS_ARGS=()
+NETWORK_ARGS=()
+VOLUME_SUFFIX=""
+CONTAINER_PORT=8080  # visualizer image listens on 8080 (rootless-Podman safe).
+WWW_UID=1011  # tethys-core base image: useradd -u 1011 -g www www
 DATA_FOLDER_PATH="" # If non-empty, gets used as the gage path to import.
 TETHYS_TAG="" # If non-empty, gets used as the image tag.
 IMPORT_GAGE="ask" # "ask"/"yes"/"no"/"done"
@@ -228,7 +234,27 @@ ensure_visualizer_conf_host_file() {
     return 0
 }
 
+# Set engine-specific run flags. Called after arg parsing.
+# Assumes Podman >= 4.3 (keep-id:uid= syntax). Podman emits clear errors itself
+# if subuid ranges are missing or the version is too old.
+# Caveat: :Z is an exclusive SELinux relabel. If the bind mount is shared with
+# other containers, switch to :z manually.
+configure_container_engine() {
+    if [ "${DOCKER_CMD}" != "podman" ]; then
+        NETWORK_ARGS=(--network "$DOCKER_NETWORK")
+        return 0
+    fi
+    USERNS_ARGS=(--userns=keep-id:uid=${WWW_UID})
+    VOLUME_SUFFIX=":Z"
+    # NETWORK_ARGS stays empty; rootless uses slirp4netns/netavark.
+}
+
 create_tethys_docker_network() {
+    # Rootless Podman doesn't need an explicit user-defined network.
+    if [ "${DOCKER_CMD}" == "podman" ]; then
+        return 0
+    fi
+
     echo -e "${INFO_MARK} Setting up Docker network for Tethys..."
 
     # Check if Docker daemon is running
@@ -302,14 +328,16 @@ check_for_existing_tethys_image() {
 }
 
 choose_port_to_run_tethys() {
+    # Default 8080 so rootless Podman can bind without privileged-port hacks.
+    # Existing Docker users on port 80 must pass it explicitly.
+    local default_port=8080
     while true; do
-        echo -e "${BBlue}Select a port to run Tethys on. [Default: 80] ${Color_Off}"
+        echo -e "${BBlue}Select a port to run Tethys on. [Default: ${default_port}] ${Color_Off}"
         read -erp "$(echo -e "  ${ARROW} Port: ")" nginx_tethys_port
 
-        # Default to 80 if the user just hits <Enter>
         if [[ -z "$nginx_tethys_port" ]]; then
-            nginx_tethys_port=80
-            echo -e "${ARROW} ${BWhite}Using default port 80 for Tethys.${Color_Off}"
+            nginx_tethys_port=${default_port}
+            echo -e "${ARROW} ${BWhite}Using default port ${default_port} for Tethys.${Color_Off}"
         fi
 
         # Validate numeric port 1-65535
@@ -400,26 +428,32 @@ run_tethys() {
     local teehr_mount_args=()
     local teehr_env_args=()
     if [ -n "$TEEHR_WAREHOUSE_PATH" ] && [ -d "$TEEHR_WAREHOUSE_PATH" ]; then
-        teehr_mount_args=(-v "$TEEHR_WAREHOUSE_PATH:$TEEHR_WAREHOUSE_PATH:ro")
+        # Podman wants comma-separated mount options (ro,Z); VOLUME_SUFFIX is :Z so strip the colon.
+        local teehr_ro_flags="ro"
+        [ -n "$VOLUME_SUFFIX" ] && teehr_ro_flags="ro,${VOLUME_SUFFIX#:}"
+        teehr_mount_args=(-v "$TEEHR_WAREHOUSE_PATH:$TEEHR_WAREHOUSE_PATH:${teehr_ro_flags}")
         teehr_env_args=(--env "TEEHR_WAREHOUSE_PATH=$TEEHR_WAREHOUSE_PATH")
         echo -e "  ${INFO_MARK} Mounting TEEHR warehouse: ${BCyan}$TEEHR_WAREHOUSE_PATH${Color_Off}"
     fi
 
-    # Launch container with explicit error handling
+    # Launch container with explicit error handling.
+    # Container port is fixed at CONTAINER_PORT (image default 8080); the host
+    # port is what the user picked. NGINX_PORT inside matches CONTAINER_PORT.
     echo -e "  ${INFO_MARK} Running ${DOCKER_CMD} command..."
     ${DOCKER_CMD} run --rm -d \
-        -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer" \
-        -v "$DATASTREAM_DIRECTORY:$TETHYS_PERSIST_PATH/.datastream_ngiab" \
+        "${USERNS_ARGS[@]}" \
+        -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer${VOLUME_SUFFIX}" \
+        -v "$DATASTREAM_DIRECTORY:$TETHYS_PERSIST_PATH/.datastream_ngiab${VOLUME_SUFFIX}" \
         "${teehr_mount_args[@]}" \
-        -p "$nginx_tethys_port:$nginx_tethys_port" \
-        --network "$DOCKER_NETWORK" \
+        -p "$nginx_tethys_port:$CONTAINER_PORT" \
+        "${NETWORK_ARGS[@]}" \
         --name "$TETHYS_CONTAINER_NAME" \
         --env MEDIA_ROOT="$TETHYS_PERSIST_PATH/media" \
         --env MEDIA_URL="/media/" \
         --env SKIP_DB_SETUP="$SKIP_DB_SETUP" \
         --env DATASTREAM_CONF="$TETHYS_PERSIST_PATH/.datastream_ngiab" \
         --env VISUALIZER_CONF="$TETHYS_PERSIST_PATH/ngiab_visualizer/ngiab_visualizer.json" \
-        --env NGINX_PORT="$nginx_tethys_port" \
+        --env NGINX_PORT="$CONTAINER_PORT" \
         --env CSRF_TRUSTED_ORIGINS="$CSRF_TRUSTED_ORIGINS" \
         "${teehr_env_args[@]}" \
         "${TETHYS_REPO}:${TETHYS_TAG}"
@@ -799,6 +833,9 @@ if [ -n "$DATA_FOLDER_PATH" ] && [ "$IMPORT_GAGE" == "no" ]; then
     print_usage
     exit 1
 fi
+
+# Populate USERNS_ARGS, VOLUME_SUFFIX, NETWORK_ARGS based on -p flag selection.
+configure_container_engine
 
 # Backwards compatibility: If no flags provided, first argument should be used as data path
 if [ "$FLAGS_USED" == false ] && [ -n "$1" ]; then
