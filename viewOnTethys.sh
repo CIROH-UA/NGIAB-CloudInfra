@@ -156,9 +156,35 @@ trap 'handle_error "Unexpected error occurred at line $LINENO: $BASH_COMMAND"' E
 # Detect platform
 if uname -a | grep -q 'arm64\|aarch64'; then
     PLATFORM="linux/arm64"
+    HOST_ARCH="arm64"
 else
     PLATFORM="linux/amd64"
+    HOST_ARCH="amd64"
 fi
+
+# Warn when the locally cached image's architecture differs from the host's.
+# On Apple Silicon, a stale amd64 podman-machine VM (or a previously pulled
+# amd64 image) causes daphne to crash under QEMU emulation -- container goes
+# unhealthy, nginx returns 502. Detect that here so the user doesn't sit
+# through the 8-minute healthcheck timeout to discover it.
+warn_if_arch_mismatch() {
+    local image_ref="${TETHYS_REPO}:${TETHYS_TAG}"
+    local image_arch
+    image_arch=$(${DOCKER_CMD} image inspect "$image_ref" \
+                   --format '{{.Architecture}}' 2>/dev/null)
+    [ -z "$image_arch" ] && return 0
+    [ "$image_arch" = "$HOST_ARCH" ] && return 0
+    echo -e "  ${WARNING_MARK} ${BG_Red}${BWhite} Architecture mismatch: image is ${image_arch}, host is ${HOST_ARCH}. ${Color_Off}"
+    echo -e "  ${INFO_MARK} ${BYellow}Tethys will run under emulation and is very likely to crash-loop (daphne SIGSEGV under QEMU).${Color_Off}"
+    if [ "${DOCKER_CMD}" = "podman" ] && [ "$HOST_ARCH" = "arm64" ]; then
+        echo -e "  ${ARROW} ${BWhite}On Apple Silicon, rebuild the podman machine as arm64:${Color_Off}"
+        echo -e "      podman machine stop && podman machine rm && podman machine init && podman machine start"
+        echo -e "      ${DOCKER_CMD} rmi ${image_ref} 2>/dev/null; ${DOCKER_CMD} pull --platform ${PLATFORM} ${image_ref}"
+    else
+        echo -e "  ${ARROW} ${BWhite}Re-pull the matching arch:${Color_Off}"
+        echo -e "      ${DOCKER_CMD} rmi ${image_ref} 2>/dev/null; ${DOCKER_CMD} pull --platform ${PLATFORM} ${image_ref}"
+    fi
+}
 
 # Main functions
 load_teehr_warehouse_path() {
@@ -481,6 +507,7 @@ run_tethys() {
     # port is what the user picked. NGINX_PORT inside matches CONTAINER_PORT.
     echo -e "  ${INFO_MARK} Running ${DOCKER_CMD} command..."
     ${DOCKER_CMD} run --rm -d \
+        --platform "$PLATFORM" \
         "${USERNS_ARGS[@]}" \
         -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer${VOLUME_SUFFIX}" \
         -v "$DATASTREAM_DIRECTORY:$TETHYS_PERSIST_PATH/.datastream_ngiab${VOLUME_SUFFIX}" \
@@ -532,11 +559,13 @@ select_tethys_image_source() {
             read -r decision < /dev/tty
             case "$decision" in
                 [Ll]* )
-                    echo -e "  ${CHECK_MARK} Using local image" ; return 0 ;;
+                    echo -e "  ${CHECK_MARK} Using local image"
+                    warn_if_arch_mismatch
+                    return 0 ;;
                 [Pp]* )
                     echo -e "  ${INFO_MARK} ${BYellow}Pulling image - this may take a moment...${Color_Off}"
                     show_loading "Downloading Tethys image" 3
-                    ${DOCKER_CMD} pull "$image_ref" && return 0
+                    ${DOCKER_CMD} pull --platform "$PLATFORM" "$image_ref" && { warn_if_arch_mismatch; return 0; }
                     echo -e "  ${CROSS_MARK} ${BRed}Failed to pull $image_ref${Color_Off}"
                     return 1 ;;
                 * )
