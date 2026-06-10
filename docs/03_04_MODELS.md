@@ -12,6 +12,7 @@ While largely useless on its own, it offers necessary utilities for supporting c
 For example, it can be used to feed constant forcing values into a model or echo output values between timesteps.
 
 Library file path: `/dmod/shared_libs/libslothmodel.so.1.0.0`
+Version: 0.1-alpha
 
 ## Conceptual Functional Equivalent (CFE)
 
@@ -21,6 +22,7 @@ This simplified conceptual model by Fred Ogden is designed to be functionally eq
 It offers a streamlined solution to modeling runoff generation, vadose zone dynamics, and groundwater behavior.
 
 Library file path: `/dmod/shared_libs/libcfebmi.so.1.0.0`
+Version: 2.0.1
 
 ## Potential Evapotranspiration (PET)
 
@@ -64,6 +66,8 @@ Python class: `lstm.bmi_lstm.bmi_LSTM`
 
 A Rust implementation of the python lstm BMI (Basic Model Interface) adapter. Provides a drop-in replacement for the implementations found in [CIROH-UA/lstm](https://github.com/CIROH-UA/lstm), [NOAA-OWP/lstm](https://github.com/NOAA-OWP/lstm), and [jmframe/lstm](https://github.com/jmframe/lstm).
 
+Version: 0.1.2
+
 ## Differentiable HBV 2.0 (δHBV 2.0)
 
 > *GitHub: [mhpi/dhbv2](https://github.com/mhpi/dhbv2)*
@@ -73,6 +77,8 @@ A Rust implementation of the python lstm BMI (Basic Model Interface) adapter. Pr
 Python class (daily): `dhbv2.bmi.DeltaModelBmi`
 Python class (hourly): `dhbv2.mts_bmi.MtsDeltaModelBmi`
 
+Version: 0.5.0
+
 ## Structure for Unifying Multiple Modeling Alternatives (SUMMA)
 
 > *GitHub: [CH-Earth/summa](https://github.com/CH-Earth/summa)*
@@ -80,6 +86,7 @@ Python class (hourly): `dhbv2.mts_bmi.MtsDeltaModelBmi`
 SUMMA is a hydrologic modeling framework that can configure a wide range of hydrologic model parameterizations and configurations.
 
 Library file path: `/dmod/shared_libs/libsummabmi.so`
+Version: 3.3.0
 
 ## Soil Moisture Profiles
 
@@ -110,6 +117,8 @@ As such, instead of invoking it via a formulation, it should be configured in `t
 
 NGIAB includes a customized fork of T-Route maintained by CIROH.
 It retains all functionality from the canonical version of T-Route while enhancing it with major performance optimizations.
+
+Version: 0.3.0
 
 # Adding additional models
 

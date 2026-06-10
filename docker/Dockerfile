@@ -163,6 +163,8 @@ RUN cmake --build build_summa --target all -- -j $(nproc)
 
 FROM ngen_clone AS build_sacsma
 WORKDIR /ngen/ngen/extern/sac-sma
+FROM ngen_clone AS build_snow17
+WORKDIR /ngen/ngen/extern/snow17
 RUN cmake -B cmake_build -DISO_C_FORTRAN_BMI_PATH=/ngen/ngen/extern/iso_c_fortran_bmi -S .
 RUN cmake --build cmake_build -j $(nproc)
 
@@ -180,6 +182,8 @@ RUN mkdir -p /dmod/datasets /dmod/datasets/static /dmod/shared_libs /dmod/bin /d
     (stat ngen-parallel && ln -s ngen-parallel ngen) || (stat ngen-serial && ln -s ngen-serial ngen)
 COPY --from=build_summa /ngen/ngen/extern/summa/build_summa/*.so /dmod/shared_libs/
 COPY --from=build_sacsma /ngen/ngen/extern/sac-sma/cmake_build/*.so /dmod/shared_libs/
+COPY --from=build_snow17 /ngen/ngen/extern/snow17/cmake_build/*.so /dmod/shared_libs/
+
 
 FROM restructure_files AS dev
 COPY  HelloNGEN.sh /ngen/HelloNGEN.sh
@@ -211,33 +215,6 @@ RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
 RUN git clone --depth=1 --branch v0.1.2 https://github.com/ciroh-ua/rust-lstm-1025
 WORKDIR /build/rust-lstm-1025
 RUN cargo build --release
-
-
-FROM build_base AS dhbv2
-WORKDIR /tmp/build
-RUN mkdir /wheels
-# Build and repair dmg
-ADD --keep-git-dir https://github.com/mhpi/generic_deltamodel.git#ede7a448bff2889cb685bd491ee0d1e64fa54198 dmg
-RUN --mount=type=cache,target=/root/.cache/uv \
-    cd dmg && \
-    uv build --wheel && \
-    cp dist/*.whl /wheels/
-
-# Build and repair hydrodl2
-ADD --keep-git-dir https://github.com/mhpi/hydrodl2.git#7267a5a7b8909d0f4ae04d48b38b32a5e88c2146 hydrodl2
-RUN --mount=type=cache,target=/root/.cache/uv \
-    cd hydrodl2 && \
-    uv build --wheel && \
-    cp dist/*.whl /wheels/
-
-# Copy and patch dhbv2
-ADD --keep-git-dir https://github.com/mhpi/dhbv2.git#39379fd435747a3f765d1a2201d613f9f0087448 dhbv2
-RUN --mount=type=cache,target=/root/.cache/uv \
-    cd dhbv2 && \
-    sed -i 's|"dmg @ git+https://github.com/mhpi/generic_deltamodel.git@master"|"dmg"|' pyproject.toml && \
-    sed -i 's|"hydrodl2 @ git+https://github.com/mhpi/hydrodl2.git@master"|"hydrodl2"|' pyproject.toml && \
-    uv build --wheel && \
-    cp dist/*.whl /wheels/
 
 
 FROM base AS final
@@ -287,16 +264,17 @@ COPY --from=burn_lstm /build/rust-lstm-1025/target/release/librust_lstm_1025.so 
 # needed for SUMMA
 COPY --from=build_sundials /sundials/install/ /sundials
 RUN echo "/sundials/lib64" >> /etc/ld.so.conf.d/sundials.conf && ldconfig -v
-# Install dhbv wheels
+
+# Install dhbv
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,from=dhbv2,source=/wheels,target=/tmp/wheels \
-    uv pip install /tmp/wheels/*.whl --extra-index-url https://download.pytorch.org/whl/cpu
+    uv pip install "dmg==1.4.0" "hydrodl2==1.3.5" "dhbv2==0.5.3" --extra-index-url https://download.pytorch.org/whl/cpu
+RUN mkdir -p /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/ \
+             /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2/model/ && \
+    curl -fsSL https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2_mts.tar.gz \
+        | tar -xz -C /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/ --strip-components=1 && \
+    curl -fsSL https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2.tar.gz \
+        | tar -xz -C /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2/model/ --strip-components=1
 
-
-ADD --unpack https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2_mts.tar.gz \
-    /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/
-ADD --unpack https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2.tar.gz \
-    /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2/model/
 ## add some metadata to the image
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url
 COPY --from=ngen_build /tmp/ngen_url /ngen/ngen_url
