@@ -52,6 +52,7 @@ Library file path: `/dmod/shared_libs/libtopmodelbmi.so.1.0.0`
 ## Long Short-Term Memory (LSTM)
 
 > *GitHub: [CIROH-UA/lstm](https://github.com/CIROH-UA/lstm)*
+> 
 > *Fork developed by [Jonathan Frame](https://github.com/jmframe)*
 
 LSTM networks are a type of recurrent neural network used in deep learning.
@@ -62,10 +63,12 @@ Python class: `lstm.bmi_lstm.bmi_LSTM`
 ## Rust LSTM
 
 > *GitHub: [CIROH-UA/rust-lstm](https://github.com/CIROH-UA/rust-lstm)*
+> 
 > *Developed / maintained by [Josh Cunningham](https://github.com/JoshCu)*
 
 A Rust implementation of the python lstm BMI (Basic Model Interface) adapter. Provides a drop-in replacement for the implementations found in [CIROH-UA/lstm](https://github.com/CIROH-UA/lstm), [NOAA-OWP/lstm](https://github.com/NOAA-OWP/lstm), and [jmframe/lstm](https://github.com/jmframe/lstm).
 
+Library file path: `/dmod/shared_libs/librust_lstm_1025.so`
 Version: 0.1.2
 
 ## Differentiable HBV 2.0 (δHBV 2.0)
@@ -85,7 +88,7 @@ Version: 0.5.0
 
 SUMMA is a hydrologic modeling framework that can configure a wide range of hydrologic model parameterizations and configurations.
 
-Library file path: `/dmod/shared_libs/libsummabmi.so`
+Library file path: `/dmod/shared_libs/libsummabmi.so.4.0.0`
 Version: 3.3.0
 
 ## Soil Moisture Profiles
@@ -94,7 +97,7 @@ Version: 3.3.0
 
 This module packages several schemes to model soil moisture, including ones specifically tailored to CFE and TOPMODEL.
 
-*Temporarily unavailable due to an [upstream issue](https://github.com/CIROH-UA/ngen/issues/14).*
+Library file path: `/dmod/shared_libs/libsmpbmi.so.1.0.0`
 
 ## Soil Freeze-Thaw Model
 
@@ -103,11 +106,36 @@ This module packages several schemes to model soil moisture, including ones spec
 This model simulates heat transfer in soil, enabling modeling of freeze/thaw cycles in water.
 Its underlying methodology is comparable to NOAH-MP (see NOAH-OWP-Modular above).
 
-*Temporarily unavailable due to an [upstream issue](https://github.com/CIROH-UA/ngen/issues/14).*
+Library file path: `/dmod/shared_libs/libsftbmi.so.1.0.0`
+
+## Catchment Arid/Semi-Arid Model
+
+> *GitHub: [NOAA-OWP/LGAR-C](https://github.com/NOAA-OWP/LGAR-C)*
+
+CASAM (formerly known as LASAM) is a catchment-scale hydrologic model originally designed for arid or semi-arid areas, in which the partitioning of precipitation into infiltration and runoff is important.
+
+Library file path: `/dmod/shared_libs/liblasambmi.so.1.0.0`
+
+## Snow17
+
+> *GitHub: [NOAA-OWP/snow17](https://github.com/NOAA-OWP/snow17)*
+
+Snow17 is a snow accumulation and melt model that has been used by the National Weather Service since the late 1970s for operational streamflow forecasting.
+
+Library file path: `/dmod/shared_libs/libsnow17bmi.so.1.0.0`
+
+## Sacramento Soil Moisture Accounting Model
+
+> *GitHub: [NOAA-OWP/sac-sma](https://github.com/NOAA-OWP/sac-sma)*
+
+SAC-SMA is a conceptual model that represents soil moisture characteristics to simulate runoff.
+
+Library file path: `/dmod/shared_libs/libsacbmi.so.1.0.1`
 
 # T-Route
 
 > *GitHub: [CIROH-UA/t-route](https://github.com/CIROH-UA/t-route)*
+> 
 > *Fork maintained by [Josh Cunningham](https://github.com/joshcu)*
 
 T-Route is a routing model used for solving streamflow networks.
