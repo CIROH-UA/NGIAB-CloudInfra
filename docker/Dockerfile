@@ -3,8 +3,8 @@
 FROM rockylinux:9.1 AS base
 ENV TROUTE_REPO=CIROH-UA/t-route
 ENV TROUTE_BRANCH=ngiab
-ENV NGEN_REPO=CIROH-UA/ngen
-ENV NGEN_BRANCH=ngiab
+ENV NGEN_REPO=noaa-owp/ngen
+ENV NGEN_BRANCH=master
 
 # Install final dependencies to make sure ngen is build and deployed with matching versions
 # Needed here for build caching
@@ -65,10 +65,9 @@ RUN uv pip install -r https://raw.githubusercontent.com/$TROUTE_REPO/refs/heads/
 
 FROM troute_prebuild AS troute_build
 WORKDIR /ngen/t-route
-RUN git clone --depth 1 --single-branch --branch $TROUTE_BRANCH https://github.com/$TROUTE_REPO.git .
+ADD https://github.com/$TROUTE_REPO.git#$TROUTE_BRANCH .
 # build and save a link to the repo used
 RUN echo $(git remote get-url origin | sed 's/\.git$//' | awk '{print $0 "/tree/" }' | tr -d '\n' && git rev-parse HEAD) >> /tmp/troute_url
-RUN git submodule update --init --depth 1
 RUN uv pip install build wheel
 
 # disable everything except the kernel builds
@@ -91,9 +90,9 @@ FROM troute_prebuild AS ngen_clone
 WORKDIR /ngen
 ## make sure clone isn't cached if repo is updated
 ADD https://api.github.com/repos/${NGEN_REPO}/git/refs/heads/${NGEN_BRANCH} /tmp/version.json
-RUN git clone --single-branch --branch $NGEN_BRANCH https://github.com/$NGEN_REPO.git && \
-    cd ngen && \
-    git submodule update --init --recursive --depth 1
+ADD --exclude=extern/* https://github.com/${NGEN_REPO}.git#${NGEN_BRANCH} /ngen/ngen
+ADD https://github.com/ciroh-ua/ngen.git#ngiab:extern /ngen/ngen/extern
+ADD https://github.com/ciroh-ua/ngen.git#ngiab:utilities /ngen/ngen/utilities
 
 FROM ngen_clone AS ngen_build
 ENV PATH=${PATH}:/usr/lib64/mpich/bin
@@ -117,7 +116,8 @@ ARG COMMON_BUILD_ARGS="-DNGEN_WITH_EXTERN_ALL=ON \
     -DCMAKE_CXX_FLAGS='-fuse-ld=lld'"
 # lld is the linker, it's faster than the default
 
-
+# don't build partitionGenerator, it's currently broken and we don't use it anyway
+RUN sed -i '/partitionGenerator/d' CMakeLists.txt
 # Build Ngen serial
 RUN cmake -G Ninja -B cmake_build_serial -S . ${COMMON_BUILD_ARGS} -DNGEN_WITH_MPI:BOOL=OFF && \
     cmake --build cmake_build_serial --target all -- -j $(nproc)
@@ -201,7 +201,7 @@ WORKDIR /ngen
 ENTRYPOINT ["./HelloNGEN.sh"]
 
 FROM build_base AS lstm_weights
-RUN git clone --depth=1 --branch example_weights https://github.com/ciroh-ua/lstm.git /lstm_weights
+ADD https://github.com/ciroh-ua/lstm.git#example_weights /lstm_weights
 # add the rust weight conversion
 RUN uv run --with pyyaml --with numpy --with torch --extra-index-url https://download.pytorch.org/whl/cpu \
     https://raw.githubusercontent.com/CIROH-UA/rust-lstm-1025/refs/tags/v0.1.0/scripts/convert.py \
@@ -211,12 +211,11 @@ RUN shopt -s globstar
 RUN sed -i 's|\.\.|/ngen/ngen/extern/lstm|g' /lstm_weights/trained_neuralhydrology_models/**/config.yml
 
 FROM build_base AS burn_lstm
+WORKDIR /build/rust-lstm-1025
 RUN dnf install -y clang
-WORKDIR /build
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
-RUN git clone --depth=1 --branch v0.1.2 https://github.com/ciroh-ua/rust-lstm-1025
-WORKDIR /build/rust-lstm-1025
+ADD https://github.com/ciroh-ua/rust-lstm-1025.git#v0.1.2 .
 RUN cargo build --release
 
 
@@ -283,7 +282,6 @@ COPY --from=troute_build /tmp/troute_url /ngen/troute_url
 COPY --from=ngen_build /tmp/ngen_url /ngen/ngen_url
 # finally ensure correct python packages are installed
 RUN uv pip install ${pinned_python_packages}
-
 RUN echo "export PS1='\u\[\033[01;32m\]@ngiab_dev\[\033[00m\]:\[\033[01;35m\]\W\[\033[00m\]\$ '" >> ~/.bashrc
 
 ENTRYPOINT ["/ngen/HelloNGEN.sh"]
