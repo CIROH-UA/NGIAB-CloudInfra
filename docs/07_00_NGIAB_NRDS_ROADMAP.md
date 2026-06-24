@@ -159,5 +159,5 @@ Use this roadmap as a lightweight planning artifact:
 
 - update phases when milestones change
 - assign owners as responsibilities become clear
-- use the canonical status values `proposed`, `planned`, `in_progress`, `blocked`, and `complete`
+- use the canonical status values `proposed`, `planned`, `in-progress`, `blocked`, and `complete`
 - keep repository links aligned with the current CIROH-UA ecosystem
