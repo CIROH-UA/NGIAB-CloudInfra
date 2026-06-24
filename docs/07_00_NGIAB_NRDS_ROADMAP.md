@@ -17,7 +17,7 @@ The current NGIAB ecosystem already separates responsibilities across execution,
 ### Data ingress and preparation
 
 - [`CIROH-UA/NGIAB_data_preprocess`](https://github.com/CIROH-UA/NGIAB_data_preprocess): prepares NGIAB-ready run inputs
-- [`CIROH-UA/ngen-datastream`](https://github.com/CIROH-UA/ngen-datastream/tree/main): current closest organizational precedent for research datastream workflows
+- [`CIROH-UA/ngen-datastream`](https://github.com/CIROH-UA/ngen-datastream): current closest organizational precedent for research datastream workflows
 
 ### Analysis and evaluation
 
@@ -137,6 +137,8 @@ The current repository suggests the following roadmap priorities:
 | Support output discovery and provenance for visualization clients | NGIAB-NRDS | ngiab-client, ngiab-teehr | Improves access to trustworthy results | Phase 3 | TBD | proposed |
 | Reuse CIROH support and request patterns for storage/access governance | NGIAB-CloudInfra | NGIAB-NRDS | Lowers operational friction | Phase 4 | TBD | proposed |
 | Publish docs, examples, and training for common NRDS-backed workflows | NGIAB-NRDS | NGIAB-CloudInfra, docs.ciroh.org content | Improves adoption and self-service use | Phase 4 | TBD | proposed |
+
+This table is intended to be a lightweight repository-level summary. If active execution tracking is needed, mirror these items into GitHub Issues or a GitHub Project and keep this document focused on roadmap-level status.
 
 ## Prioritization guidance
 
