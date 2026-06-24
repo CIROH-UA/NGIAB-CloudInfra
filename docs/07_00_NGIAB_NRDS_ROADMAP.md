@@ -128,15 +128,15 @@ The current repository suggests the following roadmap priorities:
 
 | Objective | Owning repo | Dependency repos | User value | Milestone | Owner | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| Define NRDS scope and responsibilities against existing NGIAB components | NGIAB-NRDS | NGIAB-CloudInfra, ngen-datastream | Reduces overlap and design ambiguity | Phase 1 | TBD | Proposed |
-| Align NRDS artifact model with the NGIAB run-directory structure | NGIAB-NRDS | NGIAB-CloudInfra, NGIAB_data_preprocess | Makes prepared datasets execution-ready | Phase 1 | TBD | Proposed |
-| Publish required metadata and file-contract specification for runs | NGIAB-NRDS | NGIAB-CloudInfra, ngen-datastream | Improves reproducibility and automation | Phase 1 | TBD | Proposed |
-| Support ingest-to-run handoff from preprocess/datastream tools into NGIAB execution | NGIAB-NRDS | NGIAB_data_preprocess, ngen-datastream, NGIAB-CloudInfra | Shortens setup time for model runs | Phase 2 | TBD | Proposed |
-| Enable guide-script and container workflows to reference NRDS-managed assets | NGIAB-CloudInfra | NGIAB-NRDS, ngen, t-route | Makes NRDS useful in the main user path | Phase 2 | TBD | Proposed |
-| Standardize output publication for evaluation and calibration workflows | NGIAB-NRDS | ngiab-teehr, ngiab-cal | Makes outputs easier to compare and reuse | Phase 3 | TBD | Proposed |
-| Support output discovery and provenance for visualization clients | NGIAB-NRDS | ngiab-client, ngiab-teehr | Improves access to trustworthy results | Phase 3 | TBD | Proposed |
-| Reuse CIROH support and request patterns for storage/access governance | NGIAB-CloudInfra | NGIAB-NRDS | Lowers operational friction | Phase 4 | TBD | Proposed |
-| Publish docs, examples, and training for common NRDS-backed workflows | NGIAB-NRDS | NGIAB-CloudInfra, docs.ciroh.org content | Improves adoption and self-service use | Phase 4 | TBD | Proposed |
+| Define NRDS scope and responsibilities against existing NGIAB components | NGIAB-NRDS | NGIAB-CloudInfra, ngen-datastream | Reduces overlap and design ambiguity | Phase 1 | TBD | proposed |
+| Align NRDS artifact model with the NGIAB run-directory structure | NGIAB-NRDS | NGIAB-CloudInfra, NGIAB_data_preprocess | Makes prepared datasets execution-ready | Phase 1 | TBD | proposed |
+| Publish required metadata and file-contract specification for runs | NGIAB-NRDS | NGIAB-CloudInfra, ngen-datastream | Improves reproducibility and automation | Phase 1 | TBD | proposed |
+| Support ingest-to-run handoff from preprocess/datastream tools into NGIAB execution | NGIAB-NRDS | NGIAB_data_preprocess, ngen-datastream, NGIAB-CloudInfra | Shortens setup time for model runs | Phase 2 | TBD | proposed |
+| Enable guide-script and container workflows to reference NRDS-managed assets | NGIAB-CloudInfra | NGIAB-NRDS, ngen, t-route | Makes NRDS useful in the main user path | Phase 2 | TBD | proposed |
+| Standardize output publication for evaluation and calibration workflows | NGIAB-NRDS | ngiab-teehr, ngiab-cal | Makes outputs easier to compare and reuse | Phase 3 | TBD | proposed |
+| Support output discovery and provenance for visualization clients | NGIAB-NRDS | ngiab-client, ngiab-teehr | Improves access to trustworthy results | Phase 3 | TBD | proposed |
+| Reuse CIROH support and request patterns for storage/access governance | NGIAB-CloudInfra | NGIAB-NRDS | Lowers operational friction | Phase 4 | TBD | proposed |
+| Publish docs, examples, and training for common NRDS-backed workflows | NGIAB-NRDS | NGIAB-CloudInfra, docs.ciroh.org content | Improves adoption and self-service use | Phase 4 | TBD | proposed |
 
 ## Prioritization guidance
 
@@ -157,5 +157,5 @@ Use this roadmap as a lightweight planning artifact:
 
 - update phases when milestones change
 - assign owners as responsibilities become clear
-- use the canonical status values `Proposed`, `Planned`, `In Progress`, `Blocked`, and `Complete`
+- use the canonical status values `proposed`, `planned`, `in_progress`, `blocked`, and `complete`
 - keep repository links aligned with the current CIROH-UA ecosystem
