@@ -42,6 +42,7 @@
 
 - **Documentation**: The [`docs/` folder](./docs/00_CONTENTS.md) contains information on all of the finer details that can help you get the most out of the contents of this repository.
   - For broader ecosystem-wide documentation, please visit DocuHub at [docs.ciroh.org/products/ngiab](https://docs.ciroh.org/products/ngiab), where all of the information from this and other NGIAB repositories is mirrored.
+  - For ecosystem planning, see the [NGIAB-NRDS roadmap](./docs/07_00_NGIAB_NRDS_ROADMAP.md).
 
 ### For development
 

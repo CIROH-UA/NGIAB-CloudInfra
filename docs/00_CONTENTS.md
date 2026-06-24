@@ -10,3 +10,4 @@
 4. [Building the NGIAB Docker Container](./04_BUILDING.md)
 5. [Contribution Guide](./05_CONTRIBUTE.md)
 6. [Contact Us](./06_CONTACT.md)
+7. [NGIAB-NRDS Roadmap](./07_00_NGIAB_NRDS_ROADMAP.md)
