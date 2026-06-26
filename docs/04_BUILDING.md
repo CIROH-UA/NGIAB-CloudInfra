@@ -22,19 +22,22 @@ The model outputs will be saved to the `outputs/` subfolder of the model run dir
 The following Docker command will launch and run an instance of NGIAB, where `[RUN_DIR]` is replaced with the absolute path of your model run directory:
 
 ```bash
-docker run --rm -it -v "[RUN_DIR]:/ngen/ngen/data" "awiciroh/ciroh-ngen-image:latest" /ngen/ngen/data/ [auto]
+# Interactive (choose serial/parallel)
+docker run --rm -it -v "[RUN_DIR]:/ngen/ngen/data" "awiciroh/ciroh-ngen-image:latest" /ngen/ngen/data
+# Auto mode (parallel)
+docker run --rm -it -v "[RUN_DIR]:/ngen/ngen/data" "awiciroh/ciroh-ngen-image:latest" /ngen/ngen/data auto
 ```
 
 Here's a breakdown of what this command does:
 
 - `--rm` instructs Docker to tear down and delete the container upon exiting. This is important for saving storage.
 - `-it` is a pair of standard flags that facilitate CLI access to the container.
-- `-v "[RUN_DIR]:/ngen/ngen/data"` mounts your run directory's contents to `mgen/ngen/data/` within the container.
+- `-v "[RUN_DIR]:/ngen/ngen/data"` mounts your run directory's contents to `/ngen/ngen/data/` within the container.
 - `"awiciroh/ciroh-ngen-image:latest"` identifies the image. (All remaining arguments after this one are passed to the container entrypoint script.)
-- `ngen/ngen/data/` tells the container entrypoint script where the mounted data is.
+- `/ngen/ngen/data/` tells the container entrypoint script where the mounted data is.
 - `auto` is an optional argument. If it is included, the container will automatically perform a parallel run of NextGen. Otherwise, an interactive prompt will offer a choice between serial and parallel options.
 
-Note that all execution is facilitated by the container entrypoint script, `HelloNGEN.sh`, which can be found in this repository's `Docker` folder. As such, even if you're running the container manually, you won't need to worry about the finer details of starting up a NextGen run.
+Note that all execution is facilitated by the container entrypoint script, `HelloNGEN.sh`, which can be found in this repository's `docker/` folder. As such, even if you're running the container manually, you won't need to worry about the finer details of starting up a NextGen run.
 
 ## Modifying the container
 
@@ -78,7 +81,7 @@ Generally, the defaults are sufficient, but you can edit the values. Here is a d
 
 ### Changing `ngen`/`t-route` sources
 
-The `TROUTE_REPO` and `NGEN_REPO` environment variables can be changed in the `base` build stage of the Dockerfile to a custom `t-route` or `ngen` GitHub repository.
+The `TROUTE_REPO`, `TROUTE_BRANCH`, `NGEN_REPO`, and `NGEN_BRANCH` environment variables can be changed in the `base` build stage of the Dockerfile to a custom `t-route` or `ngen` GitHub repository.
 
 ### Adding C/C++/Fortran BMI modules
 
@@ -105,3 +108,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 ## Deploying new releases
 
 All new releases should be deployed via the CI/CD scripts.
+
+## Software stack
+
+![software stack](./img/stack.svg)
