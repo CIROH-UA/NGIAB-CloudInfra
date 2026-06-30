@@ -120,7 +120,7 @@ ARG COMMON_BUILD_ARGS="-DNGEN_WITH_EXTERN_ALL=ON \
 
 # Build Ngen serial
 RUN cmake -G Ninja -B cmake_build_serial -S . ${COMMON_BUILD_ARGS} -DNGEN_WITH_MPI:BOOL=OFF && \
-    cmake --build cmake_build_serial --target all -- -j $(nproc)
+    cmake --build cmake_build_serial --target all -- -j 4
 
 ARG MPI_BUILD_ARGS="-DNGEN_WITH_MPI:BOOL=ON \
     -DNetCDF_ROOT=/usr/lib64/mpich \
@@ -134,7 +134,7 @@ RUN dnf install -y netcdf-cxx4-mpich-devel
 RUN cmake -G Ninja -B cmake_build_parallel -S . ${COMMON_BUILD_ARGS} ${MPI_BUILD_ARGS} \
     -DNetCDF_CXX_INCLUDE_DIR=/usr/include/mpich-$(arch) \
     -DNetCDF_INCLUDE_DIR=/usr/include/mpich-$(arch) && \
-    cmake --build cmake_build_parallel --target all -- -j $(nproc)
+    cmake --build cmake_build_parallel --target all -- -j 4
 
 
 
@@ -147,7 +147,7 @@ ENV SUNDIALS_VERSION=7.5.0
 RUN wget https://github.com/LLNL/sundials/releases/download/v${SUNDIALS_VERSION}/sundials-${SUNDIALS_VERSION}.tar.gz && \
     tar -xzf sundials-${SUNDIALS_VERSION}.tar.gz && \
     rm sundials-${SUNDIALS_VERSION}.tar.gz
-RUN cmake -G Ninja -B build_sundials sundials-${SUNDIALS_VERSION} -DEXAMPLES_ENABLE_C=OFF -DEXAMPLES_ENABLE_F2003=OFF -DBUILD_FORTRAN_MODULE_INTERFACE=ON -DCMAKE_Fortran_COMPILER=gfortran -DCMAKE_INSTALL_PREFIX=/sundials/install && cmake --build build_sundials --target all -- -j $(nproc) && cmake --build build_sundials --target install
+RUN cmake -G Ninja -B build_sundials sundials-${SUNDIALS_VERSION} -DEXAMPLES_ENABLE_C=OFF -DEXAMPLES_ENABLE_F2003=OFF -DBUILD_FORTRAN_MODULE_INTERFACE=ON -DCMAKE_Fortran_COMPILER=gfortran -DCMAKE_INSTALL_PREFIX=/sundials/install && cmake --build build_sundials --target all -- -j 4 && cmake --build build_sundials --target install
 
 
 FROM build_sundials AS build_summa
@@ -158,18 +158,18 @@ RUN cmake -G Ninja -B build_summa -DUSE_NEXTGEN=ON -DUSE_SUNDIALS=ON \
     -DNetCDF_F90_INCLUDE_DIR=/usr/lib64/gfortran/modules/ \
     -DOpenBLAS_INCLUDE_DIR=/usr/include/openblas \
     -DSUNDIALS_DIR=/sundials/build_sundials/
-RUN cmake --build build_summa --target all -- -j $(nproc)
+RUN cmake --build build_summa --target all -- -j 4
 
 
 FROM ngen_clone AS build_sacsma
 WORKDIR /ngen/ngen/extern/sac-sma
 RUN cmake -B cmake_build -DISO_C_FORTRAN_BMI_PATH=/ngen/ngen/extern/iso_c_fortran_bmi -S .
-RUN cmake --build cmake_build -j $(nproc)
+RUN cmake --build cmake_build -j 4
 
 FROM ngen_clone AS build_snow17
 WORKDIR /ngen/ngen/extern/snow17
 RUN cmake -B cmake_build -DISO_C_FORTRAN_BMI_PATH=/ngen/ngen/extern/iso_c_fortran_bmi -S .
-RUN cmake --build cmake_build -j $(nproc)
+RUN cmake --build cmake_build -j 4
 
 
 FROM ngen_build AS restructure_files
@@ -276,7 +276,7 @@ RUN mkdir -p /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/dhbv_2
     curl -fsSL https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2_mts.tar.gz \
         | tar -xz -C /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/dhbv_2_mts/ --strip-components=1 && \
     curl -fsSL https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2.tar.gz \
-        | tar -xz -C /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2/model/dhbv_2/ --strip-components=1
+        | tar -xz -C /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2/model/dhbv_2/ --strip-components=2
 
 ## add some metadata to the image
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url
