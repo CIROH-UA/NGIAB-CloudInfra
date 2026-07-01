@@ -1,13 +1,13 @@
 ---
 name: Model Integration Checklist for NGIAB
 about: This form would be for the new model that will be integrated with NGIAB.
-title: ''
-labels: 'model-integration, needs-review, NGIAB'
-assignees: ''
-
+title: ""
+labels: "model-integration, needs-review, NGIAB"
+assignees: ""
 ---
 
-**1. Contributor Information**
+## 1. Contributor Information
+
 - Name:
 - Email:
 - Institution/Organization:
@@ -18,12 +18,12 @@ assignees: ''
 
 ---
 
-**2. Model Overview**
+## 2. Model Overview
 
-#### Basic Information
+### Basic Information
 
 - [ ] **Model Description:** (Provide a brief description of what the model does)
-  
+
   > [Your description here]
 
 - [ ] **Model Type:** (Check all that apply)
@@ -32,78 +32,79 @@ assignees: ''
   - [ ] Forcing Engine
   - [ ] Calibration Tool
   - [ ] Post-processing Tool
-  - [ ] Other: _______________
+  - [ ] Other: ******\_\_\_******
 
 - [ ] **Programming Language(s):**
   - [ ] C/C++
   - [ ] Fortran
   - [ ] Python
-  - [ ] Other: _______________
+  - [ ] Other: ******\_\_\_******
 
 - [ ] **Primary Use Case:**
-  
+
   > [Describe the intended use case]
 
 ---
 
-**3. Technical Requirements**
+## 3. Technical Requirements**
 
-#### BMI Compliance
+### BMI Compliance
 
 - [ ] **BMI Implementation:** Does your model implement the Basic Model Interface (BMI)?
   - [ ] Yes - Full BMI implementation
-  - [ ] Partial - Specify which functions: _______________
-  - [ ] No - Plan to implement: _______________
+  - [ ] Partial - Specify which functions: ******\_\_\_******
+  - [ ] No - Plan to implement: ******\_\_\_******
 
 - [ ] **BMI Language Binding:**
   - [ ] C
   - [ ] C++
   - [ ] Fortran
   - [ ] Python
-  - [ ] Other: _______________
+  - [ ] Other: ******\_\_\_******
 
-#### Dependencies
+### Dependencies
 
 - [ ] **Required Libraries:** (List all required libraries and their versions)
-  
+
   > Example:
+  >
   > - NetCDF >= 4.8.0
   > - HDF5 >= 1.12.0
   > - MPICH >= 3.4
 
 - [ ] **System Dependencies:** (List any system-level requirements)
-  
+
   > [List here]
 
 - [ ] **Python Packages:** (If applicable, list required Python packages)
-  
+
   > [Requirements.txt format preferred]
 
-#### Build System
+### Build System
 
 - [ ] **Build System Used:**
   - [ ] CMake
   - [ ] Make
   - [ ] Autotools
   - [ ] Python setuptools
-  - [ ] Other: _______________
+  - [ ] Other: ******\_\_\_******
 
 - [ ] **Build Instructions Provided:**
-  - [ ] Yes - Link: _______________
+  - [ ] Yes - Link: ******\_\_\_******
   - [ ] Need assistance
 
 - [ ] **Compilation Flags/Options:** (List any special compilation requirements)
-  
+
   > [Flags here]
 
 ---
 
-**4. Code Repository**
+## 4. Code Repository**
 
-#### Source Code
+### Source Code
 
 - [ ] **Repository URL:**
-  
+
   > [GitHub/GitLab URL]
 
 - [ ] **Repository Access:**
@@ -111,14 +112,14 @@ assignees: ''
   - [ ] Private (requires access request)
 
 - [ ] **License:**
-  - [ ] Open Source License (Specify): _______________
-  - [ ] Proprietary (explain restrictions): _______________
+  - [ ] Open Source License (Specify): ******\_\_\_******
+  - [ ] Proprietary (explain restrictions): ******\_\_\_******
 
 - [ ] **Branch/Tag for Integration:**
-  
+
   > [Specify stable branch or release tag]
 
-#### Documentation
+### Documentation
 
 - [ ] **Documentation Available:**
   - [ ] README with basic usage
@@ -129,60 +130,62 @@ assignees: ''
   - [ ] Scientific documentation/paper
 
 - [ ] **Documentation Links:**
-  
+
   > [Provide links]
 
 ---
 
-**5. Configuration & Data Requirements**
+## 5. Configuration & Data Requirements
 
-#### Input Requirements
+### Input Requirements
 
 - [ ] **Input File Formats:** (List all required input formats)
-  
+
   > Example:
+  >
   > - NetCDF (.nc)
   > - CSV (.csv)
   > - Binary (.bin)
 
 - [ ] **Required Input Variables:** (List all required input variables with units)
-  
+
   > Example:
+  >
   > - Precipitation (mm/hr)
   > - Temperature (deg C)
   > - Soil moisture (-)
 
 - [ ] **Sample Input Data Provided:**
-  - [ ] Yes - Link: _______________
+  - [ ] Yes - Link: ******\_\_\_******
   - [ ] No - Can provide upon request
 
-#### Output Specifications
+### Output Specifications
 
 - [ ] **Output File Formats:**
-  
+
   > [List formats]
 
 - [ ] **Output Variables:** (List all output variables with units)
-  
+
   > [List here]
 
 - [ ] **Output Frequency:**
-  - [ ] Sub-hourly (specify): _______________
+  - [ ] Sub-hourly (specify): ******\_\_\_******
   - [ ] Hourly
   - [ ] Daily
-  - [ ] Other: _______________
+  - [ ] Other: ******\_\_\_******
 
-#### Configuration Files
+### Configuration Files
 
 - [ ] **Configuration File Format:**
   - [ ] JSON
   - [ ] YAML
   - [ ] INI
   - [ ] Custom text format
-  - [ ] Other: _______________
+  - [ ] Other: ******\_\_\_******
 
 - [ ] **Sample Configuration Provided:**
-  - [ ] Yes - Link: _______________
+  - [ ] Yes - Link: ******\_\_\_******
   - [ ] No - Can provide
 
 - [ ] **Configuration Parameters Documented:**
@@ -192,12 +195,12 @@ assignees: ''
 
 ---
 
-**6. Testing & Validation**
+## 6. Testing & Validation
 
-#### Testing Status
+### Testing Status
 
 - [ ] **Unit Tests Available:**
-  - [ ] Yes - Coverage: _____%
+  - [ ] Yes - Coverage: **\_**%
   - [ ] No - Plan to add
 
 - [ ] **Integration Tests Available:**
@@ -205,10 +208,10 @@ assignees: ''
   - [ ] No
 
 - [ ] **Test Data Included:**
-  - [ ] Yes - Link: _______________
+  - [ ] Yes - Link: ******\_\_\_******
   - [ ] No - Can provide
 
-#### Validation
+### Validation
 
 - [ ] **Model Validation Performed:**
   - [ ] Yes - Published results available
@@ -217,33 +220,34 @@ assignees: ''
   - [ ] Not yet validated
 
 - [ ] **Validation Domain/Region:**
-  
+
   > [Describe where model has been tested]
 
 - [ ] **Performance Metrics:** (If available)
-  
+
   > Example:
+  >
   > - NSE: 0.85
   > - RMSE: 2.3 m^3/s
   > - Bias: -5%
 
 ---
 
-**7. Container Compatibility**
+## 7. Container Compatibility
 
-#### Docker Requirements
+### Docker Requirements
 
 - [ ] **Base Image Preference:**
   - [ ] Rocky Linux 9.1 (NGIAB default)
   - [ ] Ubuntu
   - [ ] Alpine
-  - [ ] Other: _______________
+  - [ ] Other: ******\_\_\_******
 
 - [ ] **Special Container Requirements:**
-  
+
   > [List any special needs like GPU support, large memory, specific base images, or changes needed to the Dockerfile]
 
-#### HPC/Singularity Considerations
+### HPC/Singularity Considerations
 
 - [ ] **HPC Compatibility Required:**
   - [ ] Yes
@@ -263,12 +267,12 @@ assignees: ''
 
 ---
 
-**8. Integration Planning**
+## 8. Integration Planning
 
-#### Timeline
+### Timeline
 
 - [ ] **Target Integration Date:**
-  
+
   > [Proposed date]
 
 - [ ] **Development Status:**
@@ -277,7 +281,7 @@ assignees: ''
   - [ ] Early development
   - [ ] Proof of concept
 
-#### Support & Maintenance
+### Support & Maintenance
 
 - [ ] **Maintenance Commitment:**
   - [ ] Will maintain long-term
@@ -294,9 +298,9 @@ assignees: ''
   - [ ] Within 24 hours
   - [ ] Within 1 week
   - [ ] Best effort
-  - [ ] Other: _______________
+  - [ ] Other: ******\_\_\_******
 
-#### Collaboration
+### Collaboration
 
 - [ ] **Open to Collaboration:**
   - [ ] Yes - Open to contributions
@@ -309,13 +313,13 @@ assignees: ''
   - [ ] CI/CD pipeline setup
   - [ ] Documentation improvement
   - [ ] Testing framework
-  - [ ] Other: _______________
+  - [ ] Other: ******\_\_\_******
 
 ---
 
-**9. Specific NGIAB Integration**
+## 9. Specific NGIAB Integration
 
-#### Hydrofabric Compatibility
+### Hydrofabric Compatibility
 
 - [ ] **Works with NOAA Hydrofabric:**
   - [ ] Yes - Tested
@@ -325,13 +329,12 @@ assignees: ''
 
 - [ ] **Spatial Resolution:**
   - [ ] Catchment-level
-  - [ ] Grid-based (specify resolution): _______________
+  - [ ] Grid-based (specify resolution): ******\_\_\_******
   - [ ] Point-based
-  - [ ] Other: _______________
-        
+  - [ ] Other: ******\_\_\_******
 - [ ] **Required Input Variables:** (List all required input variables with units)
 
-#### NextGen Framework Integration
+### NextGen Framework Integration
 
 - [ ] **Integration Level:**
   - [ ] Core modeling component (replaces/supplements existing formulation)
@@ -339,22 +342,22 @@ assignees: ''
   - [ ] Post-processing tool
   - [ ] Visualization component
   - [ ] Evaluation tool
-  - [ ] Other: _______________
+  - [ ] Other: ******\_\_\_******
 
 - [ ] **Compatibility with Existing Components:**
   - [ ] CFE
   - [ ] NOAH-OWP-Modular
   - [ ] TOPMODEL
   - [ ] t-route
-  - [ ] Other formulations: _______________
+  - [ ] Other formulations: ******\_\_\_******
 
-#### Data Integration
+### Data Integration
 
 - [ ] **Data Sources Supported:**
   - [ ] NOAA forcing data
   - [ ] USGS observations
   - [ ] Custom forcing files
-  - [ ] Other: _______________
+  - [ ] Other: ******\_\_\_******
 
 - [ ] **Compatible with NGIAB Data Preprocess Module:**
   - [ ] Yes - Tested
@@ -364,37 +367,37 @@ assignees: ''
 
 ---
 
-**10. Additional Information**
+## 10. Additional Information
 
-#### Publications
+### Publications
 
 - [ ] **Related Publications:** (List papers, reports, or documentation)
-  
+
   > [Citations here]
 
-#### Known Limitations
+### Known Limitations
 
 - [ ] **Known Issues/Limitations:**
-  
+
   > [Describe any known limitations or constraints]
 
-#### Use Cases
+### Use Cases
 
 - [ ] **Example Use Cases:**
-  
+
   > [Describe 1-2 specific scenarios where this model would be valuable]
 
-#### Model runtime cost (e.g., time/memory/cpu cost to forward for X catchments and T timesteps) 
+### Model runtime cost (e.g., time/memory/cpu cost to forward for X catchments and T timesteps)
 
-#### Additional Notes
+### Additional Notes
 
 > [Any additional information that would be helpful for integration]
 
 ---
 
-**11. Checklist Summary**
+## 11. Checklist Summary
 
-#### Pre-submission Requirements (Must Complete)
+### Pre-submission Requirements (Must Complete)
 
 - [ ] Model source code is accessible
 - [ ] Basic documentation is available
@@ -404,7 +407,7 @@ assignees: ''
 - [ ] License is specified
 - [ ] Point of contact identified
 
-#### Recommended (Strongly Encouraged)
+### Recommended (Strongly Encouraged)
 
 - [ ] BMI implementation completed or in progress
 - [ ] Test data available
@@ -412,7 +415,7 @@ assignees: ''
 - [ ] Compatible with NGIAB standard formats
 - [ ] Documentation includes usage examples
 
-#### Optional (Nice to Have)
+### Optional (Nice to Have)
 
 - [ ] Unit tests included
 - [ ] Published validation results
@@ -421,14 +424,13 @@ assignees: ''
 
 ---
 
-**12. Submission**
+## 12. Submission
 
-#### I confirm that:
+### I confirm that
 
 - [ ] All required information above has been provided
 - [ ] The model code is ready for review
 - [ ] I am authorized to submit this model for integration
 - [ ] I agree to provide reasonable support during integration
-
 
 ---
