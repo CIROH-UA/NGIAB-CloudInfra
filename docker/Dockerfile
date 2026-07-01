@@ -276,7 +276,7 @@ RUN mkdir -p /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/dhbv_2
     curl -fsSL https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2_mts.tar.gz \
         | tar -xz -C /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2_mts/model/dhbv_2_mts/ --strip-components=1 && \
     curl -fsSL https://mhpi-spatial.s3.us-east-2.amazonaws.com/mhpi-release/models/owp/dhbv_2.tar.gz \
-        | tar -xz -C /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2/model/dhbv_2/ --strip-components=2
+        | tar -xz -C /ngen/ngen/extern/dhbv2/ngen_resources/data/dhbv_2/model/dhbv_2/ --strip-components=1
 
 ## add some metadata to the image
 COPY --from=troute_build /tmp/troute_url /ngen/troute_url
