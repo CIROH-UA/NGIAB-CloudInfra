@@ -1,0 +1,603 @@
+name: Model Integration Checklist for NGIAB
+description: Fill this out to propose a model for integration into NGIAB.
+title: "[Model Integration]: "
+labels: ["model-integration", "needs-review", "NGIAB"]
+assignees: []
+
+body:
+  # ------------------------------------------------------------------
+  # 1. Contributor Information
+  # ------------------------------------------------------------------
+  - type: markdown
+    attributes:
+      value: "## 1. Contributor Information"
+
+  - type: input
+    id: contributor-name
+    attributes:
+      label: Name
+    validations:
+      required: true
+
+  - type: input
+    id: contributor-email
+    attributes:
+      label: Email
+    validations:
+      required: true
+
+  - type: input
+    id: institution
+    attributes:
+      label: Institution / Organization
+    validations:
+      required: true
+
+  - type: input
+    id: model-name
+    attributes:
+      label: Model Name
+    validations:
+      required: true
+
+  - type: input
+    id: model-version
+    attributes:
+      label: Model Version
+    validations:
+      required: true
+
+  - type: input
+    id: ciroh-project
+    attributes:
+      label: CIROH Project (if applicable)
+    validations:
+      required: false
+
+  - type: input
+    id: ciroh-pi
+    attributes:
+      label: CIROH PI (if applicable)
+    validations:
+      required: false
+
+  - type: textarea
+    id: model-description
+    attributes:
+      label: Model Description
+      description: Provide a brief description of what the model does.
+      placeholder: Your description here
+    validations:
+      required: true
+
+  # ------------------------------------------------------------------
+  # 2. Technical Requirements
+  # ------------------------------------------------------------------
+  - type: markdown
+    attributes:
+      value: |
+        ## 2. Technical Requirements
+
+        ### BMI Compliance
+        BMI compliance is required for integration into NGIAB.
+
+  - type: checkboxes
+    id: bmi
+    attributes:
+      label: BMI Implementation
+      description: >
+        For more information on the Basic Model Interface (BMI), see the
+        [NextGen Model Development Specifications](https://hub.ciroh.org/assets/files/Nextgen_Model_Development_Specifications_WG2_v1.docx-01c8ca7525b009168f416107d8aaf29d.pdf).
+      options:
+        - label: My model implements BMI.
+
+  - type: markdown
+    attributes:
+      value: |
+        ### Dependencies — Python models
+        Python models must meet the following requirements.
+
+  - type: checkboxes
+    id: python-deps
+    attributes:
+      label: Python model requirements
+      description: Tick all that apply. Leave blank if this is not a Python model.
+      options:
+        - label: Compatible with Python 3.11
+        - label: "`netCDF4==1.6.3` (if `netCDF4` is used)"
+        - label: "`pydantic <2` (if `pydantic` is used)"
+        - label: "`pandas <3` (if `pandas` is used)"
+        - label: Runs on CPU-only PyTorch (if ML model). GPU-dependent models require discussion.
+        - label: PyPI distributions available for all models and non-standard dependencies
+
+  - type: input
+    id: pypi-links
+    attributes:
+      label: PyPI distribution link(s)
+      placeholder: https://pypi.org/project/...
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ### Dependencies — Non-Python models
+        Non-Python models must meet the following requirements.
+
+  - type: checkboxes
+    id: nonpython-deps
+    attributes:
+      label: Non-Python model requirements
+      description: Tick all that apply. Leave blank if this is a Python model.
+      options:
+        - label: Compilable against `libc 2.34` or lower
+        - label: Builds a BMI-compatible shared object (preferably via CMake)
+        - label: Model or a wrapper implements the registration function (C/C++/Fortran only)
+
+  - type: textarea
+    id: build-instructions
+    attributes:
+      label: Build Instructions
+      placeholder: List or link to build instructions
+    validations:
+      required: false
+
+  - type: textarea
+    id: compilation-notes
+    attributes:
+      label: Compilation Notes (if applicable)
+      placeholder: Special compilation requirements
+    validations:
+      required: false
+
+  # ------------------------------------------------------------------
+  # 3. Code Repository
+  # ------------------------------------------------------------------
+  - type: markdown
+    attributes:
+      value: "## 3. Code Repository"
+
+  - type: input
+    id: repo-url
+    attributes:
+      label: Repository URL
+      placeholder: GitHub / GitLab URL
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: license
+    attributes:
+      label: License
+      description: All models must have an open-source license, as they will be integrated into an open-source repository.
+      options:
+        - label: My model has an open-source license.
+          required: true
+
+  - type: input
+    id: branch-tag
+    attributes:
+      label: Branch / Tag for Integration
+      placeholder: Stable branch or release tag
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: documentation-available
+    attributes:
+      label: Documentation Available
+      options:
+        - label: README with basic usage
+        - label: Installation guide
+        - label: Example / tutorial
+
+  - type: input
+    id: documentation-links
+    attributes:
+      label: Documentation Links
+    validations:
+      required: false
+
+  # ------------------------------------------------------------------
+  # 4. Configuration & Data Requirements
+  # ------------------------------------------------------------------
+  - type: markdown
+    attributes:
+      value: |
+        ## 4. Configuration & Data Requirements
+
+        ### Input Requirements
+
+  - type: textarea
+    id: input-formats
+    attributes:
+      label: Input File Formats
+      description: List all required input formats.
+      placeholder: |
+        - NetCDF (.nc)
+        - CSV (.csv)
+    validations:
+      required: true
+
+  - type: textarea
+    id: input-variables
+    attributes:
+      label: Required Input Variables
+      description: List all required input variables with units.
+      placeholder: |
+        - Precipitation (mm/hr)
+        - Temperature (deg C)
+        - Soil moisture (-)
+    validations:
+      required: true
+
+  - type: input
+    id: sample-input-data
+    attributes:
+      label: Sample Input Data Provided
+      placeholder: Link
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: "### Output Specifications"
+
+  - type: input
+    id: output-formats
+    attributes:
+      label: Output File Formats
+    validations:
+      required: false
+
+  - type: textarea
+    id: output-variables
+    attributes:
+      label: Output Variables
+      description: List all output variables with units.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: output-frequency
+    attributes:
+      label: Output Frequency
+      description: >
+        NGIAB currently only natively supports hourly outputs. If your model has an alternative
+        output frequency, we will reach out to discuss options.
+      options:
+        - Hourly
+        - Sub-hourly
+        - Daily
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: output-frequency-other
+    attributes:
+      label: Output Frequency — specify
+      description: If you selected Sub-hourly or Other above, specify here.
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: "### Configuration Files"
+
+  - type: input
+    id: sample-config
+    attributes:
+      label: Sample Configuration Provided
+      placeholder: Link
+    validations:
+      required: false
+
+  - type: input
+    id: config-params-documented
+    attributes:
+      label: Configuration Parameters Documented
+      placeholder: Link
+    validations:
+      required: false
+
+  - type: textarea
+    id: parameter-values
+    attributes:
+      label: Parameter Values
+      description: >
+        Specify over what domain calibrated parameters are available and include a link to them.
+        If any parameters are uncalibrated, please provide appropriate default values.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: parameter-hosting
+    attributes:
+      label: Parameter Hosting in Community Hydrofabric
+      options:
+        - label: >
+            As part of the integration process, I allow the CIROH Science Team to format and
+            upload my parameters to the Community Hydrofabric.
+
+  - type: input
+    id: config-generation
+    attributes:
+      label: Configuration File Generation
+      description: Link to any custom configuration generation code.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: config-generation-preprocess
+    attributes:
+      label: Configuration Generation in Data Preprocessor
+      options:
+        - label: >
+            As part of the integration process, I allow the CIROH Science Team to add
+            functionality to generate my configuration files in the NGIAB Data Preprocessor.
+
+  - type: input
+    id: sample-realization
+    attributes:
+      label: Sample Realization Provided
+      placeholder: Link
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: "### ML models: Weight Files"
+
+  - type: input
+    id: weight-files
+    attributes:
+      label: Weight Files
+      description: A stable, versioned link to cloud-hosted weight files is required for ML models.
+    validations:
+      required: false
+
+  - type: input
+    id: weight-file-size
+    attributes:
+      label: Approximate size of weight files
+      placeholder: e.g., 10 MB
+    validations:
+      required: false
+
+  - type: textarea
+    id: training-data
+    attributes:
+      label: Data on which the model was trained
+      description: Details on model source. We can only accept models trained on open-source data.
+    validations:
+      required: false
+
+  # ------------------------------------------------------------------
+  # 5. Testing & Validation
+  # ------------------------------------------------------------------
+  - type: markdown
+    attributes:
+      value: "## 5. Testing & Validation"
+
+  - type: dropdown
+    id: validation-performed
+    attributes:
+      label: Model Validation Performed
+      options:
+        - Yes - Published results available
+        - Yes - Internal validation only
+        - In progress
+        - Not yet validated
+    validations:
+      required: true
+
+  - type: textarea
+    id: validation-domain
+    attributes:
+      label: Validation Domain / Region
+      placeholder: Describe where the model has been tested.
+    validations:
+      required: false
+
+  - type: textarea
+    id: performance-metrics
+    attributes:
+      label: Performance Metrics (if available)
+      placeholder: |
+        - NSE: 0.85
+        - RMSE: 2.3 m^3/s
+        - Bias: -5%
+    validations:
+      required: false
+
+  # ------------------------------------------------------------------
+  # 6. Container Compatibility
+  # ------------------------------------------------------------------
+  - type: markdown
+    attributes:
+      value: "## 6. Container Compatibility"
+
+  - type: textarea
+    id: container-requirements
+    attributes:
+      label: Special Container Requirements
+      placeholder: >
+        List any special needs like GPU support, large memory, specific base images, or changes
+        needed to the Dockerfile.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: hpc-compatibility
+    attributes:
+      label: HPC / Singularity Compatibility Required
+      options:
+        - "Yes"
+        - "No"
+        - Not sure
+    validations:
+      required: false
+
+  # ------------------------------------------------------------------
+  # 7. Integration Planning
+  # ------------------------------------------------------------------
+  - type: markdown
+    attributes:
+      value: "## 7. Integration Planning"
+
+  - type: dropdown
+    id: development-status
+    attributes:
+      label: Development Status
+      options:
+        - Production-ready
+        - Beta / testing
+        - Early development
+        - Proof of concept
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: maintenance-commitment
+    attributes:
+      label: Maintenance Commitment
+      options:
+        - label: >
+            I understand that by submitting a community model for integration in NGIAB, my
+            institution agrees to maintain the model's upstream code, and that the CIROH Science
+            Team cannot guarantee continued inclusion of a deprecated model in NGIAB.
+          required: true
+
+  - type: dropdown
+    id: who-makes-prs
+    attributes:
+      label: Who will make the PRs?
+      options:
+        - I plan to submit the integration PRs myself
+        - I am requesting CIROH Science Team assistance
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical-poc
+    attributes:
+      label: Point of Contact for Technical Questions (if different from submitter)
+      placeholder: |
+        Name:
+        Email:
+        Preferred contact method:
+    validations:
+      required: false
+
+  # ------------------------------------------------------------------
+  # 8. Specific NGIAB Integration
+  # ------------------------------------------------------------------
+  - type: markdown
+    attributes:
+      value: |
+        ## 8. Specific NGIAB Integration
+
+        ### Hydrofabric Compatibility
+
+  - type: textarea
+    id: hydrofabric-compatibility
+    attributes:
+      label: Works with NOAA Hydrofabric?
+      description: If not catchment-based, explain the model's spatial resolution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: component-compatibility
+    attributes:
+      label: Compatibility with Existing Components
+      placeholder: Expected model coupling formulations.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: data-sources
+    attributes:
+      label: Data Sources Supported
+      options:
+        - label: NOAA forcing data
+        - label: USGS observations
+        - label: Custom forcing files
+        - label: Other
+
+  - type: input
+    id: forcing-generation
+    attributes:
+      label: Forcing Generation
+      description: Link to any custom forcing generation code.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: forcing-generation-preprocess
+    attributes:
+      label: Forcing Generation in Data Preprocessor
+      options:
+        - label: >
+            As part of the integration process, I allow the CIROH Science Team to add
+            functionality to generate my forcing files in the NGIAB Data Preprocessor.
+
+  # ------------------------------------------------------------------
+  # 9. Additional Information
+  # ------------------------------------------------------------------
+  - type: markdown
+    attributes:
+      value: "## 9. Additional Information"
+
+  - type: textarea
+    id: publications
+    attributes:
+      label: Related Publications
+      placeholder: List papers, reports, or documentation.
+    validations:
+      required: false
+
+  - type: textarea
+    id: known-limitations
+    attributes:
+      label: Known Issues / Limitations
+    validations:
+      required: false
+
+  - type: textarea
+    id: runtime-cost
+    attributes:
+      label: Model runtime cost
+      placeholder: e.g., time / memory / CPU cost to forward for X catchments and T timesteps.
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-notes
+    attributes:
+      label: Additional Notes
+      placeholder: Any additional information that would be helpful for integration.
+    validations:
+      required: false
+
+  # ------------------------------------------------------------------
+  # 10. Submission
+  # ------------------------------------------------------------------
+  - type: markdown
+    attributes:
+      value: "## 10. Submission"
+
+  - type: checkboxes
+    id: submission-confirmation
+    attributes:
+      label: I confirm that
+      options:
+        - label: All required information above has been provided.
+          required: true
+        - label: The model code is ready for review.
+          required: true
+        - label: I am authorized to submit this model for integration.
+          required: true
+        - label: I agree to provide reasonable support during integration.
+          required: true
