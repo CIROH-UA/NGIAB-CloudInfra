@@ -177,6 +177,7 @@ RUN mkdir -p /dmod/datasets /dmod/datasets/static /dmod/shared_libs /dmod/bin /d
     shopt -s globstar && \
     cp -a ./extern/**/cmake_build/*.so* /dmod/shared_libs/. || true && \
     cp -a ./extern/noah-owp-modular/**/*.TBL /dmod/datasets/static && \
+    cp -a ./extern/lgar-c/LGAR-C/data/vG_default_params.dat /dmod/datasets/static && \
     cp -a ./cmake_build_parallel/ngen /dmod/bin/ngen-parallel || true && \
     cp -a ./cmake_build_serial/ngen /dmod/bin/ngen-serial || true && \
     cp -a ./cmake_build_parallel/partitionGenerator /dmod/bin/partitionGenerator || true && \
