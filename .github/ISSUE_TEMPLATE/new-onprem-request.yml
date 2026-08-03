@@ -1,4 +1,4 @@
-name: On-Premise Request Form
+name: Pantarhei Migration Request Form
 description: Request CIROH on-premise resources such as Pantarhei or NSF ACCESS allocations.
 title: "[On-Prem Resource Request]: "
 labels: ["on-prem", "resource-request"]
