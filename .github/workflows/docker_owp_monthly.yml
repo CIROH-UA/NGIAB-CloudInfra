@@ -5,6 +5,13 @@ on:
     - cron: "0 6 1 * *"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: owp-master-image-build
+  cancel-in-progress: false
+
 jobs:
   build-and-push-owp:
     runs-on: ubuntu-latest
