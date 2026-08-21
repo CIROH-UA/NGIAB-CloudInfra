@@ -5,6 +5,9 @@ on:
     - cron: "0 6 1 * *"
   workflow_dispatch:
 
+env:
+  OWP_IMAGE_VERSION: "0.1.0"
+
 permissions:
   contents: read
 
@@ -28,6 +31,7 @@ jobs:
           dockerfile-tag: owp-master
           docker-tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/ciroh-ngen-image:owp-master
+            ${{ secrets.DOCKERHUB_USERNAME }}/ciroh-ngen-image:owp-${{ env.OWP_IMAGE_VERSION }}
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
           buildcloud-endpoint: ${{ secrets.BUILDCLOUD_ENDPOINT }}
