@@ -35,6 +35,16 @@ When NGIAB starts up, you will be asked whether you'd like to run in "Serial" or
 > `-r`: Retains previous console output when launching the script.  
 > `-t [tag]`: Specifies which Docker image tag of NGIAB to run.  
 
+### Running the OWP Master Image
+
+By default, `guide.sh` uses the `latest` NGIAB image. To run the NOAA-OWP-based comparison image instead, specify the `owp-master` tag:
+
+```bash
+./guide.sh -t owp-master
+```
+
+The `owp-master` image is built using `NOAA-OWP/ngen:master` with the current CIROH extern models. It is automatically rebuilt once a month to incorporate upstream ngen changes and provide an up-to-date image for comparison with the current NGIAB image.
+
 ### Running the container manually
 For most purposes, the `latest` tag will always be the most appropriate option, offering builds for both AMD64 and ARM64 architectures. However, if you find that Docker is pulling the wrong architecture for your system, then `latest-amd64` and `latest-arm64` are available as aliases.
 
