@@ -40,6 +40,9 @@
 - **NGIAB Guide Scripts**: This repository holds several guide scripts: `guide.sh`, `runTeehr.sh`, and `viewOnTethys.sh`. These scripts are the recommended way to run NGIAB.
   - To see CLI flags for these scripts, execute them with `-h` or see the documentation on [containers and guide scripts](./docs/03_01_CONTAINERS.md).
 
+- **OWP Master Image**: An `owp-master` NGIAB image is available for testing and comparing against the current `latest` NGIAB image. The image is built using `NOAA-OWP/ngen:master` with the current CIROH extern models and is automatically rebuilt once a month to incorporate upstream ngen changes.
+  - To run the OWP-based image, use `./guide.sh -t owp-master`. See the [containers and guide scripts](./docs/03_01_CONTAINERS.md) documentation for more information.
+
 - **Documentation**: The [`docs/` folder](./docs/00_CONTENTS.md) contains information on all of the finer details that can help you get the most out of the contents of this repository.
   - For broader ecosystem-wide documentation, please visit DocuHub at [docs.ciroh.org/products/ngiab](https://docs.ciroh.org/products/ngiab), where all of the information from this and other NGIAB repositories is mirrored.
 
