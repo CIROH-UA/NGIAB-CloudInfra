@@ -429,8 +429,38 @@ fi
 # Model run options with improved visuals
 print_section_header "MODEL EXECUTION OPTIONS"
 
+if [[ ![$CUSTOM_TAG_USED] ]]; then
+    echo -e "${ARROW} ${BWhite}Please select an NGIAB image tag to proceed:${Color_Off}"
+    echo -e "\033[38;5;117mHint: providing a tag with the -t CLI option skips this step.${Color_Off}\n"
+    options=("latest" "owp-master" "Other..." "Exit")
+    select option in "${options[@]}"; do
+        case $option in
+            "latest")
+                NGEN_IMAGE_TAG=latest
+                echo
+                break
+                ;;
+            "owp-master")
+                NGEN_IMAGE_TAG=owp-master
+                echo
+                break
+                ;;
+            "Other...")
+                echo -ne "  ${ARROW} Enter your preferred image tag below: "
+                read -e NGEN_IMAGE_TAG
+                break
+                ;;
+            "Exit")
+                echo -e "\n${BYellow}Exiting script. Have a nice day!${Color_Off}"
+                exit 0
+                ;;
+            *) echo -e "${CROSS_MARK} ${BRed}Invalid option $REPLY. Please try again.${Color_Off}"
+                ;;
+        esac
+    done
+fi
 IMAGE_NAME="$NGEN_IMAGE_NAME:$NGEN_IMAGE_TAG"
-$CUSTOM_TAG_USED && echo -e "  ${CHECK_MARK} Using specified tag: ${BGreen}$IMAGE_NAME${Color_Off}\n"
+echo -e "${CHECK_MARK} Using specified tag: ${BGreen}$IMAGE_NAME${Color_Off}\n"
 
 echo -e "${ARROW} ${BWhite}Please select an option to proceed:${Color_Off}\n"
 options=("Run NextGen using existing local container image" "Update to latest container image and run" "Exit")
