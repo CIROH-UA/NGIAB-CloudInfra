@@ -432,15 +432,15 @@ print_section_header "MODEL EXECUTION OPTIONS"
 if [[ ![$CUSTOM_TAG_USED] ]]; then
     echo -e "${ARROW} ${BWhite}Please select an NGIAB image tag to proceed:${Color_Off}"
     echo -e "\033[38;5;117mHint: providing a tag with the -t CLI option skips this step.${Color_Off}\n"
-    options=("latest" "owp-master" "Other..." "Exit")
+    options=("CIROH-UA NextGen version (\"latest\")" "NOAA-OWP NextGen version (\"owp-master\")" "Other..." "Exit")
     select option in "${options[@]}"; do
         case $option in
-            "latest")
+            "CIROH-UA NextGen version (\"latest\")")
                 NGEN_IMAGE_TAG=latest
                 echo
                 break
                 ;;
-            "owp-master")
+            "NOAA-OWP NextGen version (\"owp-master\")")
                 NGEN_IMAGE_TAG=owp-master
                 echo
                 break
