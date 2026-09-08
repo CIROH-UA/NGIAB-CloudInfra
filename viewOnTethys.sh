@@ -55,18 +55,8 @@ DOCKER_NETWORK="tethys-network"
 TETHYS_CONTAINER_NAME="tethys-ngen-portal"
 TETHYS_REPO="docker.io/awiciroh/tethys-ngiab"
 
-MODELS_RUNS_DIRECTORY="$HOME/ngiab_visualizer"
-DATASTREAM_DIRECTORY="$HOME/.datastream_ngiab"
-VISUALIZER_CONF="$MODELS_RUNS_DIRECTORY/ngiab_visualizer.json"
-TETHYS_PERSIST_PATH="/var/lib/tethys_persist"
-SKIP_DB_SETUP=false
-
-# TEEHR warehouse path used by this script for Tethys visualization. Persisted
-# in a config file so the configured location can be reused across runs. It
-# must be mounted at the SAME absolute path inside the Tethys container because
-# Iceberg embeds absolute paths in local_catalog.db and metadata/*.json.
-TEEHR_EVAL_CONFIG_FILE="$HOME/.teehr_evaluation_path.conf"
-TEEHR_WAREHOUSE_PATH=""
+MODELS_RUNS_DIRECTORY="${MODELS_RUNS_DIRECTORY:-$HOME/ngiab_visualizer}"
+TETHYS_PERSIST_PATH="/home/tethys/persist"
 
 # Parameters
 DOCKER_CMD="docker"
@@ -74,8 +64,10 @@ DOCKER_CMD="docker"
 USERNS_ARGS=()
 NETWORK_ARGS=()
 VOLUME_SUFFIX=""
-CONTAINER_PORT=8080  # visualizer image listens on 8080 (rootless-Podman safe).
-WWW_UID=1011  # tethys-core base image: useradd -u 1011 -g www www
+CONTAINER_PORT=8080
+WWW_UID=1000  # tethys-uvx base image: the "tethys" user is uid 1000
+PORTAL_ALLOWED_HOSTS=""
+TETHYS_SECRET_KEY=""
 DATA_FOLDER_PATH="" # If non-empty, gets used as the gage path to import.
 TETHYS_TAG="" # If non-empty, gets used as the image tag.
 IMPORT_GAGE="ask" # "ask"/"yes"/"no"/"done"
@@ -161,21 +153,6 @@ else
 fi
 
 # Main functions
-load_teehr_warehouse_path() {
-    # Load TEEHR_WAREHOUSE_PATH from the runTeehr.sh config file if present.
-    # Silent no-op when the file doesn't exist -- the Tethys backend treats
-    # "no warehouse configured" as a first-class empty state.
-    if [ -f "$TEEHR_EVAL_CONFIG_FILE" ]; then
-        local candidate
-        candidate="$(cat "$TEEHR_EVAL_CONFIG_FILE" | tr -d '\r')"
-        candidate="${candidate#"${candidate%%[![:space:]]*}"}"
-        candidate="${candidate%"${candidate##*[![:space:]]}"}"
-        if [ -n "$candidate" ] && [ -d "$candidate" ]; then
-            TEEHR_WAREHOUSE_PATH="$candidate"
-        fi
-    fi
-}
-
 ensure_host_dir() {
     local dir="$1"
 
@@ -193,8 +170,7 @@ ensure_host_dir() {
         :  # BSD stat (macOS, Git-Bash)
     fi
 
-    # If the directory is not owned by the current user, try to chown it
-    if [[ -n "$owner_uid" && "$owner_uid" != "$(id -u)" ]]; then
+    if [[ -n "$owner_uid" && "$owner_uid" != "$(id -u)" ]] && [ ! -w "$dir" ]; then
         if command -v chown >/dev/null 2>&1; then
             # 1) \n guarantees its own line
             # 2) >&2 sends it to stderr (same stream as sudo prompt)
@@ -202,8 +178,15 @@ ensure_host_dir() {
             echo -e "${INFO_MARK} ${BYellow}Reclaiming ownership of $dir " \
                     "(sudo may prompt)...${Color_Off}" >&2
             sleep 0.1
-            sudo chown -R "$(id -u):$(id -g)" "$dir" \
-            || echo -e "${WARNING_MARK} Could not change directory ownership."
+            if ! sudo chown -R "$(id -u):$(id -g)" "$dir"; then
+                echo -e "${WARNING_MARK} ${BRed}Could not take ownership of $dir${Color_Off}" >&2
+                echo -e "  It is owned by uid $owner_uid and you cannot write to it." >&2
+                echo -e "  Fix it once with:" >&2
+                echo -e "    ${BWhite}sudo chown -R $(id -u):$(id -g) $dir${Color_Off}" >&2
+                echo -e "  or point the launcher elsewhere:" >&2
+                echo -e "    ${BWhite}MODELS_RUNS_DIRECTORY=~/my_runs $0${Color_Off}" >&2
+                return 1
+            fi
         fi
     fi
 
@@ -212,33 +195,7 @@ ensure_host_dir() {
     return 0
 }
 
-ensure_visualizer_conf_host_file() {
-    local file="$1"
-    local dir
-    dir=$(dirname "$file")
 
-    # Make sure the directory exists and is writable by the user
-    if ! ensure_host_dir "$dir"; then
-        echo "Failed to ensure directory for config file"
-        return 1
-    fi
-
-    # Create the file if it doesn't exist, and initialize it
-    if [ ! -f "$file" ]; then
-        echo -e "${INFO_MARK} Creating configuration file ${BWhite}$file${Color_Off}..."
-        echo '{"model_runs":[]}' > "$file" || { echo "Could not create file $file"; return 1; }
-    fi
-
-    # Ensure the user can read/write the file
-    chmod u+rw "$file" || { echo "Could not set file permissions on $file"; return 1; }
-    return 0
-}
-
-# Set engine-specific run flags. Called after arg parsing.
-# Assumes Podman >= 4.3 (keep-id:uid= syntax). Podman emits clear errors itself
-# if subuid ranges are missing or the version is too old.
-# Caveat: :Z is an exclusive SELinux relabel. If the bind mount is shared with
-# other containers, switch to :z manually.
 configure_container_engine() {
     if [ "${DOCKER_CMD}" != "podman" ]; then
         NETWORK_ARGS=(--network "$DOCKER_NETWORK")
@@ -246,11 +203,9 @@ configure_container_engine() {
     fi
     USERNS_ARGS=(--userns=keep-id:uid=${WWW_UID})
     VOLUME_SUFFIX=":Z"
-    # NETWORK_ARGS stays empty; rootless uses slirp4netns/netavark.
 }
 
 create_tethys_docker_network() {
-    # Rootless Podman doesn't need an explicit user-defined network.
     if [ "${DOCKER_CMD}" == "podman" ]; then
         return 0
     fi
@@ -259,11 +214,7 @@ create_tethys_docker_network() {
 
     # Check if Docker daemon is running
     if ! ${DOCKER_CMD} info >/dev/null 2>&1; then
-        if [ "${DOCKER_CMD}" == 'docker' ]; then
-            echo -e "  ${CROSS_MARK} ${BRed}Docker daemon is not running or accessible.${Color_Off}"
-        else
-            echo -e "  ${CROSS_MARK} ${BRed}Command \"${DOCKER_CMD} info\" failed, container runtime inoperative.${Color_Off}"
-        fi
+        echo -e "${BRed}Docker daemon is not running or accessible.${Color_Off}"
         return 1
     fi
 
@@ -280,7 +231,7 @@ create_tethys_docker_network() {
         sleep 1
         return 0
     else
-        echo -e "  ${CROSS_MARK} ${BRed}Failed to create container network.${Color_Off}"
+        echo -e "  ${CROSS_MARK} ${BRed}Failed to create Docker network.${Color_Off}"
         return 1
     fi
 }
@@ -296,17 +247,11 @@ set_tethys_tag() {
 }
 
 check_for_existing_tethys_image() {
-    # First check if Docker is running
     if ! ${DOCKER_CMD} info >/dev/null 2>&1; then
-        if [ "${DOCKER_CMD}" == 'docker' ]; then
-            echo -e "  ${CROSS_MARK} ${BRed}Docker daemon is not running or accessible.${Color_Off}"
-        else
-            echo -e "  ${CROSS_MARK} ${BRed}Command \"${DOCKER_CMD} info\" failed, container runtime inoperative.${Color_Off}"
-        fi
+        echo -e "${BRed}Docker daemon is not running or accessible.${Color_Off}"
         return 1
     fi
 
-    # Check if the image exists locally
     local image_exists=false
     if ${DOCKER_CMD} image inspect "${TETHYS_REPO}:${TETHYS_TAG}" >/dev/null 2>&1; then
         image_exists=true
@@ -319,7 +264,7 @@ check_for_existing_tethys_image() {
         echo -e "  ${INFO_MARK} ${BYellow}Tethys image not found locally. Pulling from registry...${Color_Off}"
         show_loading "Downloading Tethys image" 3
         if ! ${DOCKER_CMD} pull "${TETHYS_REPO}:${TETHYS_TAG}"; then
-            echo -e "  ${CROSS_MARK} ${BRed}Failed to pull container image: ${TETHYS_REPO}:${TETHYS_TAG}${Color_Off}"
+            echo -e "  ${CROSS_MARK} ${BRed}Failed to pull Docker image: ${TETHYS_REPO}:${TETHYS_TAG}${Color_Off}"
             return 1
         fi
         echo -e "  ${CHECK_MARK} ${BGreen}Tethys image downloaded successfully${Color_Off}"
@@ -327,9 +272,20 @@ check_for_existing_tethys_image() {
     fi
 }
 
+
+port_in_use() {
+    local port="$1"
+    if command -v ss >/dev/null 2>&1; then
+        ss -ltn "sport = :${port}" 2>/dev/null | grep -q LISTEN && return 0
+        return 1
+    fi
+    if command -v lsof >/dev/null 2>&1; then
+        lsof -i:"${port}" >/dev/null 2>&1 && return 0
+    fi
+    return 1
+}
+
 choose_port_to_run_tethys() {
-    # Default 8080 so rootless Podman can bind without privileged-port hacks.
-    # Existing Docker users on port 80 must pass it explicitly.
     local default_port=8080
     while true; do
         echo -e "${BBlue}Select a port to run Tethys on. [Default: ${default_port}] ${Color_Off}"
@@ -347,8 +303,7 @@ choose_port_to_run_tethys() {
             continue
         fi
 
-        # Check if the port is already in use (skip check if lsof not present)
-        if command -v lsof >/dev/null && lsof -i:"$nginx_tethys_port" >/dev/null 2>&1; then
+        if port_in_use "$nginx_tethys_port"; then
             echo -e "${BRed}Port $nginx_tethys_port is already in use. Choose another.${Color_Off}"
             continue
         fi
@@ -356,37 +311,34 @@ choose_port_to_run_tethys() {
         break
     done
 
-    # Build ALLOWED_HOSTS + CSRF_TRUSTED_ORIGINS from localhost + every IPv4 the
-    # host owns (catches the WSL VM address, LAN address, etc.). The outer
-    # literal double-quotes in ALLOWED_HOSTS protect the brackets when the
-    # tethys-core salt state renders them through an unquoted shell command.
     local host_ips
     host_ips=$(hostname -I 2>/dev/null || ip -4 -o addr show 2>/dev/null | awk '{split($4,a,"/"); print a[1]}' | tr '\n' ' ' || echo)
-    local allowed_list="localhost, 127.0.0.1"
-    local csrf_list="\"http://localhost:${nginx_tethys_port}\",\"http://127.0.0.1:${nginx_tethys_port}\""
+    local allowed_list="localhost,127.0.0.1"
     for ip in $host_ips; do
         case "$ip" in
             127.*|"") ;;  # skip loopback duplicates and empties
             *)
-                allowed_list="${allowed_list}, $ip"
-                csrf_list="${csrf_list},\"http://${ip}:${nginx_tethys_port}\""
+                allowed_list="${allowed_list},$ip"
                 ;;
         esac
     done
-    ALLOWED_HOSTS="\"[${allowed_list}]\""
-    CSRF_TRUSTED_ORIGINS="[${csrf_list}]"
+    PORTAL_ALLOWED_HOSTS="${allowed_list}"
+
+    if [ -z "${TETHYS_SECRET_KEY:-}" ]; then
+        TETHYS_SECRET_KEY=$(head -c 32 /dev/urandom | base64 | tr -d '=+/' 2>/dev/null)
+        if [ -z "$TETHYS_SECRET_KEY" ]; then
+            TETHYS_SECRET_KEY="ngiab-fallback-$(date +%s)-$$"
+        fi
+    fi
+
     echo -e "  ${CHECK_MARK} ${BGreen}Port $nginx_tethys_port selected${Color_Off}"
 
     return 0
 }
 
-# Wait for a Docker container to become healthy
 wait_container_healthy() {
     local container_name=$1
 
-    # Detect once whether the image has a healthcheck. Podman builds in default
-    # OCI format strip HEALTHCHECK; the inspect query for .State.Health.Status
-    # then nil-derefs and exits 125. Fall back to a TCP probe in that case.
     local has_healthcheck
     has_healthcheck=$(${DOCKER_CMD} inspect -f '{{if .State.Health}}yes{{else}}no{{end}}' "$container_name" 2>/dev/null)
 
@@ -396,7 +348,7 @@ wait_container_healthy() {
             local container_health_status
             container_health_status=$(${DOCKER_CMD} inspect -f '{{.State.Health.Status}}' "$container_name" 2>/dev/null)
             if [ $? -ne 0 ]; then
-                echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} Failed to get health status for container $container_name. Ensure the container exists and has a health check. ${Color_Off}"
+                echo -e "\n ${WARNING_MARK} ${BG_Red}${BWhite} Failed to get health status for container $container_name. ${Color_Off}"
                 return 1
             fi
             if [[ "$container_health_status" == "healthy" ]]; then
@@ -410,8 +362,6 @@ wait_container_healthy() {
         done
     fi
 
-    # No healthcheck in the image: poll the published port directly. Bounded so a
-    # truly broken container doesn't hang the script forever.
     echo -e "${INFO_MARK} ${BWhite} Image has no healthcheck; polling http://127.0.0.1:${nginx_tethys_port}/ for readiness (max 5 min)...${Color_Off}"
     local max_wait=300
     local elapsed=0
@@ -420,7 +370,6 @@ wait_container_healthy() {
             echo -e "\n ${CHECK_MARK} ${BG_Green}${BWhite} Container $container_name is serving requests! ${Color_Off}"
             return 0
         fi
-        # If the container exited, stop polling.
         local running
         running=$(${DOCKER_CMD} inspect -f '{{.State.Running}}' "$container_name" 2>/dev/null)
         if [ "$running" != "true" ]; then
@@ -436,8 +385,6 @@ wait_container_healthy() {
 
 run_tethys() {
     ensure_host_dir "$MODELS_RUNS_DIRECTORY"
-    ensure_host_dir "$DATASTREAM_DIRECTORY"
-    ensure_visualizer_conf_host_file "$VISUALIZER_CONF"
 
     echo -e "${ARROW} ${BWhite}Launching Tethys container...${Color_Off}"
 
@@ -462,41 +409,19 @@ run_tethys() {
     sleep 1
     echo -e "  ${INFO_MARK} ${BYellow}Starting Tethys container...${Color_Off}"
 
-    # Build the TEEHR warehouse mount flags conditionally -- mirrored-path
-    # bind mount is required when a warehouse is configured; skipped entirely
-    # when not so users without TEEHR set up are not blocked.
-    local teehr_mount_args=()
-    local teehr_env_args=()
-    if [ -n "$TEEHR_WAREHOUSE_PATH" ] && [ -d "$TEEHR_WAREHOUSE_PATH" ]; then
-        # Podman wants comma-separated mount options (ro,Z); VOLUME_SUFFIX is :Z so strip the colon.
-        local teehr_ro_flags="ro"
-        [ -n "$VOLUME_SUFFIX" ] && teehr_ro_flags="ro,${VOLUME_SUFFIX#:}"
-        teehr_mount_args=(-v "$TEEHR_WAREHOUSE_PATH:$TEEHR_WAREHOUSE_PATH:${teehr_ro_flags}")
-        teehr_env_args=(--env "TEEHR_WAREHOUSE_PATH=$TEEHR_WAREHOUSE_PATH")
-        echo -e "  ${INFO_MARK} Mounting TEEHR warehouse: ${BCyan}$TEEHR_WAREHOUSE_PATH${Color_Off}"
-    fi
-
-    # Launch container with explicit error handling.
-    # Container port is fixed at CONTAINER_PORT (image default 8080); the host
-    # port is what the user picked. NGINX_PORT inside matches CONTAINER_PORT.
     echo -e "  ${INFO_MARK} Running ${DOCKER_CMD} command..."
     ${DOCKER_CMD} run --rm -d \
         "${USERNS_ARGS[@]}" \
         -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer${VOLUME_SUFFIX}" \
-        -v "$DATASTREAM_DIRECTORY:$TETHYS_PERSIST_PATH/.datastream_ngiab${VOLUME_SUFFIX}" \
-        "${teehr_mount_args[@]}" \
         -p "$nginx_tethys_port:$CONTAINER_PORT" \
         "${NETWORK_ARGS[@]}" \
         --name "$TETHYS_CONTAINER_NAME" \
+        --env TETHYS_PERSIST="$TETHYS_PERSIST_PATH" \
         --env MEDIA_ROOT="$TETHYS_PERSIST_PATH/media" \
         --env MEDIA_URL="/media/" \
-        --env SKIP_DB_SETUP="$SKIP_DB_SETUP" \
-        --env DATASTREAM_CONF="$TETHYS_PERSIST_PATH/.datastream_ngiab" \
-        --env VISUALIZER_CONF="$TETHYS_PERSIST_PATH/ngiab_visualizer/ngiab_visualizer.json" \
-        --env NGINX_PORT="$CONTAINER_PORT" \
-        --env ALLOWED_HOSTS="$ALLOWED_HOSTS" \
-        --env CSRF_TRUSTED_ORIGINS="$CSRF_TRUSTED_ORIGINS" \
-        "${teehr_env_args[@]}" \
+        --env PORT="$CONTAINER_PORT" \
+        --env PORTAL_ALLOWED_HOSTS="$PORTAL_ALLOWED_HOSTS" \
+        --env TETHYS_SECRET_KEY="$TETHYS_SECRET_KEY" \
         "${TETHYS_REPO}:${TETHYS_TAG}"
 
     if [ $? -eq 0 ]; then
@@ -514,11 +439,7 @@ run_tethys() {
 select_tethys_image_source() {
     # Bail out early if Docker is unavailable
     if ! ${DOCKER_CMD} info >/dev/null 2>&1; then
-        if [ "${DOCKER_CMD}" == 'docker' ]; then
-            echo -e "  ${CROSS_MARK} ${BRed}Docker daemon is not running or accessible.${Color_Off}"
-        else
-            echo -e "  ${CROSS_MARK} ${BRed}Command \"${DOCKER_CMD} info\" failed, container runtime inoperative.${Color_Off}"
-        fi
+        echo -e "  ${CROSS_MARK} ${BRed}Docker daemon not running.${Color_Off}"
         return 1
     fi
 
@@ -527,9 +448,16 @@ select_tethys_image_source() {
     # Does the image already exist locally?
     if ${DOCKER_CMD} image inspect "$image_ref" >/dev/null 2>&1; then
         echo -e "  ${INFO_MARK} Found local image ${BCyan}$image_ref${Color_Off}"
+        if [ ! -r /dev/tty ]; then
+            echo -e "  ${INFO_MARK} No terminal to prompt on; using the local image."
+            return 0
+        fi
         while true; do
             echo -ne "  ${ARROW} Use local copy (L) or Pull latest from registry (P)? [L/P]: "
-            read -r decision < /dev/tty
+            read -r decision < /dev/tty || {
+                echo -e "\n  ${INFO_MARK} Could not read a choice; using the local image."
+                return 0
+            }
             case "$decision" in
                 [Ll]* )
                     echo -e "  ${CHECK_MARK} Using local image" ; return 0 ;;
@@ -558,11 +486,7 @@ tear_down() {
 
     # Check if Docker daemon is running
     if ! ${DOCKER_CMD} info >/dev/null 2>&1; then
-        if [ "${DOCKER_CMD}" == 'docker' ]; then
-            echo -e "  ${CROSS_MARK} ${BRed}Docker daemon is not running or accessible.${Color_Off}"
-        else
-            echo -e "  ${CROSS_MARK} ${BRed}Command \"${DOCKER_CMD} info\" failed, container runtime inoperative.${Color_Off}"
-        fi
+        echo -e "  ${CROSS_MARK} ${BRed}Docker daemon is not running, cannot clean up containers.${Color_Off}"
         return 1
     fi
 
@@ -575,7 +499,7 @@ tear_down() {
 
     # Remove the Docker network if it exists
     if ${DOCKER_CMD} network inspect "$DOCKER_NETWORK" >/dev/null 2>&1; then
-        echo -e "  ${INFO_MARK} Removing container network..."
+        echo -e "  ${INFO_MARK} Removing Docker network..."
         ${DOCKER_CMD} network rm "$DOCKER_NETWORK" >/dev/null 2>&1 || true
     fi
 
@@ -624,7 +548,6 @@ copy_models_run() {
     local final_copied_path="$model_run_path"
 
     # 3. Copy / overwrite / duplicate - user-driven
-    overwrite_used=false # Message-passing for add_model_run()
     if [ ! -e "$model_run_path" ]; then
         cp -r "$input_path" "$models_dir/" || {
             echo -e "  ${CROSS_MARK} ${BRed}Copy failed${Color_Off}" >&2 ; return 1 ; }
@@ -640,7 +563,6 @@ copy_models_run() {
                     cp -r "$input_path" "$models_dir/" || {
                         echo -e "  ${CROSS_MARK} ${BRed}Overwrite failed${Color_Off}" >&2 ; return 1 ; }
                     echo -e "  ${CHECK_MARK} ${BCyan}Overwritten${Color_Off} ➜ $model_run_path" >&2
-                    overwrite_used=true
                     break ;;
                 [Dd]* )
                     echo -ne "  ${ARROW} ${BBlue}New directory name:${Color_Off} " >&2
@@ -665,175 +587,41 @@ copy_models_run() {
     echo "$final_copied_path"
 }
 
-add_model_run() {
-    local input_path="$1"
-    local json_file="$VISUALIZER_CONF"
+# Convert the copied run's ngen CSV outputs to parquet.
+convert_run_outputs() {
+    local final_path="$1"
 
-    # ── 0. Make sure the JSON file exists ───────────────────────────────
-    echo -e "${BGreen}Checking for $json_file...${Color_Off}"
-    [[ -f "$json_file" ]] || echo '{"model_runs":[]}' > "$json_file"
-
-    # ── 1. Gather new-run metadata ──────────────────────────────────────
-    local base_name new_uuid current_time final_path teehr_config_name
-    base_name=$(basename "$input_path")
-    new_uuid=$(uuidgen)
-    current_time=$(date +"%Y-%m-%d:%H:%M:%S")
-    final_path="/var/lib/tethys_persist/ngiab_visualizer/$base_name"
-
-    # Read teehr_configuration_name from the producer's manifest (if any).
-    # The manifest travels with the run directory through copy_models_run, so
-    # it's co-located at "$input_path/teehr_run_manifest.json". If absent or
-    # malformed, fall through with an empty value -- the backend's fallback
-    # derivation path will still resolve the config name at query time.
-    teehr_config_name=""
-    local manifest="$input_path/teehr_run_manifest.json"
-    if [ -f "$manifest" ]; then
-        if command -v jq >/dev/null 2>&1; then
-            teehr_config_name=$(jq -r '.teehr_configuration_name // empty' "$manifest" 2>/dev/null || true)
-        elif command -v python3 >/dev/null 2>&1; then
-            teehr_config_name=$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(d.get('teehr_configuration_name') or '')" "$manifest" 2>/dev/null || true)
-        fi
-        if [ -n "$teehr_config_name" ]; then
-            echo -e "  ${INFO_MARK} Registered TEEHR configuration: ${BCyan}$teehr_config_name${Color_Off}"
-        else
-            echo -e "  ${WARNING_MARK} ${BYellow}teehr_run_manifest.json present but teehr_configuration_name missing/unparseable.${Color_Off}"
-        fi
-    fi
-
-    # When the producer manifest did not supply a value, derive one from the
-    # run folder basename. Must mirror the producer rule in
-    # ngiab-teehr/scripts/teehr_ngen.py exactly:
-    #     "ngen_" + re.sub(r"[^a-zA-Z0-9_]", "_", basename).lower()
-    # LC_ALL=C pins sed/tr to ASCII so the output matches the producer's
-    # ASCII-only regex byte-for-byte for the basenames ngen actually produces.
-    if [ -z "$teehr_config_name" ]; then
-        teehr_config_name="ngen_$(printf '%s' "$base_name" \
-            | LC_ALL=C sed -E 's/[^a-zA-Z0-9_]/_/g' \
-            | LC_ALL=C tr '[:upper:]' '[:lower:]')"
-        echo -e "  ${INFO_MARK} Derived TEEHR configuration from run folder: ${BCyan}$teehr_config_name${Color_Off}"
-    fi
-
-    # ── 2. Pick a jq implementation (host → docker → fail) ──────────────
-    local jq_exec
-    if command -v jq >/dev/null 2>&1; then
-        jq_exec="jq"
-    elif command -v ${DOCKER_CMD} >/dev/null 2>&1; then
-        local jq_image="ghcr.io/jqlang/jq:latest"
-        ${DOCKER_CMD} image inspect "$jq_image" >/dev/null 2>&1 || {
-            echo -e "  ${INFO_MARK} ${BYellow}Pulling jq helper image...${Color_Off}"
-            ${DOCKER_CMD} pull "$jq_image" >/dev/null
-        }
-        jq_exec="${DOCKER_CMD} run --rm -i $jq_image"
-    else
-        echo -e "  ${CROSS_MARK} ${BRed}jq is required, but neither jq nor ${DOCKER_CMD^} is available.${Color_Off}"
-        return 1
-    fi
-
-    # ── 3. If overwriting, discard the previous record ──────────────────
-    if [ ! $overwrite_used ] ; then
-        : # Nothing to do here
-    elif $jq_exec \
-        --arg base_name    "$base_name" \
-        --arg final_path   "$final_path" \
-        --arg current_time "$current_time" \
-        --arg uuid         "$new_uuid" \
-        '
-        del (
-            .model_runs[]
-          | select(.label == $base_name and .path == $final_path)
-        )
-        ' < "$json_file" > "${json_file}.tmp" && \
-       mv -f "${json_file}.tmp" "$json_file"; then
-        ## ► success message
-        echo -e "  ${CHECK_MARK} ${BCyan}Deregistered overwritten model runs from $json_file.${Color_Off}"
-    else
-        ## ► failure message
-        echo -e "  ${WARNING_MARK} ${BYellow}Failed to unregister overwritten model run from $json_file.${Color_Off}"
-        echo -e "    ${INFO_MARK} ${BCyan}This may result in duplicate model run listings, but is otherwise harmless.${Color_Off}"
-    fi
-
-    # ── 4. Append the new record ────────────────────────────────────────
-    # The teehr_configuration_name field is only included when non-empty so
-    # legacy entries (registered before the manifest flow existed) keep the
-    # exact same JSON shape they have today.
-    if $jq_exec \
-        --arg base_name    "$base_name" \
-        --arg final_path   "$final_path" \
-        --arg current_time "$current_time" \
-        --arg uuid         "$new_uuid" \
-        --arg teehr_cfg    "$teehr_config_name" \
-        '
-        .model_runs += [
-          ({
-            label:  $base_name,
-            path:   $final_path,
-            date:   $current_time,
-            id:     $uuid,
-            subset: "",
-            tags:   []
-          }
-          + ( if $teehr_cfg == "" then {} else {teehr_configuration_name: $teehr_cfg} end ))
-        ]
-        ' < "$json_file" > "${json_file}.tmp" && \
-       mv -f "${json_file}.tmp" "$json_file"; then
-        ## ► success message
-        echo -e "  ${CHECK_MARK} ${BCyan}Model run \"${base_name}\" registered (${new_uuid})${Color_Off}"
-    else
-        ## ► failure message
-        echo -e "  ${CROSS_MARK} ${BRed}Failed to update $json_file with new model run.${Color_Off}"
-        return 1
-    fi
-}
-
-
-manage_datastream_cache() {
-    local cache_dir="$DATASTREAM_DIRECTORY"
-
-    # Make (or fix) the directory first
-    ensure_host_dir "$cache_dir" || {
-        echo -e "  ${CROSS_MARK} ${BRed}Cannot ready $cache_dir${Color_Off}"
-        return 1
-    }
-
-    # ─── Nothing inside?  Tell the user and bail out ───────────────────
-    if [ -z "$(ls -A "$cache_dir" 2>/dev/null)" ]; then
-        echo -e "  ${INFO_MARK} ${LGREEN}No existing Datastream cache found -" \
-                "a fresh download will be used.${Color_Off}"
+    local image="${TETHYS_REPO}:${TETHYS_TAG:-latest}"
+    if ! ${DOCKER_CMD} image inspect "$image" >/dev/null 2>&1; then
+        echo -e "  ${INFO_MARK} Image $image not present locally; leaving outputs as CSV."
         return 0
     fi
 
-    # ─── Cache exists → ask what to do ─────────────────────────────────
-    echo -e "  ${INFO_MARK} ${BYellow}Existing Datastream cache detected:${Color_Off} $cache_dir"
-    echo -e "  ${LBLUE}Keeping it avoids re-downloading archives, but a large cache"
-    echo -e "  can slow the first container start-up depending on your system.${Color_Off}\n"
-
-    while true; do
-        echo -ne "  ${ARROW} Keep cache (K) or Fresh start (F)? [K/F]: "
-        read -r answer < /dev/tty
-        case "$answer" in
-            [Kk]* )
-                echo -e "  ${CHECK_MARK} Keeping existing cache"
-                break ;;
-            [Ff]* )
-                echo -e "  ${INFO_MARK} ${BYellow}Clearing Datastream cache " \
-                        "(sudo may be required)...${Color_Off}"
-                rm -rf "${cache_dir:?}/"* 2>/dev/null || sudo rm -rf "${cache_dir:?}/"*
-                break ;;
-            * )
-                echo -e "  ${CROSS_MARK} ${BRed}Invalid choice. Please enter 'K' or 'F'.${Color_Off}" ;;
-        esac
-    done
+    echo -e "  ${ARROW} ${BCyan}Converting outputs to parquet...${Color_Off}"
+    if ${DOCKER_CMD} run --rm \
+        "${USERNS_ARGS[@]}" \
+        -v "$MODELS_RUNS_DIRECTORY:$TETHYS_PERSIST_PATH/ngiab_visualizer${VOLUME_SUFFIX}" \
+        --env TETHYS_SECRET_KEY="${TETHYS_SECRET_KEY:-conversion-only}" \
+        --entrypoint /usr/local/bin/ngiab-convert.sh \
+        "$image" \
+        --path "$final_path"; then
+        echo -e "  ${CHECK_MARK} ${BCyan}Outputs converted.${Color_Off}"
+    else
+        # Non-fatal: the app reads CSV too, so a failed conversion costs speed, not function.
+        echo -e "  ${WARNING_MARK} ${BYellow}Conversion failed; the run will be read as CSV.${Color_Off}"
+    fi
 }
-# Print URLs ordered by reliability for the current engine.
-#
-# Under rootless Podman on WSL the Windows browser doesn't reliably route
-# `localhost` (Windows resolves to ::1 but pasta only binds IPv4) and may not
-# route `127.0.0.1` either (depends on whether WSL2 localhostForwarding is
-# enabled on the Windows host). The host's non-loopback IPv4 always works.
-# Order: non-loopback IPs first, loopback after, with a note pointing users
-# at the most reliable choice for their setup.
+
+# Prepare a copied run for the visualizer.
+prepare_model_run() {
+    local final_path="$TETHYS_PERSIST_PATH/ngiab_visualizer/$(basename "$1")"
+    convert_run_outputs "$final_path"
+}
+
 print_visualization_urls() {
-    local app_path="/apps/ngiab"
+    # Single-app mode (MULTIPLE_APP_MODE false in conf/portal_config.yml) serves the app at
+    # the root; there is no /apps/<name>/ prefix to print.
+    local app_path=""
     local is_wsl=false
     grep -qi microsoft /proc/version 2>/dev/null && is_wsl=true
 
@@ -848,12 +636,9 @@ print_visualization_urls() {
     echo -e "${INFO_MARK} Access the visualization at:"
 
     if [ "${DOCKER_CMD}" = "podman" ]; then
-        # Default-route IP first -- always reachable from a Windows browser into WSL.
         if [ -n "$primary_ip" ] && [ "$primary_ip" != "127.0.0.1" ]; then
             echo -e "  ${ARROW} ${UBlue}http://${primary_ip}:${nginx_tethys_port}${app_path}${Color_Off}"
         fi
-        # Loopback -- works inside WSL, and from Windows only if
-        # localhostForwarding=true in .wslconfig.
         echo -e "  ${ARROW} ${UBlue}http://127.0.0.1:${nginx_tethys_port}${app_path}${Color_Off}  ${BWhite}(loopback)${Color_Off}"
         if [ "${is_wsl}" = true ]; then
             echo -e "  ${INFO_MARK} ${BWhite}On WSL+Podman, the host-IP URL above is the most reliable; localhost is intentionally not listed.${Color_Off}"
@@ -880,7 +665,6 @@ pause_script_execution() {
     done
 }
 
-
 print_usage() {
     echo -e "${BYellow}Usage: ${BCyan}viewOnTethys.sh [arg ...]${Color_Off}"
     echo -e "${BYellow}Options:${Color_Off}"
@@ -893,7 +677,6 @@ print_usage() {
     echo -e "${BCyan}  -t [tag]:${Color_Off} Specifies which container image tag of the visualizer to run."
     echo -e "${BCyan}  -y:${Color_Off} Immediately requests to import a data directory."
 }
-
 
 # Pre-script execution
 while getopts 'd:hi:nprt:y' flag; do
@@ -927,7 +710,6 @@ configure_container_engine
 if [ "$FLAGS_USED" == false ] && [ -n "$1" ]; then
     DATA_FOLDER_PATH="$1"
 fi
-
 
 # Main script execution
 $CLEAR_CONSOLE && clear
@@ -980,10 +762,6 @@ fi
 
 print_section_header "PREPARING VISUALIZATION ENVIRONMENT"
 
-# Load TEEHR warehouse path from runTeehr.sh's config file if set. Silent when
-# unset -- the visualizer treats "no warehouse configured" as a valid state.
-load_teehr_warehouse_path
-
 # If visualization directory is non-empty, offer a fresh start option
 prompt_fresh_start
 
@@ -995,15 +773,12 @@ if [ -n "$DATA_FOLDER_PATH" ]; then
         exit 1
     }
 
-    # Register the model run
-    add_model_run "$final_dir" || {
-        echo -e "${CROSS_MARK} ${BRed}Failed to register model run. Exiting.${Color_Off}"
+    prepare_model_run "$final_dir" || {
+        echo -e "${CROSS_MARK} ${BRed}Failed to prepare the model run. Exiting.${Color_Off}"
         exit 1
     }
+    echo -e "  ${INFO_MARK} ${BCyan}It appears in the visualizer's run picker once the portal is up.${Color_Off}"
 fi
-
-# Ask what to do with ~/.datastream_ngiab
-manage_datastream_cache
 
 print_section_header "LAUNCHING TETHYS VISUALIZATION"
 
@@ -1015,11 +790,7 @@ select_tethys_image_source || {
     exit 1
 }
 
-# Setup and run Tethys
-# check_for_existing_tethys_image || {
-#     echo -e "${CROSS_MARK} ${BRed}Failed to prepare Tethys image. Exiting.${Color_Off}"
-#     exit 1
-# }
+
 choose_port_to_run_tethys
 run_tethys || {
     echo -e "${CROSS_MARK} ${BRed}Failed to start Tethys container. Exiting.${Color_Off}"
@@ -1036,9 +807,9 @@ print_section_header "VISUALIZATION READY"
 
 echo -e "${BG_Green}${BWhite} Your model outputs are now available for visualization! ${Color_Off}\n"
 print_visualization_urls
-echo -e "${INFO_MARK} Login credentials:"
-echo -e "  ${ARROW} ${BWhite}Username:${Color_Off} admin"
-echo -e "  ${ARROW} ${BWhite}Password:${Color_Off} pass"
+# The portal runs open (ENABLE_OPEN_PORTAL), so the map needs no sign-in. The admin
+# account still exists for /admin/, which is why it is worth mentioning at all.
+echo -e "${INFO_MARK} Viewing needs no sign-in. Uploading or deleting a run does: sign in as ${BWhite}admin / pass${Color_Off} from the account card."
 echo -e "\n${INFO_MARK} Source code: ${UBlue}https://github.com/CIROH-UA/ngiab-client${Color_Off}"
 
 # Keep the script running
