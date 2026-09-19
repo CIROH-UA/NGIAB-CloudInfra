@@ -46,3 +46,5 @@ runs:
         platforms: linux/amd64,linux/arm64
         push: true
         tags: ${{ inputs.docker-tags }}
+        build-args: |
+          NGIAB_VERSION=${{ inputs.dockerfile-tag }}
