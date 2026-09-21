@@ -70,6 +70,9 @@ Interested in contributing? Please see our [contribution guide](05_CONTRIBUTE.md
 
 > This repository was originally forked from [AlabamaWaterInstitute/CloudInfra](https://github.com/AlabamaWaterInstitute/CloudInfra), which has now been  deprecated and archived.
 
+## Citing this software
+Arpita Patel, James Halgren, Zach Wills, et al. NextGen In A Box (NGIAB): Open-Source Containerization of the NextGen Framework to Enable Community-Driven Hydrology Modeling. Environmental Modelling & Software, page 106666, August 2025. ISSN 1364-8152. doi: 10.1016/j.envsoft.2025.106666. URL https://www.sciencedirect.com/science/article/pii/S1364815225003500.
+
 ## Sponsorship
 - NOAA Cooperative Institute for Research to Operations in Hydrology ([CIROH](https://ciroh.org))
 Project: CIROH: Community Water Model Infrastructure, Stewardship, and Integration (PI - Steven Burian)
