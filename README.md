@@ -44,7 +44,7 @@
   - To run the OWP-based image, use `./guide.sh -t owp-master`. See the [containers and guide scripts](./docs/03_01_CONTAINERS.md) documentation for more information.
 
 - **Documentation**: The [`docs/` folder](./docs/00_CONTENTS.md) contains information on all of the finer details that can help you get the most out of the contents of this repository.
-  - For broader ecosystem-wide documentation, please visit DocuHub at [docs.ciroh.org/products/ngiab](https://docs.ciroh.org/products/ngiab), where all of the information from this and other NGIAB repositories is mirrored.
+  - For broader ecosystem-wide documentation, please visit CIROH Hub at [hub.ciroh.org/docs/products/ngiab-ecosystem/](https://hub.ciroh.org/docs/products/ngiab-ecosystem/], where all of the information from this and other NGIAB repositories is mirrored.
 
 ### For development
 
