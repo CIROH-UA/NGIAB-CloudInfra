@@ -58,17 +58,9 @@
 Interested in contributing? Please see our [contribution guide](05_CONTRIBUTE.md) for more information.
 
 ## Contributors
-- Arpita Patel, Alabama Water Institute, CIROH (apatel54@ua.edu)
-- Benjamin Lee, Alabama Water Institute, CIROH (blee60@ua.edu)
-- Zach Wills, Lynker (zwills@lynker.com)
-- Nels Frazier, Lynker (nfrazier@lynker.com)
-- Josh Cunningham, Alabama Water Institute, CIROH (jcunningham8@ua.edu)
-- Gio Romero, Aquaveo (gromero@aquaveo.com)
-- Sam Lamont, RTI International (slamont@rti.org)
-- Matthew Denno, RTI International (mdenno@rti.org)
-- James Halgren, Alabama Water Institute, CIROH (jshalgren@ua.edu)
+See the [GitHub contributors graph](https://github.com/CIROH-UA/NGIAB-CloudInfra/graphs/contributors?all=1) for a list of contributors.
 
-> This repository was originally forked from [AlabamaWaterInstitute/CloudInfra](https://github.com/AlabamaWaterInstitute/CloudInfra), which has now been  deprecated and archived.
+> This repository was originally forked from [AlabamaWaterInstitute/CloudInfra](https://github.com/AlabamaWaterInstitute/CloudInfra), which has now been deprecated and archived.
 
 ## Citing this software
 Arpita Patel, James Halgren, Zach Wills, et al. NextGen In A Box (NGIAB): Open-Source Containerization of the NextGen Framework to Enable Community-Driven Hydrology Modeling. Environmental Modelling & Software, page 106666, August 2025. ISSN 1364-8152. doi: 10.1016/j.envsoft.2025.106666. URL https://www.sciencedirect.com/science/article/pii/S1364815225003500.
