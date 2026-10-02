@@ -54,6 +54,16 @@ generate_local_partition() {
   # the last line printed by the script is the number of partitions actually generated
   }
 
+write_run_metadata() {
+  mkdir -p outputs
+
+  {
+    echo "NGIAB Version: ${NGIAB_VERSION:-unknown}"
+    echo "ngen: $(cat /ngen/ngen_url 2>/dev/null || echo unknown)"
+    echo "t-route: $(cat /ngen/troute_url 2>/dev/null || echo unknown)"
+  } > outputs/run_metadata.txt
+}
+
 if [ "$2" == "auto" ]
   then
     echo "AUTO MODE ENGAGED"
@@ -78,6 +88,7 @@ if [ "$2" == "auto" ]
     fi
 
     mpirun -n $procs /dmod/bin/ngen-parallel $selected_catchment all $selected_nexus all $selected_realization $(pwd)/partitions_$procs.json
+    write_run_metadata
     echo "Run completed successfully, exiting, have a nice day!"
     exit 0
   else
@@ -139,6 +150,7 @@ command_status=$?
 
 # Set message color based on command status
 if [ $command_status -eq 0 ]; then
+    write_run_metadata
     color=$GREEN
     message="Finished executing command successfully."
 else
