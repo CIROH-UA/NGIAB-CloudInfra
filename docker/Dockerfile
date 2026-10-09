@@ -222,7 +222,7 @@ RUN cargo build --release
 
 
 FROM base AS final
-ARG pinned_python_packages="netCDF4==1.6.3 pydantic<2 pandas<3"
+ARG pinned_python_packages="netCDF4==1.6.3 pydantic<2 pandas<3 pyarrow==19.0.1"
 WORKDIR /ngen
 
 # Copy necessary files from build stages
