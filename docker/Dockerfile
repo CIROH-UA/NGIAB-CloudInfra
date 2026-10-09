@@ -4,7 +4,7 @@ FROM rockylinux:9.1 AS base
 ENV TROUTE_REPO=CIROH-UA/t-route
 ENV TROUTE_BRANCH=ngiab
 ENV NGEN_REPO=CIROH-UA/ngen
-ENV NGEN_BRANCH=ngiab
+ENV NGEN_BRANCH=develop-ngiab-upstream
 
 # Install final dependencies to make sure ngen is build and deployed with matching versions
 # Needed here for build caching
@@ -222,7 +222,7 @@ RUN cargo build --release
 
 
 FROM base AS final
-ARG pinned_python_packages="netCDF4==1.6.3 pydantic<2 pandas<3"
+ARG pinned_python_packages="netCDF4==1.6.3 pydantic<2 pandas<3 pyarrow==19.0.1"
 WORKDIR /ngen
 
 # Copy necessary files from build stages
