@@ -389,14 +389,14 @@ run_tethys() {
     echo -e "${ARROW} ${BWhite}Launching Tethys container...${Color_Off}"
 
     # First, make sure any existing Tethys containers are stopped
-    if ${DOCKER_CMD} ps -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
+    if [ -n "$(${DOCKER_CMD} ps -q -f name="$TETHYS_CONTAINER_NAME")" ]; then
         echo -e "  ${INFO_MARK} ${BYellow}Tethys container is already running. Stopping it first...${Color_Off}"
         ${DOCKER_CMD} stop "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1
         sleep 3
     fi
 
     # Final check - if container still exists, force removal
-    if ${DOCKER_CMD} ps -a -q -f name="$TETHYS_CONTAINER_NAME" >/dev/null 2>&1; then
+    if [ -n "$(${DOCKER_CMD} ps -a -q -f name="$TETHYS_CONTAINER_NAME")" ]; then
         echo -e "  ${WARNING_MARK} ${BYellow}Forcibly removing container...${Color_Off}"
         ${DOCKER_CMD} rm -f "$TETHYS_CONTAINER_NAME" >/dev/null 2>&1 || true
         sleep 2
