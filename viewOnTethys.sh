@@ -3,8 +3,8 @@
 # this fetches a pinned version of it so there is a single source of truth.
 set -euo pipefail
 
-VISUALIZER_REF="${VISUALIZER_REF:-v1.2.0}"
-VISUALIZER_SHA256="${VISUALIZER_SHA256:-c4aa5ebbff4a2ab3093044758add64dd221ffe7d244dce3b8ce949e0d3644a28}"
+VISUALIZER_REF="${VISUALIZER_REF:-v1.2.1}"
+VISUALIZER_SHA256="${VISUALIZER_SHA256:-275448e9ab1ba030569e3f755dd827ad3e843ca9021da840a8a1c4a65a1e510c}"
 URL="https://raw.githubusercontent.com/CIROH-UA/ngiab-client/${VISUALIZER_REF}/viewOnTethys.sh"
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/ngiab"
 SCRIPT="$CACHE_DIR/viewOnTethys-${VISUALIZER_REF//\//_}.sh"
