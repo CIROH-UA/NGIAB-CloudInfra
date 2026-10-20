@@ -44,7 +44,7 @@
   - To run the OWP-based image, use `./guide.sh -t owp-master`. See the [containers and guide scripts](./docs/03_01_CONTAINERS.md) documentation for more information.
 
 - **Documentation**: The [`docs/` folder](./docs/00_CONTENTS.md) contains information on all of the finer details that can help you get the most out of the contents of this repository.
-  - For broader ecosystem-wide documentation, please visit DocuHub at [docs.ciroh.org/products/ngiab](https://docs.ciroh.org/products/ngiab), where all of the information from this and other NGIAB repositories is mirrored.
+  - For broader ecosystem-wide documentation, please visit CIROH Hub at [hub.ciroh.org/docs/products/ngiab-ecosystem/](https://hub.ciroh.org/docs/products/ngiab-ecosystem/], where all of the information from this and other NGIAB repositories is mirrored.
 
 ### For development
 
@@ -58,17 +58,12 @@
 Interested in contributing? Please see our [contribution guide](05_CONTRIBUTE.md) for more information.
 
 ## Contributors
-- Arpita Patel, Alabama Water Institute, CIROH (apatel54@ua.edu)
-- Benjamin Lee, Alabama Water Institute, CIROH (blee60@ua.edu)
-- Zach Wills, Lynker (zwills@lynker.com)
-- Nels Frazier, Lynker (nfrazier@lynker.com)
-- Josh Cunningham, Alabama Water Institute, CIROH (jcunningham8@ua.edu)
-- Gio Romero, Aquaveo (gromero@aquaveo.com)
-- Sam Lamont, RTI International (slamont@rti.org)
-- Matthew Denno, RTI International (mdenno@rti.org)
-- James Halgren, Alabama Water Institute, CIROH (jshalgren@ua.edu)
+See the [GitHub contributors graph](https://github.com/CIROH-UA/NGIAB-CloudInfra/graphs/contributors?all=1) for a list of contributors.
 
-> This repository was originally forked from [AlabamaWaterInstitute/CloudInfra](https://github.com/AlabamaWaterInstitute/CloudInfra), which has now been  deprecated and archived.
+> This repository was originally forked from [AlabamaWaterInstitute/CloudInfra](https://github.com/AlabamaWaterInstitute/CloudInfra), which has now been deprecated and archived.
+
+## Citing this software
+Arpita Patel, James Halgren, Zach Wills, et al. NextGen In A Box (NGIAB): Open-Source Containerization of the NextGen Framework to Enable Community-Driven Hydrology Modeling. Environmental Modelling & Software, page 106666, August 2025. ISSN 1364-8152. doi: 10.1016/j.envsoft.2025.106666. URL https://www.sciencedirect.com/science/article/pii/S1364815225003500.
 
 ## Sponsorship
 - NOAA Cooperative Institute for Research to Operations in Hydrology ([CIROH](https://ciroh.org))
