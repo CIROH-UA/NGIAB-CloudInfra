@@ -6,36 +6,36 @@
 # ======================================================================
 
 # Color definitions with enhanced palette
-BBlack='\033[1;30m'
-BRed='\033[1;31m'
-BGreen='\033[1;32m'
-BYellow='\033[1;33m'
-BBlue='\033[1;34m'
-BPurple='\033[1;35m'
-BCyan='\033[1;36m'
-BWhite='\033[1;37m'
-UBlack='\033[4;30m'
-URed='\033[4;31m'
-UGreen='\033[4;32m'
-UYellow='\033[4;33m'
-UBlue='\033[4;34m'
-UPurple='\033[4;35m'
-UCyan='\033[4;36m'
-UWhite='\033[4;37m'
-Color_Off='\033[0m'
+BBlack=$'\033[1;30m'
+BRed=$'\033[1;31m'
+BGreen=$'\033[1;32m'
+BYellow=$'\033[1;33m'
+BBlue=$'\033[1;34m'
+BPurple=$'\033[1;35m'
+BCyan=$'\033[1;36m'
+BWhite=$'\033[1;37m'
+UBlack=$'\033[4;30m'
+URed=$'\033[4;31m'
+UGreen=$'\033[4;32m'
+UYellow=$'\033[4;33m'
+UBlue=$'\033[4;34m'
+UPurple=$'\033[4;35m'
+UCyan=$'\033[4;36m'
+UWhite=$'\033[4;37m'
+Color_Off=$'\033[0m'
 
 # Extended color palette with 256-color support
-LBLUE='\033[38;5;39m'  # Light blue
-LGREEN='\033[38;5;83m' # Light green
-LPURPLE='\033[38;5;171m' # Light purple
-LORANGE='\033[38;5;215m' # Light orange
-LTEAL='\033[38;5;87m'  # Light teal
+LBLUE=$'\033[38;5;39m'  # Light blue
+LGREEN=$'\033[38;5;83m' # Light green
+LPURPLE=$'\033[38;5;171m' # Light purple
+LORANGE=$'\033[38;5;215m' # Light orange
+LTEAL=$'\033[38;5;87m'  # Light teal
 
 # Background colors for highlighting important messages
-BG_Green='\033[42m'
-BG_Blue='\033[44m'
-BG_Red='\033[41m'
-BG_LBLUE='\033[48;5;117m' # Light blue background
+BG_Green=$'\033[42m'
+BG_Blue=$'\033[44m'
+BG_Red=$'\033[41m'
+BG_LBLUE=$'\033[48;5;117m' # Light blue background
 
 # Symbols for better UI
 CHECK_MARK="${BGreen}✓${Color_Off}"
@@ -228,19 +228,16 @@ if [ -z "$HOST_DATA_PATH" ]; then
     if [ -f "$CONFIG_FILE" ]; then
         LAST_PATH=$(cat "$CONFIG_FILE")
         echo -e "${INFO_MARK} Last used data directory: ${BBlue}$LAST_PATH${Color_Off}"
-        echo -ne "  ${ARROW} Use the same path? [Y/n]: "
-        read -e use_last_path
+        read -erp "  ${ARROW} Use the same path? [Y/n]: " use_last_path
         if [[ "$use_last_path" != [Nn]* ]]; then
             HOST_DATA_PATH=$LAST_PATH
             echo -e "  ${CHECK_MARK} Using previously configured path"
         else
-            echo -ne "  ${ARROW} Enter your input data directory path: "
-            read -e HOST_DATA_PATH
+            read -erp "  ${ARROW} Enter your input data directory path: " HOST_DATA_PATH
         fi
     else
         echo -e "${INFO_MARK} ${BYellow}No previous configuration found${Color_Off}"
-        echo -ne "  ${ARROW} Enter your input data directory path: "
-        read -e HOST_DATA_PATH
+        read -erp "  ${ARROW} Enter your input data directory path: " HOST_DATA_PATH
     fi
 fi
 
@@ -446,8 +443,7 @@ if [[ ![$CUSTOM_TAG_USED] ]]; then
                 break
                 ;;
             "Other...")
-                echo -ne "  ${ARROW} Enter your preferred image tag below: "
-                read -e NGEN_IMAGE_TAG
+                read -erp "  ${ARROW} Enter your preferred image tag below: " NGEN_IMAGE_TAG
                 break
                 ;;
             "Exit")
